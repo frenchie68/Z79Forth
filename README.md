@@ -14,6 +14,6 @@ none of this would have been possible!
 
 Known shortcomings of the current repository are as follows:
 - missing hardware schematics.
-- unfinished editor (see examples/lwvi.4th). Some extra work still is needed on the delete
+- unfinished editor (see SW/examples/lwvi.4th). Some extra work still is needed on the delete
   primitives.
   
