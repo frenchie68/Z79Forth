@@ -9,7 +9,7 @@ the GPL version 3 only applies to the assembly code. The schematics (which will 
 later) and the Forth source code are released in the public domain.
 
 "The 6309 Book" has been included in this distribution with the express assent of its author,
-Chris Burke--may he hereby thanked one more time for a great piece of work, without which
+Chris Burke--may he be hereby thanked one more time for a great piece of work, without which
 none of this would have been possible!
 
 Known shortcomings of the current repository are as follows:
