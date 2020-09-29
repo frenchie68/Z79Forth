@@ -38,7 +38,7 @@ DEBUG	0	NZ		If non-zero, extra validation code will be
 				used for producing production ROM images.
 				CAUTION: if SSDFEAT and RELFEAT are enabled
 				(see below), you will not be able to fit a
-				DEBUG image into an * KB EEPROM!
+				DEBUG image into an 8 KB EEPROM!
 CKOVRUN	0	NZ		Set this to a non-zero to check for overruns
 				in GETCH (see src/console.asm). Experimentally,
 				overruns have never been observed at 115200 bps.
