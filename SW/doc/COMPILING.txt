@@ -1,0 +1,91 @@
+Z79Forth is intended to be compiled with William Astle's LW Tools cross
+development tools. It is made publicly available for download at
+http://www.lwtools.ca/. The current version, as of this writing. is 4.17.
+
+The preferred development platform is Linux. The Makefile is the src
+directory assumes that lwasm is reachable somewhere in your PATH. By default
+it builds an Intel ihex ROM image and an LST file which can be extremely handy
+when debugging.
+
+When building a new image, be sure to have defined all the tunable parameters
+available in src/constants.asm. Of particular importance, with respect to the
+accuracy of the MS primitive, is the value of the MSLCNT constant, because
+it depends on the processor clock's frequency.
+
+Tunable Build Time Parameters Description
+-----------------------------------------
+Those are defined in src/constants.asm. They are:
+
+Name	Default	Alternative	Description
+CSSNTVE	0	NZ		Select 0 for a case insensitive implementation
+				or 1 for a case sensitive one. In case sensitive
+				mode, those digits encoded by a letter _must_
+				be entered as upper case. Be also aware that
+				all the predefined dictionary words are stored
+				in ROM as upper case characters.
+STRCT79	0	NZ		The 79-STANDARD definition of COMPILE assumes
+				a threaded implementation, i.e. one in which
+				each new word reference results in exactly
+				one cell (two bytes) to be added to the
+				dictionary. Z79Forth is a native Forth--most
+				words referenced when compiling will emit three
+				bytes of machine code. Set STRCT79 to 1 if you
+				want to omit the COMPILE word from the builtin
+				dictionary.
+DEBUG	0	NZ		If non-zero, extra validation code will be
+				added to the assembled .hex image. This is
+				most useful when developing but should not be
+				used for producing production ROM images.
+				CAUTION: if SSDFEAT and RELFEAT are enabled
+				(see below), you will not be able to fit a
+				DEBUG image into an * KB EEPROM!
+CKOVRUN	0	NZ		Set this to a non-zero to check for overruns
+				in GETCH (see src/console.asm). Experimentally,
+				overruns have never been observed at 115200 bps.
+USEDP	1	0		Use the direct page addressing mode whenever
+				extended addressing mode is requested and
+				the target address is in the appropriate range.
+				By default, that appropriate range is coded as
+				[VARSPC, VARSPC+$FF] where VARSPC is $100.
+				This particular RAM area contains most of the
+				essential global variables. Setting USEDP to
+				0 is not recommended in any way.
+SSDFEAT	1	0		Setting this tunable to 1 enables the 'symbolic
+				stack dump' feature. This will result in
+				priceless symbolic information to be displayed
+				by the error handler after a run time error has
+				occurred. A dump of the system stack will be
+				provided regardless of the value of this
+				tunable parameter since return addresses in
+				Z79Forth are stored in the system stack, as
+				opposed to the return stack in more traditional
+				implementations.
+				Only if SSDFEAT is non-zero will SwiftForth's .'
+				primitive be available in the dictionary.
+RELFEAT	1	0		Setting this tunable to a non-zero value
+				enables the 'reliability' feature. When the
+				feature is on, an extra byte is added to
+				every word in the dictionary. That byte is
+				statically defined to be $C7 (an illegal opcode)
+				for ROM resident words. For RAM resident words,
+				starting with the builtin @, it will hold a
+				CRC of the code section of the word it relates
+				to. Not all newly defined words are subject to
+				this treatment. : defined and CONSTANTs are by
+				default. CREATEd words may optionally be applied
+				the MONITOR suffix if the checksum is to be
+				computed after they have been defined. This
+				is reasonable to use if their contents is not
+				expected to change. An integrity check of the
+				monitored words can be triggered by resorting
+				to the ICHECK word.
+				Only if RELFEAT is non-zero will the MONITOR
+				and ICHECK primitives be available in the
+				dictionary.
+MSLCNT	994	794, any	This is a loop count used by the MS primitive.
+				994 is appropriate for a 5 MHz system operating
+				in 6309 native mode. 794 is appropriate for a 4
+				MHz system operating in 6309 native mode. Any
+				other value might be used as a result of a
+				calibration process.
+

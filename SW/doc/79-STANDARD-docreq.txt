@@ -1,0 +1,115 @@
+Z79Forth 79-STANDARD Compliance Document
+
+This whole implementation assumes that the Z79Forth reference board is used.
+Kicad 5 schematics and the corresponding PDF file are included in this
+distribution. The reference board may also be called the validated use case.
+
+1. System dictionary space
+--------------------------
+Z79Forth is designed to reside in ROM. System dictionary entries have
+intertwined dependencies that are such that, even if implemented in RAM,
+would not be fully independently forgettable. This is not considered
+an issue since predefined words can always be overridden by user defined
+words.
+
+The validated ROM use case uses an AT28C64B-15PU EEPROM (8 KB, 150ns access
+time, industrial temperature range). An AT28C64B-15PC might be used as an
+alternative in the consumer grade temperature range (0 to 70 degrees Celcius),
+although that part is difficult to source these days. Additional words can
+always be loaded from the mass storage device (see 5. below).
+
+Be aware that the data retention period of the AT28C64B is only guaranteed
+for 10 years. If you absolutely need to go to space with this, keep that in
+mind!
+
+2. Application dictionary space
+-------------------------------
+Upon system initialization, the ROM based flavor of '@' is relocated to
+SRAM, starting at the address WDICSPC (see constants.asm for details).
+
+In the validated use case, where a NEC 43256AC-10L SRAM (32KB, 100ns access
+time) is used, this leaves 32 KB minus the space used for buffer memory and
+system stack storage. 27 KB seems like a conservative estimation.
+
+3. Data stack
+-------------
+The data stack size is configurable through the NSTKSZ tunable parameter
+(defined in constants.asm) and expressed in bytes. It defaults to 192 (96
+cells). The upper limit is only constrained by the SRAM size.
+
+4. Return stack
+---------------
+The return stack size is configurable through the RSTKSZ tunable parameter
+(defined in constants.asm) and expressed in bytes. It defaults to 128
+(64 cells). The RPICKN implementation contraints it to be no higher than 254
+bytes. This puts an upper limit on the number of screens that can be chained
+through LOAD. For every chained screen, two cells will be stacked up on the
+return stack.
+
+5. Mass storage contiguous block quantity required
+--------------------------------------------------
+The mass storage device used by the Z79Forth reference board is a SanDisk
+CompactFlash device programmed in 8 bit mode. There is no minimum storage
+requirement. Z79Forth will work even in the absence of a CF card. The maximum
+number of addressable blocks is the full range of unsigned block numbers
+(64 MB).
+
+6. An operator's terminal
+-------------------------
+In the validated use case, this is provided by an HD63B50 ACIA whose base
+address is defined by ACIACTL and ACIADAT (see constants.asm).
+
+The default ACIA settings assume a 7.37280 MHz oscillator, divided by 4 through
+a pair of D type latches. The baud rate is further divided by 16 by chip
+configuration, thus resulting in a 115200 bps line rate (8N1 is also
+programmed).
+
+RTS/CTS flow control is implemented on input. IO is fully polled. Interrupts
+are not assumed to be wired at all.
+
+The preferred user interface to the ACIA is Minicom under Linux (other options
+might work as well, YMMV). An input line will be considered as terminated upon
+reception of a CR character (hex $0D). No extra LF (hex $0A) character is
+expected. The input processing routine provides support for cooked input.
+Supported control codes are:
+
+- backspace (^H) under the usual understanding of the word.
+- kill (^U) erasing all characters up to the beginning of the line, in a Unix
+  like manner.
+
+There is no support for other interactive flow control features (like ^S/^Q).
+However this can be mitigated by using ^A/ENTER, if using Minicom.
+
+In order to properly support multiple lines cut & paste, it is recommended to
+configure Minicom with ^AZTD to a 80 ms (or more) delay after newline. A
+setting of ^AZTF of 8 ms between characters may also be required in VT100
+insertion mode.
+
+If interfacing to the HD63B50 through an FTDI 232R module (as the Z79Forth
+reference board does) the following is worth keeping in mind about character
+based flow control:
+
+FTDI's FAQ (https://www.ftdichip.com/Support/FAQs.htm), under section "How does
+RTS/CTS flow control work in an FTDI chip?" states:
+
+"If CTS# is logic 1 it is indicating the external device cannot accept more
+data. the FTxxx will stop transmitting within 0~3 characters, depending on
+what is in the buffer.
+
+This potential 3 character overrun does occasionally present problems.
+Customers should be made aware the FTxxx is a USB device and not a "normal"
+RS232 device as seen on a PC. As such the device operates on a packet basis
+as opposed to a byte basis."
+
+In practice, this means that if you are using the Z79Forth reference board, you
+will not be able to use the KEY primitive in a "throttled" way. For instance,
+the following code is known not to work reliably:
+
+: getc key emit 1 ms ;
+: foo 6 0 do getc loop ;
+012345
+( Problem: 1 gets dropped!!! )
+
+If using Minicom, this can be mitigated by setting ^AZTD to 20 ms and
+^AZTF to 2 ms.
+

@@ -1,0 +1,63 @@
+\ [BENCHMARK] Basic repeater.
+: BENCHME ( xt n -- )
+  DUP >R 0 DO
+    DUP EXECUTE
+    [CHAR] . EMIT
+  LOOP
+  DROP CR R> . ." Iterations." ;
+
+DECIMAL
+1 CELLS CONSTANT CELL
+: CELL+ CELL + ;
+: CELL- CELL - ;
+
+VARIABLE SEED
+: INITIATE-SEED ( -- )  4931 SEED ! ;
+: RANDOM ( -- N )  SEED @ 613 * 5179 + 32767 AND DUP SEED ! ;
+1500 CONSTANT ELEMENTS
+CREATE LIST ELEMENTS CELLS ALLOT
+
+: INITIATE-LIST ( -- )
+  LIST ELEMENTS CELLS + LIST DO
+    RANDOM I ! CELL
+  +LOOP ;
+
+: DUMP-LIST ( -- )
+  CR LIST ELEMENTS CELLS + LIST DO
+    I @ 7 U.R SPACE CELL
+  +LOOP CR ;
+
+: MID ( l r -- mid ) OVER - 2/ CELL NEGATE AND + ;
+: EXCH ( addr1 addr2 -- ) OVER @ OVER @
+  SWAP ROT ! SWAP ! ;
+: PARTITION ( l r -- l r r2 l2 )
+  2DUP MID @ >R ( r: pivot )
+  2DUP BEGIN
+    SWAP BEGIN DUP @ R@ < WHILE CELL+ REPEAT
+    SWAP BEGIN R@ OVER @ < WHILE CELL- REPEAT
+    2DUP <= IF 2DUP EXCH >R CELL+ R> CELL- THEN
+    2DUP >
+  UNTIL R> DROP ;
+ 
+: QSORT ( l r -- )
+  PARTITION SWAP ROT
+  2DUP < IF RECURSE ELSE 2DROP THEN
+  2DUP < IF RECURSE ELSE 2DROP THEN ;
+ 
+: QUICK-SORT ( -- )
+  LIST ELEMENTS DUP 2 < IF
+    2DROP EXIT
+  THEN
+  1- CELLS OVER + QSORT ;
+
+: QUICK-SORT-BENCHMARK ( -- )
+  INITIATE-SEED
+  INITIATE-LIST
+  QUICK-SORT
+  ( DUMP-LIST ) ;
+
+FIND QUICK-SORT-BENCHMARK 50 BENCHME
+\ @ 3 MHz native: 50 rounds: 4m46s--5.74s per round
+\ @ 4 MHz native: 50 rounds: 3m34s--4.28s per round
+\ @ 5 MHz native: 50 rounds: 2m52s--3.44s per round
+

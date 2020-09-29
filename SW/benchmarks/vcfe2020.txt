@@ -1,0 +1,60 @@
+6502	@ 3 MHz native: 1 round: about 13m15s
+6502	@ 4 MHz native: 1 round: about 9m56s
+6502	@ 5 MHz native: 1 round: about 7m57s
+bitsincell	@ 3 Mhz native: 8m20s for 100 rounds--5s per round
+bitsincell	@ 4 Mhz native: 6m15s for 100 rounds--3.75s per round
+bitsincell	@ 5 Mhz native: 5m for 100 rounds--3s per round
+bubble	@ 3 MHz native: 4m31s
+bubble	@ 4 MHz native: 3m24s
+bubble	@ 5 MHz native: 2m43s
+collatz	@ 3 MHz native: 5m51s
+collatz	@ 4 MHz native: 4m23s
+collatz	@ 5 MHz native: 3m30s
+deliano	@ 3 Mhz native: 7m53s for 50 rounds--9.5s per round
+deliano	@ 4 Mhz native: 5m55s for 50 rounds--7.1s per round
+deliano	@ 5 Mhz native: 4m44s for 50 rounds--5.7s per round
+dfib1	@ 3 MHz native: 52s
+dfib1	@ 4 MHz native: 39s
+dfib1	@ 5 MHz native: 31.5s
+dfib1	@ 3 MHz native: 9m37s
+dfib1	@ 4 MHz native: 7m12s
+dfib1	@ 5 MHz native: 5m48s
+dfib1	@ 3 MHz native: 1h46m25s
+dfib1	@ 4 MHz native: 1h19m49s
+dfib1	@ 5 MHz native: 1h03m51s
+dupdrop	@ 3 MHz native: 6m03s for 100 rounds--3.63s per round
+dupdrop	@ 4 MHz native: 4m32s for 100 rounds--2.72s per round
+dupdrop	@ 5 MHz native: 3m38s for 100 rounds--1.88s per round
+fib2	@ 3 MHz native: 11m55s for 10 rounds--1m11.5s per round
+fib2	@ 4 MHz native: 8m57s for 10 rounds--53.7s per round
+fib2	@ 5 MHz native: 7m09s for 10 rounds--42.9s per round
+gcd1	@ 3 MHz native: 3m55.3s for 10 rounds--25.53s per round
+gcd1	@ 4 MHz native: 2m56.5s for 10 rounds--17.65s per round
+gcd1	@ 5 MHz native: 2m21s for 10 rounds--14.1s per round
+gcd2	@ 3 MHz native: 4m59s for 10 rounds--29.9s per round
+gcd2	@ 4 MHz native: 3m44s for 10 rounds--22.4s per round
+gcd2	@ 5 MHz native: 2m59s for 10 rounds--17.9s per round
+gcd3	@ 3 MHz native: 1m1s for 10 rounds--6.1s per round
+gcd3	@ 4 MHz native: 46s for 10 rounds--4.6s per round
+gcd3	@ 5 MHz native: 37s for 10 rounds--3.7s per round
+intcalc	@ 3 MHz native: 6m44s for 100 rounds--4.04s per round
+intcalc	@ 4 MHz native: 5m02s for 100 rounds--3.02s per round
+intcalc	@ 5 MHz native: 4m02s for 100 rounds--2.42s per round
+memmove	@ 3 MHz native: 7m00s for 250 rounds--1.68s per round
+memmove	@ 4 MHz native: 5m15s for 250 rounds--1.26s per round
+memmove	@ 5 MHz native: 4m12s for 250 rounds--1s per round
+nesting	@ 3 MHz native: 0m49s for 10 rounds--4.9s per round
+nesting	@ 4 MHz native: 0m37s for 10 rounds--3.7s per round
+nesting	@ 5 MHz native: 0m29s for 10 rounds--2.9s per round
+nesting	@ 3 MHz native: 26m06s for 10 rounds--2m37s per round
+nesting	@ 4 MHz native: 19m35s for 10 rounds--1m57s per round
+nesting	@ 5 MHz native: 15m40s for 10 rounds--1m34s per round
+qsort	@ 3 MHz native: 50 rounds: 4m46s--5.74s per round
+qsort	@ 4 MHz native: 50 rounds: 3m34s--4.28s per round
+qsort	@ 5 MHz native: 50 rounds: 2m52s--3.44s per round
+sieve	@ 3 MHz native: 3m45s--4.3s per round
+sieve	@ 4 MHz native: 2m49s--3.4s per round
+sieve	@ 5 MHz native: 2m15s--2.7s per round
+takeuchi	@ 3 MHz native: 0m55s for 200 rounds--0.28s per round
+takeuchi	@ 4 MHz native: 0m42s for 200 rounds--0.21s per round
+takeuchi	@ 5 MHz native: 0m33s for 200 rounds--0.17s per round
