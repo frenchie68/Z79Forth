@@ -2506,7 +2506,7 @@ SOURCE	fcb	6		ANSI (Core)
 	tfr	d,x
 @srcdon	jmp	NPUSH
 
-* This is a straightforward implementation borrowed from GNU Forth 'see /':
+* This is a straightforward implementation borrowed from GNU Forth 'see \':
 * : \  
 *   BLK @ 
 *   IF     >IN @ C/L / 1+ C/L * >IN ! EXIT 
