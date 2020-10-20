@@ -7,8 +7,8 @@
 * and the sdiff utility also were on my side all the time.
 *
 * Also credited for their help: Justin Poirier (seminal HW design), Daniel
-* Tufvesson (CompactFlash interface), Peter Forth (FB alias),
-* Paul E. Bennett and Michel Jean.
+* Tufvesson (CompactFlash interface), Peter Forth (FB alias), Paul E. Bennett
+* and Michel Jean.
 *
 * This is a native Forth. Not a threaded interpretive implementation.
 * Worth noticing is the fact that the return stack does not hold return
@@ -57,15 +57,15 @@
 * words, with the exception of VARIABLEs and CREATEd words. CREATEd words,
 * if subject to the MONITOR treatment will also carry a code section
 * checksum, although this is not the default behaviour. The checksum will
-* consist in an extra byte added to every words' header. MONITOR and ICHECK
+* consist in an extra byte added to every word's header. MONITOR and ICHECK
 * will only be available if the reliability feature has not been disabled
 * (see RELFEAT in constants.asm).
 *
 * Forth source code portability note:
 * Because Z79Forth does not use the return stack to store return addresses,
-* it makes it quite easy to write code that is not readily portable to
-* classic threaded interpretive implementations. The resulting code will be
-* simpler but portability will be limited.
+* it makes it quite easy to write code that is not readily portable to classic
+* threaded interpretive implementations. The resulting code will be simpler but
+* portability will be limited.
 *
 * Miscellaneous notes: RA stands for return address; EP for entry point.
 * CF is a shortcut for CompactFlash. TOS means top of the data/normal stack.
@@ -123,9 +123,11 @@ RFXT	MACRO	NOEXPAND
 	ENDM
 
 * Reliability feature support: variable word header contents.
+* This is a dummy checksum only used for EEPROM resident words.
+* Those never are checked for code integrity by MONITOR.
 RFCS	MACRO	NOEXPAND
 	IFNE	RELFEAT
-	fcb	ILLOPC
+	fcb	ILLOPC		Illegal opcode
 	ENDC
 	ENDM
 
@@ -133,7 +135,7 @@ RFCS	MACRO	NOEXPAND
 * RAM definitions. We cannot initialize globals from the assembly defs.
 * All we can do here is define addresses and size things up.
 
-* RAMSTART is 0. We leave page 0 as a bug proof area.
+* RAMSTART is 0. We leave page 0 unused as a bug proof area.
 * When compiled in debug mode, this area is filled with illegal
 * instruction opcodes ($C7).
 
@@ -625,7 +627,7 @@ NUMCVT	bsr	CKBASE		No return if BASE isn't in the [2..36] range
 	dec	,s		Are we done yet?
 	bne	@ncnxt		No. Iterate over to the next digit
 	tst	ISNEGF		Are we dealing with a negative number?
-	beq	@ncdone		No.
+	beq	@ncdone		No
 	negd			Acknowledge the negativity
 @ncdone	leas	1,s		Drop token length from the system stack
 	tfr	d,x		Return the result in X
@@ -647,7 +649,7 @@ CHKNDPT	cmpr	d,u
 	jsr	ERRHDLR		No return
 CKDPTRA	equ	*
 
-* Convert number stored in X to a string (depending on UBASE value).
+* Convert number stored in X to a string (depending on BASE value).
 * Output is stored in the global TBUFF buffer. X is preserved.
 CVNSTR	bsr	CKBASE
 	clr	ISNEGF
@@ -666,7 +668,7 @@ CVNSTR	bsr	CKBASE
 	lda	#'0
 	cmpb	#10
 	bcs	@cvnst3
-* Base has letters among its valid numbers.
+* BASE has letters among its valid numbers.
 	lda	#'A-10
 @cvnst3	addr	a,b
 	stb	,-y
@@ -1539,7 +1541,7 @@ RSTRCT	fcb	8		Non-standard (GNU Forth)
 * This non-standard word enables checkum monitoring by ICHECK for the
 * last defined word in the dictionary. : words are monitored by default
 * and so are constants. CREATEd words require an explicit invokation of
-* MONITOR if they are to checked for integrity.
+* MONITOR if they are to be checked for integrity.
 MONITOR	fcb	7
 	fcc	'MONITOR'	( -- )
 	fdb	RSTRCT
@@ -2523,7 +2525,7 @@ BKSLSH	fcb	$81		ANSI (Block Ext)
 	ldd	UTOIN		>IN @
 	andb	#^$3F		Point to the beginning of the line
 	addb	#$40		next line
-	adca	#0
+	adca	#0		Propagate potential carry from LSB
 	std	UTOIN		>IN !
 	rts			EXIT
 @comser	RFXT	bsr,SOURCE+9	XT for SOURCE
@@ -2934,7 +2936,7 @@ CVTB	fcb	2
 	fcc	'<#'
 	fdb	CVT
 	RFCS
-	jsr	CKBASE		Sanity check. Base can be altered at any time
+	jsr	CKBASE		Sanity check. BASE can be altered at any time
 	clr	PADBUF
 	rts
 
@@ -3802,8 +3804,8 @@ DOTTICK	fcb	2		Non-standard (SwiftForth)
 	jmp	PUTS
 	ENDC
 
-* Display an HEX dump of the data stack. In Leo Brodie's "Starting Forth"
-* the data stack is printed from the bottom up. So is it here.
+* Display a dump of the data stack in the current BASE. In Leo Brodie's
+* "Starting Forth" the data stack is printed from the bottom up. So it is here.
 DDUMP	fcb	2		ANSI (Optional "Programming tools" word set)
 	fcc	'.S'		( memaddr bcount -- )
 	IFNE	SSDFEAT
@@ -4169,7 +4171,7 @@ REALEND	equ	*
 BOOTMSG	fcb	FF		Form Feed (clear the screen in console context)
 	fcc	'Z79Forth - 6309 FORTH-79 Standard Sub-set.'
 	fcb	CR,LF
-	fcc	'20200929 Copyright Francois Laagel (2020).'
+	fcc	'20201018 Copyright Francois Laagel (2020).'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM0 check OK: 32 KB.'

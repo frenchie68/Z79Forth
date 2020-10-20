@@ -98,9 +98,9 @@ N/A
 2CONSTANT 2ROT 2VARIABLE D- D. D.R D= DMAX DMIN DU<
 
 Note:
-D. is not offered in the EEPROM image. However, UD. can be easily defined as:
+D. is not offered in the EEPROM image. However, DU. can be easily defined as:
 
-	: UD. <# #S #> TYPE ;
+	: DU. <# #S #> TYPE ;
 
 3 Reference Word Set
 --------------------
@@ -118,9 +118,9 @@ ERASE FLD H. IFEND IFTRUE LINELOAD LOADS MAP0 MASK
 NAND NOR NUMBER O. OFFSET OTHERWISE READ-MAP REMEMBER REWIND
 ROTATE S0 SET SP@ TEXT USER WHERE \LOOP
 
-Notes:
-[1] 1-! is not offered. But -! is, which surprisingly enough, not is scope of
-the 79-STANDARD specification.
+Note:
+1-! is not offered. But -! is, which surprisingly enough, not is scope of the
+79-STANDARD specification.
 
 4 FORTH-83 Words
 ----------------
