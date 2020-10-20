@@ -16,7 +16,7 @@ Main features are:
 + Mass storage support on SanDisk CompactFlash (up to 64 MB).
 + Interrupt free design.
 
-The software is licensed under the GNU Public License version 3 and is
+The software is licensed under the GNU General Public License version 3 and is
 available at https://github.com/frenchie68/Z79Forth. Kicad schematics are also
 provided over there.
 
