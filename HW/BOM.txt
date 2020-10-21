@@ -45,4 +45,5 @@ N/A		1	N/A	DIP20 wire wrap socket. Source: Ebay/Conrad.
 N/A		1	N/A	DIP24 wire wrap socket. Source: Ebay.
 N/A		2	N/A	Wide DIP28 wire wrap socket. Source: Ebay.
 N/A		1	N/A	DIP40 wire wrap socket. Source: Ebay.
+SDCFB-128	1	N/A	SanDisk 128 MB (or larger) CompactFlash card
 
