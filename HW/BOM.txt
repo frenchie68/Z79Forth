@@ -1,0 +1,48 @@
+All components are through-hole.
+
+Passive components:
+
+22 uF, 50V	1	C1	Electrolytic, 20%. Radial.
+100 nF, 63V	4	C2-C5	Polyester, 20%
+180 ohm		1	R1	1/4 W, 10%
+1 Mohm		1	R2	1/4 W, 10%
+10 Kohm		1	R3	1/4 W, 10%
+560 ohm		1	R4	1/4 W, 10%
+1 Kohm		1	R5	1/4 W, 10%
+8 x 10 Kohm	1	RN1	E.g. Bourns 4609X-101-103LF
+
+Semiconductors:
+
+Red LED 5mm	2	D1-D2	2.1 V, 10 mA. E.g. Multicomp Pro MCL053PD
+BS170		1	Q1	N channel MOSFET (Fairchild)
+7.37280 MHz CXO	1	Y1	DIP 8 osc. w/ 5V output. 13.2mm x 13.2mm.
+				E.g. Quantek QX8 series.
+20 MHz CXO	1	Y2	DIP 8 osc. w/ 5V output. 12.9mm x 12.9mm.
+				E.g. AEL Crystals 1210 series.
+CD74HCT74	2	U1-U2
+CD74HCT14	1	U3
+CD74HCT00	1	U4
+SN74HCT138	2	U5, U7
+CD74HCT21	1	U6
+HD63C09E	1	U8	Rated for 3 MHz. Works at 5. Source: Ebay.
+HD63B50		1	U9	The MC68B50 cannot be substituted. Source: Ebay.
+AT28C64B-15PU	1	U10	Atmel. 150 ns access time. Source: Ebay.
+D43256AC-10L	1	U11	NEC. 100 ns access time. Source: Ebay.
+CD74HCT245	1	U12
+
+Switches, sockets and miscellaneous:
+
+DPST-NO PB	1	SW1	6 x 6 mm.
+CN0022		1	J1	proto-avantage.com CompactFlash Type 2 adapter
+FT232RL		1	J2	az-delivery.com FTDI TTL serial to USB adapter
+1572096		1	N/A	Double Europe prototyping board. 233.4 mm x
+				160 mm (2.54 mm). 1572096 is a "TRU COMPONENTS"
+				commercial reference. Source: Conrad.
+N/A		2	N/A	DIP8 wire wrap socket. Source: Ebay.
+N/A		5	N/A	DIP14 wire wrap socket. Source: Ebay/Conrad.
+N/A		2	N/A	DIP16 wire wrap socket. Source: Ebay.
+N/A		1	N/A	DIP20 wire wrap socket. Source: Ebay/Conrad.
+N/A		1	N/A	DIP24 wire wrap socket. Source: Ebay.
+N/A		2	N/A	Wide DIP28 wire wrap socket. Source: Ebay.
+N/A		1	N/A	DIP40 wire wrap socket. Source: Ebay.
+
