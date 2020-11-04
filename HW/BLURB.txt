@@ -1,0 +1,108 @@
+Background:
+
+This project started back in December 2018, back when I somehow connected
+with the Forth community at large through a Facebook group. I was arguing
+about some technical aspect of the Forth laguage implementation on 8 bit
+microprocessors when my pride got challenged as not being truly qualified to
+speak about such a topic as an implementor. I straighten the matter out rather
+quickly by referring to a native Forth implementation I had written for the
+Tandy Radio Shack TRS-80 Model 1 (level II ROM), 35 years earlier. I do not
+recall precisely when I bought the model 1 but I do keep an invoice for
+Microsoft EDTASM+, an in-memory editor assembler with a debug facility.
+That invoice is from July 1982. Two years later or so, I had a more or less
+working implementation of what I thought was the Forth 79-STANDARD
+specification. Except that I did not have access to the standard specification.
+All I had was a cassette tape drive, 32 KB of RAM and a copy of Alain Pinaud's
+book "Programmer en Forth."
+
+I have had an interest in programming the Motorala 6809 processor for quite
+a long time and it had never materialized up until then. Browsing dedicated
+vintage hardware Facebook groups, I quickly discovered that my best processor
+choice would be the more recent Hitachi 6309E. The E stands for external clock,
+as opposed to a directly connected crystal. The 6309 can be used in a mode in
+which it is entirely compatible with the 6809. It is more readily available,
+it has an extended instruction set, it can be operated at a higher clock
+frequency and achieve substantially lower power consumption. Definitely a
+winner!
+
+By mid-February 2019, I had some basic hardware (EEPROM, RAM and ACIA) working
+and diagnostic software available. I developed the startup code and basic IO
+primitives as a replacement for those provided by the level II ROM of the
+TRS-80 model 1. The porting effort of my 1984 native Z80 Forth began one week
+later. Initially, I thought this would only be a matter of one week vacation
+time's work. It was not until about 18 months later that the software
+development effort was considered standard compliant and fully tested and
+debugged.
+
+Hardware development:
+
+All in all, I followed a modular and incremental design path. I started out
+with an external 5V power supply and proceeded to develop the clock circuitry.
+The ACIA (Asynchronous Comminucation Adapter) clocking design was a straight
+copy of what the Z-80 based RC2014 uses. A 7.37 MHz 5V CXO oscillator whose
+output is divided by 4 though a pair of D-type latches and fed to the ACIA
+(HD6350) RX and TX clock input pins. The very same structure is used for the
+CPU clock, with an initial oscillator frequency of 12 MHz because the HD63C09E
+is officially only rated for a 3 MHz clock frequency. However, further
+experiments later revealed that a base frequency of 16 or even 20 MHz (5 MHz
+CPU clock) were also possible.
+
+The 6809 requires two clock inputs: Q and E, E being ahead of Q by a 270 degree
+phase. The pre-inverted incarnations of those are collected on the appropriate
+outputs of U3 (CD74HCT74) and, combined with the CPU RW# output, are used to
+produce the active low RD# and WR# strobes (U3C/U4[ABD]). Those, in turn, are
+used to enable reading and writing from all other functional components of the
+system. This circuitry also produces the active high VMA (valid memory address)
+signal. VMA is used to enable the first stage address decoder U5 (SN74HCT138)
+whose outputs are active low. Each Y output of U5 maps to an 8 KB memory area.
+The overall memory map is mimicked after that of the Ultim809 by Matt Sarnoff.
+It turns out that that design itself was inspired by that of the Tandy Color
+Computer 3 (aka Coco3). It looks as follows:
+
+0000-7FFF	32 KB static RAM
+8000-BFFF	Optional RAM (paged in the Ultim809 design)
+C000-DFFF	IO space
+E000-FFFF	EEPROM space, including the interrupt vector table
+
+U6 (CD74HCT21) is a dual 4 input AND gate and half of it is used to decode the
+upper 32 KB static RAM addresses. U5's output Y7 enables EEPROM addressing.
+U5/Y6 enables the second stage address decoder U7 (SN74HCT138), which further
+divides the IO address space into eight 1 KB regions. Region 0 selects the
+CompactFlash device and region 6 the ACIA. Which leaves 6 decoded IO address
+lines available for further development.
+
+U5/Y6 is also used (after inversion) to generate the 'Enable' input to the
+HD6350 (the ACIA). Please note that unlike the MC6850, the HD6350 accepts both
+a clock or a strobe type of signal (active high) as an input for 'Enable.' The
+Z79Forth reference board uses the latter option.
+
+The reset circuitry is a basic RC network charging from the 5V power supply.
+The 6309 RESET# input has a builtin Schmitt trigger but I saw nothing that
+would hint as to a similar capability in the CompactFlash standard
+specification. Therefore the output of the RC network is connected to two
+cascaded CD74HCT14 inverters before being fed to the CF RESET# input.
+
+The EEPROM was the first operational component. Back then, the only sign of
+proper operation was a blinking LED indicating IO activity. Then came ACIA
+interfacing time. Further developments went into writing the basic IO
+primitives as the basis for a console BIOS. Finally RAM interfacing came into
+the foreground and from there on it was mostly a software project until I
+integrated the CompactFlash socket.
+
+[To be continued]
+Software Development:
+LWtool 4.17
+TL866II plus EEPROM programmer.
+
+Furthe Hardware Develoments:
+USB slave and power supply.
+CF socket interface.
+
+Furthe Software Development:
+the BLOCK/BUFFER API.
+
+Example Programs:
+
+Wrapping it all up:
+kicad schemetics, further hardware documentation.
+

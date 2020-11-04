@@ -1,8 +1,8 @@
 # Z79Forth
 This project has a hardware component and a software component.
 
-- hardware: an Hitachi 63C09 based single board computer, aka the "Reference
-  Z79Forth board."
+- hardware: an Hitachi 63C09 based single board computer, aka the "Z79Forth
+  Reference Board."
 - software: a 79-STANDARD sub-set implementation entirely written in assembly
   language.
 
@@ -12,7 +12,7 @@ schematics and the Forth source code are released in the public domain.
 
 "The 6309 Book" has been included in this distribution with the express assent
 of its author, Chris Burke--may he be hereby thanked one more time for a great
-\piece of work, without which none of this would have been possible!
+piece of work, without which none of this would have been possible!
 
 Known shortcomings of the current repository are as follows:
 
