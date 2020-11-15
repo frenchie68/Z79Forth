@@ -94,11 +94,11 @@ Software Development:
 LWtool 4.17
 TL866II plus EEPROM programmer.
 
-Furthe Hardware Develoments:
+Further Hardware Develoments:
 USB slave and power supply.
 CF socket interface.
 
-Furthe Software Development:
+Further Software Development:
 the BLOCK/BUFFER API.
 
 Example Programs:

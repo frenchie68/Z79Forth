@@ -63,14 +63,17 @@ CREATE RING  N 2+  ALLOT               ( array[1..N] of bytes )
     DUP I 1 COLOR DISPLAY
     HWAIT
   -1 +LOOP  DROP ;
+
 : MOVERIGHT ( size source_tower dest_tower -- )
   POS 1+  SWAP  POS 1+  DO
     DUP I 1- 1 BL DISPLAY
     DUP I 1 COLOR DISPLAY
     HWAIT
   LOOP DROP ;
+
 : TRAVERSE ( size source_tower dest_tower -- )
   2DUP >  IF MOVELEFT ELSE MOVERIGHT THEN ;
+
 : MOVE ( size source_tower dest_tower -- )
   -ROT 2DUP RAISE  >R 2DUP R> ROT TRAVERSE
   2DUP  RING + 1- C!  SWAP LOWER ;
@@ -84,17 +87,21 @@ CREATE RING  N 2+  ALLOT               ( array[1..N] of bytes )
     4DUP DROP  ROT 1+ -ROT  MOVE
     -ROT SWAP  RECURSE
   THEN ;
+
 : MAKETOWER ( tower -- )
   POS  4 N +  3 DO
     DUP I GOTOXY  [CHAR] | EMIT
   LOOP  DROP ;
+
 : MAKEBASE ( -- )
   0 N 4 + GOTOXY  N 6 * 3 +  0 DO
     [CHAR] - EMIT
   LOOP ;
+
 : MAKERING ( tower size -- )
   2DUP RING + 1- C!
   SWAP LOWER ;
+
 : SETUP ( -- ) PAGE
   N 1+ 0 DO  1 RING I + C!  LOOP
   3 0 DO  I MAKETOWER  LOOP

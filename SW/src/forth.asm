@@ -1028,6 +1028,25 @@ NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
 	fcn	'???'		Admit we have no clue!
 	ENDC			SSDFEAT
 
+* Print ' (xxxx/yyyy)' where xxxx is the hex representation for BLK @ and
+* yyyy is the hex representation for >IN @.
+PRBLKIN	ldx	#HEXBUF
+	lda	#SP
+	sta	,x+
+	lda	#'(
+	sta	,x+
+	ldd	UBLK
+	jsr	HDMP4
+	lda	#'/
+	sta	,x+
+	ldd	UTOIN
+	jsr	HDMP4
+	lda	#')
+	sta	,x+
+	clr	,x
+	ldx	#HEXBUF
+	jmp	PUTS
+
 * Handle error condition. Error code is in B.
 * If B is 2 (undefined) X points to a string of length CURTOKL that has the
 * offending word.
@@ -1049,7 +1068,8 @@ ERRHD1	cmpb	#2		Undefined symbol?
 @perrm	ldx	#ERRMTBL	Regular error handling
 @nxterr	tstb
 	bne	@skerrm
-	jsr	PUTS
+	jsr	PUTS		Print error message
+	bsr	PRBLKIN		Print BLK and >IN values (in hex)
 	jsr	PUTCR
 @dmptos	tfr	y,d		Dump top of the system stack contents
 	ldx	#HEXBUF
@@ -4171,7 +4191,7 @@ REALEND	equ	*
 BOOTMSG	fcb	FF		Form Feed (clear the screen in console context)
 	fcc	'Z79Forth - 6309 FORTH-79 Standard Sub-set.'
 	fcb	CR,LF
-	fcc	'20201018 Copyright Francois Laagel (2020).'
+	fcc	'20201115 Copyright Francois Laagel (2020).'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM0 check OK: 32 KB.'
