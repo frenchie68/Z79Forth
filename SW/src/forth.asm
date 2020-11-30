@@ -321,6 +321,11 @@ RAMOK	ldx	#RAMSTRT
 	jsr	PUTS
 	jsr	FORTHIN		Global variables initialization
 	jsr	CFINIT		CompactFlash card initialization
+	tst	CFCARDP
+	beq	INTERP
+* A CF card is present, LOAD block #1.
+	ldx	#1
+	jsr	LOAD1
 
 * The interpreter main loop.
 INTERP	clrd
@@ -3153,9 +3158,9 @@ LOAD	fcb	4		79-STANDARD (REQ202)
 	RFCS
 	jsr	NPOP
 	cmpr	0,x
-	bne	@ctnued
+	bne	LOAD1
 	rts			Block 0 is _not_ loadable
-@ctnued	pshs	x
+LOAD1	pshs	x
 	ldx	UBLK
 	jsr	RPUSH		Push BLK on the return stack
 	ldx	UTOIN
@@ -4191,7 +4196,7 @@ REALEND	equ	*
 BOOTMSG	fcb	FF		Form Feed (clear the screen in console context)
 	fcc	'Z79Forth - 6309 FORTH-79 Standard Sub-set.'
 	fcb	CR,LF
-	fcc	'20201115 Copyright Francois Laagel (2020).'
+	fcc	'20201123 Copyright Francois Laagel (2020).'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM0 check OK: 32 KB.'
