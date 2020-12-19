@@ -3435,9 +3435,11 @@ DIV1	MINDREQ	2
 	stw	,u
 	rts
 @div3	leau	2,u		Drop one cell from the data stack
-	ldf	DIVFCN
-	cmpf	#1
+	tfr	d,v		Backup the modulo
+	lda	DIVFCN
+	cmpa	#1
 	bne	@div4
+	tfr	v,d		Restore the modulo
 	std	,u		Function 1: return only the modulo
 	rts
 @div4	stw	,u		Function 2: return only the quotient
@@ -4196,7 +4198,7 @@ REALEND	equ	*
 BOOTMSG	fcb	FF		Form Feed (clear the screen in console context)
 	fcc	'Z79Forth - 6309 FORTH-79 Standard Sub-set.'
 	fcb	CR,LF
-	fcc	'20201123 Copyright Francois Laagel (2020).'
+	fcc	'20201219 Copyright Francois Laagel (2020).'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM0 check OK: 32 KB.'
