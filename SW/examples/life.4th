@@ -48,7 +48,7 @@ DECIMAL
 \ *************************************************************
 \ Variables and Constants
 \ *************************************************************
-VARIABLE seed  4931 seed !
+VARIABLE seed  23741 seed !
 16 CONSTANT cellwidth \ width in bits of a single cell
 
 VARIABLE adjacents

@@ -218,18 +218,20 @@ DECIMAL
 \ -------------------------------------------------------------
 \ WORD testing.
 
-: .COUNTEDSTRING CR COUNT TYPE [CHAR] . EMIT ;
+: .COUNTEDSTRING COUNT TYPE [CHAR] . EMIT CR ;
 CHAR " WORD "Schnaps, das war sein letztes Wort"
-.COUNTEDSTRING
+." #1 " .COUNTEDSTRING
 
 CHAR " WORD dann trugen ihn die Englein fort"
-.COUNTEDSTRING
+." #2 " .COUNTEDSTRING
 
+\ This cannot be tested from blocks.
 CHAR " WORD Schnaps das war sein letztes Wort
-.COUNTEDSTRING
+." #3 " .COUNTEDSTRING
 
+\ This cannot be tested from blocks.
 1 WORD
-.COUNTEDSTRING		( only . should be printed )
+." #4 " .COUNTEDSTRING		( only . should be printed )
 
 \ -------------------------------------------------------------
 \ KEY?, MS
@@ -298,4 +300,24 @@ TRUC			( A is output )
   LOOP 12 SPACES ;
 
 \ -------------------------------------------------------------
+\ EXIT optimization tests:
+: bar EXIT ;     \ Degenerate case, RTS is emitted twice.
+                 \ As is the case for any trailing EXIT during
+                 \ a word definition.
+
+: bar IF [CHAR] T EMIT EXIT ELSE [CHAR] F EMIT THEN [CHAR] . EMIT ;
+\ Some dead code is emitted by ELSE at the end of the IF branch.
+
+: bar if [CHAR] T EMIT EXIT ELSE [CHAR] F EMIT THEN ;
+\ Some dead code is emitted by ELSE at the end of the IF branch.
+
+: bar IF [CHAR] T EMIT EXIT THEN 
+  [CHAR] F EMIT ;
+\ Optimal code generation.
+
+: bar 10 0 DO I DUP . 7 = IF EXIT THEN LOOP ;
+\ Optimization does not apply.
+
+: bar 10 0 DO I DUP . 7 = IF [CHAR] * EMIT EXIT THEN LOOP ;
+\ Optimal code generation.
 

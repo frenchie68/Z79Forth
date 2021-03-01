@@ -1,3 +1,22 @@
+* Begin configuration tunable parameters.
+VT100	equ	0		Set to 1 to operate at RS232@9600
+*				This implies an Y1 CXO at 2.45760 MHz.
+*				Default is 0 for USB@115200 (7.37280 MHz CXO).
+CSSNTVE	equ	0		Words and HEX numbers are case sensitive if NZ
+DEBUG	equ	0		Enforce assertions and miscellaneous checks
+CKOVRUN	equ	0		Check for overruns in GETCH
+USEDP	equ	1		Set to 1 to use direct page addressing
+SSDFEAT	equ	1		Set to 1 to enable the symbolic stack dump feat.
+RELFEAT	equ	1		Set to 1 to enable the reliability feature
+*				Caution: when this is enabled, you can no
+*				longer fit a DEBUG image into an 8 KB EEPROM
+* Loop count for MS. This is busy waiting, so we depend on the CPU clock speed.
+*MSLCNT	equ	496		at 3 MHz emulation mode
+*MSLCNT	equ	662		at 4 MHz emulation mode
+*MSLCNT	equ	794		at 4 MHz native mode
+MSLCNT	equ	994		at 5 MHz native mode
+* End configuration tunable parameters.
+
 * Memory map.
 RAMSTRT	equ	$0000
 RAMSIZE	equ	$8000
@@ -28,7 +47,13 @@ ACRST	equ	11b		ACIA master reset
 ACD16	equ	01b		ACIA div 16
 * 28800 bps w. 7.37280 MHz oscillator, bps 9600 w. 2.45760 MHz oscillator.
 ACD64	equ	10b		ACIA div 64
-ACDVSEL	equ	ACD16		Selected divider value
+
+* ACIA divider tuning. USB@115200 or RS232@9600 for a real DEC terminal.
+	IFEQ	VT100
+ACDVSEL	equ	ACD16		Selected divider value (7.37280 MHz CXO)
+	ELSE
+ACDVSEL equ     ACD64		Switch to RS232@9600 (2.45760 MHz CXO)
+	ENDC
 
 AC8N1	equ	10100b		ACIA 8N1
 ACRTS0	equ	0000000b	ACIA RTS low
@@ -82,6 +107,7 @@ BMAPPD	equ	2		Block has been read from the CF device
 BDIRTY	equ	4		Block has been marked for update
 BLKSIZ	equ	2*CFSCSZ	Block size is 2 CF sectors (1 KB)
 * Buffer field offsets.
+BOTERM	equ	BLKSIZ		Base buffer to the 'terminator' field offset
 BOFLAGS	equ	BLKSIZ+1	Base buffer to the 'flag' field offset
 BOBLKNO	equ	BLKSIZ+2	Base buffer to the 'blknum' field offset
 
@@ -94,25 +120,8 @@ BS	equ	8		Backspace
 HT	equ	9		Horizontal tab
 LF	equ	$0A		aka new line
 CR	equ	$0D		Carriage return
-FF	equ	$0C		Form feed (clear screen)
 NAK	equ	$15		Control-U (kill)
 SP	equ	$20
-
-* Configuration tunable parameters.
-CSSNTVE	equ	0		Words and HEX numbers are case sensitive if NZ
-STRCT79	equ	0		Set to 1 to omit the COMPILE word
-DEBUG	equ	0		Enforce assertions and miscellaneous checks
-CKOVRUN	equ	0		Check for overruns in GETCH
-USEDP	equ	1		Set to 1 to use direct page addressing
-SSDFEAT	equ	1		Set to 1 to enable the symbolic stack dump feat.
-RELFEAT	equ	1		Set to 1 to enable the reliability feature
-*				Caution: when this is enabled, you can no
-*				longer fit a DEBUG image into an 8 KB EEPROM
-* Loop count for MS. This is busy waiting, so we depend on the CPU clock speed.
-*MSLCNT	equ	496		at 3 MHz emulation mode
-*MSLCNT	equ	662		at 4 MHz emulation mode
-*MSLCNT	equ	794		at 4 MHz native mode
-MSLCNT	equ	994		at 5 MHz native mode
 
 * Stack sizes.
 NSTKSZ	equ	192		Expressed in bytes. Now only limited by RAM size

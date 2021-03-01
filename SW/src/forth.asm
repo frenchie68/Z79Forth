@@ -30,7 +30,7 @@
 * BCSOPC	$2503	BCS *+5	(relative) Used in LOOP, +LOOP
 * BNEOPC	$2603	BNE *+5	(relative) Used in IF, UNTIL
 *
-* On error, the system stack pointer is reset. The return stack also is 
+* On error, the system stack pointer is reset. The return stack also is
 * but the data stack will be in the same state as when the error occurred.
 * ABORT and QUIT enforce their own 79-STANDARD behaviour.
 *
@@ -94,14 +94,18 @@ pragma	opt cd,operandsizewarning
 
 	include	constants.asm
 
-* Unchecked NPUSH. This is for situations in which there is
-* absolutely no chance of overflow. For instance, in case
-* we just popped 2 cells and push back one or two. This
-* always is inlined,
+* Unchecked NPUSH. This is for situations in which there is absolutely no
+* chance of overflow. For instance, in case we just popped 2 cells and push
+* back one or two.
 UCNPUSH	MACRO	NOEXPAND
 	pshu	x
 	ENDM
 
+* Unchecked NPOP. To be used only after trusted words have been invoked, i.e.
+* when one is positively sure that the data stack contains at least one cell.
+UCNPOP	MACRO	NOEXPAND
+	pulu	x
+	ENDM
 * Make sure minimum data stack requirements are satisfied upon word entry.
 * The requirement is expressed in cell size--2 bytes on the 6309.
 * \1 specifies the required number of cells.
@@ -149,6 +153,8 @@ LSTWAD	rmb	2		Last defined word header pointer--LAST
 DICEND	rmb	2		Current end of the dictionary--HERE
 BLSTWAD	rmb	2		Backup (was IX)
 BDICEND	rmb	2		Backup (was IY)
+PLOAD	rmb	2		Word payload if found by SWDIC
+FNDPLD	rmb	2		Last code payload reported by FIND
 RECADDR	rmb	2		Used by RECURSE
 JSRLAST	rmb	2		Last compilation address of #JSROPC
 VLPRVEP	rmb	2		Used in VLIST to compute word code length
@@ -391,35 +397,20 @@ COMP	jsr	SWDIC		Updates TOKENEP, CURTOKL, IMDFLG/DEFFLG
 	ldd	TOKENEP		Derive >IN from TOKENEP
 	subd	BSBFADR
 	std	UTOIN
-* Immediate word processing. We execute the word with an option to compile
-* an execution routine as well. This is achieved by allowing the callee to
-* set an 'action component' address that resides at 2,s in the context
-* of the (immediate) word being executed. Upon return, if that address is
-* found to be NZ, a JSR to that address will be compiled. This feature is
-* used in a number of words. DOES> is one of them.
-	clrd
-	pshs	d		Default action component address is none
-	ldx	#COMPLRA	Word is IMD. Invoke it. Maybe compile it too
+	ldx	#COMPLRA	Word is immediate. Execute it.
 	pshs	x		Return to COMPLRA
 	tfr	y,pc		An indirect call to Y
 COMPLRA	jsr	BKIN2PT		Derive input stream pointer from BLK, >IN
 	stx	TOKENEP
-	puls	d		Code address possibly set by IMD word
-	tstd
-	beq	INTRPRA		Word has no action component
-	tfr	d,y
+	bra	MORE		Branch back to the interpreter
 @notimd	tfr	y,x
-	ldy	DICEND
-	lda	#JSROPC		JSR extended
-	bsr	CHKRTS		Check if the final RTS can be omitted
-	jsr	VARCON2		Compile a JSR to the action component
-	sty	DICEND
-	bra	@cmpdon		Branch back to the interpreter
+	bsr	EMXASXT		Emit X as an execution token
+@cmpdon	ldx	TOKENEP
+	bra	MORE
 @cmpnum	jsr	NUMCVT
 NMCVCRA	equ	*
 	jsr	LITER
-@cmpdon	ldx	TOKENEP
-	bra	MORE
+	bra	@cmpdon
 
 * Check whether the final RTS can be eliminated. It can only be if we have no
 * forward references to HERE when COMPR (;) is invoked. This is a rather
@@ -437,6 +428,18 @@ CHKRTS	pshs	a
 	rts
 @ckrts1	inc	RTSREMV
 	bra	@ckrts0
+
+* Emit (in a code generation understanding) X as an execution token.
+* In essence, this simply inserts JSR <X> at HERE.
+* Note: this code provides support for trailing JSR elimination.
+* On input: X has the target execution token.
+* On output: Y will have HERE, A will be altered, X will be preserved.
+EMXASXT	ldy     DICEND
+	bsr	CHKRTS		Check if the final RTS can be omitted
+	lda	#JSROPC		JSR extended
+	jsr	VARCON2		Compile a JSR to the action component
+	sty	DICEND
+	rts
 
 * Store the HEX representation of the lower nibble of A to X+.
 HEX1D	pshs	b
@@ -534,6 +537,8 @@ FORTHIN	RFXT	jsr,NCLR+7	XT for NCLR. Set up the normal stack
 	clrd
 	std	USTATE		Initial mode is interpretation
 	std	USCR		Clear SCR
+	std	UBLK		Clear BLK
+	std	UTOIN		Clear >IN
 	RFXT	jmp,DECIMAL+10	XT for DECIMAL. Default base is decimal
 
 EMPTYB	ldx	#BUF0
@@ -541,9 +546,14 @@ EMPTYB	ldx	#BUF0
 	ldx	#BUF1
 * Empty the buffer pointed to by X.
 EMPT1B	stx	MRUBUFA		Update most recently used buffer address
-	leay	BLKSIZ+1,x
+	leax	BOTERM,x	Buffer offset to the terminator field
 	clrd
-	std	,y		Clear terminator and flags fields
+	std	,x		Clear terminator and flags fields
+	IFNE	DEBUG
+	ldd	#$C7C7
+	leax	2,x
+	std	,x		Dummy block number
+	ENDC
 	rts
 
 * Scan for the next non-space character pointed to by X.
@@ -643,7 +653,7 @@ NUMCVT	bsr	CKBASE		No return if BASE isn't in the [2..36] range
 	jsr	ERRHDLR		No return
 NUMCVRA	equ	*		For symbolic stack dump purposes
 
-* Check for minimal data depth. On input D has the lowest possible stack
+* Check for minimal data stack depth. On input D has the lowest possible stack
 * address that satisfies the needs of the caller. This routine is meant
 * to support "transactional" behaviour, which is intended to improve
 * debugging support.
@@ -701,10 +711,13 @@ CVNSTR	bsr	CKBASE
 * Important note: if the word is found TOKENEP will be copied to TOKENSP.
 SWDIC	ldx	TOKENSP
 	jsr	SCNETOK		B has CURTOKL
+	ldx	DICEND
+	stx	VLPRVEP		Last dictionary entry code address + 1
 	ldx	TOKENSP
 	ldy	LSTWAD		Latest word header address to Y
 @swrdc0	bne	@swrdc1
 	tfr	0,y		Word not found. Z is set
+	sty	PLOAD
 	rts
 @swrdc1	lda	,y		Word attribute to A
 	anda	#WRLNMSK	Extract word length
@@ -747,8 +760,12 @@ SWDIC	ldx	TOKENSP
 	ELSE
 	leay	2,y		Skip back pointer. Return XT
 	ENDC
-	rts			Z is clear due to the latest leay invocation
-@swrdc3	puls	y		Point to previous word in the dictionary
+	ldd	VLPRVEP
+	subr	y,d
+	std	PLOAD
+	rts			NZ since there is no zero payload word
+@swrdc3	puls	y		Point to previous word header
+	sty	VLPRVEP
 	clra
 	ldb	,y+
 	andb	#WRLNMSK
@@ -1003,14 +1020,10 @@ NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
 	fcn	'NMCVCRA'
 	fdb	INTRPRA		Interpreter RA (after the execution of a word)
 	fcn	'INTRPRA'
-	fdb	_INTERP		Interpreter actual active subroutine
-	fcn	'_INTERP'
 	fdb	COMPLRA		Compiler RA (after the execution of an IMD word)
 	fcn	'COMPLRA'
 	fdb	LWMNRA		Missing word name in LOCWRT
 	fcn	'LWMNRA'
-	fdb	WTOOLNG		Word length is too long
-	fcn	'WTOOLNG'
 	fdb	CFR1SRA		CF read one sector failed
 	fcn	'CFR1SRA'
 	fdb	NPUSH		Not an error RA but useful to have as a symbol
@@ -1023,8 +1036,6 @@ NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
 	fcn	'RPOP'
 	fdb	PUTS		Not an error RA but useful to have as a symbol
 	fcn	'PUTS'
-	fdb	BK2BBRA
-	fcn	'BK2BBRA'	Block BLK @ not mapped in INTERPRET
 	IFNE	DEBUG
 	fdb	LWAFRA		Assertion failure in LOCWRT
 	fcn	'LOCWRTAF'
@@ -1166,40 +1177,24 @@ RPOP	lda	RDEPTH		RDEPTH is expressed in cells
 	jsr	ERRHDLR		No return
 RPOPRA	equ	*
 
-* Derive a workable base buffer address from BLK and return it through X.
-* Update BSBFADR accordingly. The buffer in question is assumed to have been
-* mapped previously (through a call to BLOCK). An assertion failure will be
-* raised if that is not the case. W is preserved, Y is untouched.
-BLK2BB	pshsw
-	ldw	UBLK
-	bne	@bufadr
-	ldx	#CMDBUF		Base buffer address for the serial line
-	bra	@rslvd
-@bufadr	ldx	#BUF0		Buffer 0 base address
-	ldb	#2		Number of resident buffers
-@chkflg	lda	BOFLAGS,x	Buffer flags to A
-	anda	#BINUSE|BMAPPD
-	cmpa	#BINUSE|BMAPPD	Is this buffer in use and mapped in?
-	bne	@nxtbuf
-	cmpw	BOBLKNO,x	Is this the block we are looking for?
-	beq	@rslvd		Yes
-@nxtbuf	leax	BFDISP,x	Point to the next buffer
-	decb
-	bne	@chkflg
-@asfail	ldb	#10		Assertion failure
-	jsr	ERRHDLR		No return
-BK2BBRA	equ	*		For symbolic system stack debugging purposes
-@rslvd	stx	BSBFADR		Base buffer address is resolved through X
-	pulsw
-	rts
-
 * Derive the current input stream pointer from BLK and >IN.
-* Y and W are untouched. The resulting address is returned in X.
-* D is altered.	W is preserved, Y is untouched.
-BKIN2PT	bsr	BLK2BB		Retrieve buffer address based on BLK's value
+* The resulting address is returned in X. D is altered.
+* Both Y and W are preserved.
+BKIN2PT	ldx	UBLK
+	beq	@consol		We are switching back to the console
+	pshsw
+	pshs	y
+	bsr	NPUSH		Make sure BLK @ is loaded
+	RFXT	jsr,BLOCK+8	XT for BLOCK
+	puls	y
+	pulsw
+	UCNPOP			Retrieve buffer addr (to X)
+@done	stx	BSBFADR		Update base buffer address
 	ldd	UTOIN
 	leax	d,x		Add the current offset. Return the result via X
 	rts
+@consol	ldx	#CMDBUF
+	bra	@done
 
 	include	storage.asm
 
@@ -1225,7 +1220,7 @@ SAVBUF	fcb	12		79-STANDARD (REQ221)
 * The buffer will continue to be marked as "in use."
 * On input X has has the base buffer address. Both D and X
 * are preserved. Y is not.
-WBIFDRT	tfr	d,y
+WBIFDRT	pshs	d
 	pshs	x		Base buffer address (arg1 to CF1BKWR)
 	lda	#BINUSE|BDIRTY
 	anda	BOFLAGS,x
@@ -1237,10 +1232,10 @@ WBIFDRT	tfr	d,y
 	leas	2,s		Drop one cell from the system stack (blknum)
 	ldx	,s		Retrieve base buffer address
 	lda	BOFLAGS,x
-	anda	#^BDIRTY	Clear the dirty bit
+	anda	#^(BDIRTY|BMAPPD) Clear the dirty bit and force a re-read
 	sta	BOFLAGS,x	and update the 'flags' field
 @alldon	puls	x		Restore X
-	tfr	y,d		and D
+	puls	d		and D
 	rts
 
 FLUSH	fcb	5		79-STANDARD (REF)
@@ -1254,11 +1249,12 @@ UPDATE	fcb	6		79-STANDARD (REQ229)
 	fdb	FLUSH
 	RFCS
 	ldx	MRUBUFA		Most recently used buffer base address
-	lda	BOFLAGS,x	Buffer 'flags' field to A
+	leax	BOFLAGS,x	Buffer 'flags' field's address to X
+	lda	,x		Buffer 'flags' field to A
 	bita	#BINUSE		Is that buffer in use?
 	beq	@upddon		No, we're done here
 	ora	#BDIRTY
-	sta	BOFLAGS,x	Set the dirty bit
+	sta	,x		Set the dirty bit
 @upddon	rts
 
 BUFFER	fcb	6		79-STANDARD (REQ130)
@@ -1275,7 +1271,8 @@ BUFFER	fcb	6		79-STANDARD (REQ130)
 	beq	@nxtbuf		No
 	cmpy	BOBLKNO,x	Buffer is in use. Block number match?
 	bne	@nxtbuf		No
-@retba	UCNPUSH			Block number match. Return the base address
+@retba	stx	MRUBUFA		Block number match. Mark as the MRU buffer
+	UCNPUSH			and return its base address via the data stack
 	rts
 @nxtbuf	leax	BFDISP,x	Point to the next buffer
 	decb
@@ -1285,8 +1282,8 @@ BUFFER	fcb	6		79-STANDARD (REQ130)
 	cmpx	MRUBUFA		Most recently used buffer address
 	bne	@bselct
 	ldx	#BUF1
-@bselct	stx	MRUBUFA
-	pshs	y		Backup the target block number
+* At this point X has the base address of the block we are interested in.
+@bselct	pshs	y		Backup the target block number
 	jsr	WBIFDRT		Write back if dirty. X and D are preserved
 	lda	#BINUSE
 	sta	BOFLAGS,x	Update the buffers 'flags' field
@@ -1300,7 +1297,7 @@ BLOCK	fcb	5		79-STANDARD (REQ191)
 	RFCS
 	RFXT	bsr,BUFFER+9	XT for BUFFER
 * Upon return Y has has the block number.
-	jsr	NPOP		Buffer base address to X
+	UCNPOP			Buffer base address to X
 	pshs	x		Push base buffer address as Arg1 to CF1BKRD
 	lda	BOFLAGS,x	Retrieve buffer 'flags' field
 	IFNE	DEBUG
@@ -1310,8 +1307,8 @@ BLOCK	fcb	5		79-STANDARD (REQ191)
 	jsr	ERRHDLR		No return
 	ENDC
 @blkctd	anda	#BMAPPD		Has the block been read yet?
-	bne	@bkmapd		yes
-	pshs	y		no. Push block number as arg0 to CF1BKRD
+	bne	@bkmapd		Yes
+	pshs	y		No. Push block number as arg0 to CF1BKRD
 * Map in the block from the CF device. System stack structure is as follows:
 * ,s has the target block number.
 * 2,s has the buffer base address.
@@ -1319,9 +1316,10 @@ BLOCK	fcb	5		79-STANDARD (REQ191)
 	leas	2,s		Drop one cell from the system stack
 * Update the buffer flags field.
 	ldx	,s		Base buffer address
-	lda	BOFLAGS,x	Buffer 'flags' field to A
+	leax	BOFLAGS,x	Buffer 'flags' field address to X
+	lda	,x		Read buffer 'flags' field
 	ora	#BMAPPD
-	sta	BOFLAGS,x	Update buffer 'flags' field
+	sta	,x		and mark it as read
 @bkmapd	puls	x		Buffer base address to X
 	UCNPUSH
 	rts
@@ -1417,9 +1415,24 @@ LIST	fcb	4		79-STANDARD (REQ109)
 	bne	@lstlop
 	rts
 
+* Convert a single cell to a double. Non-transactional.
+STOD	fcb	3		ANSI Core ( n -- d )
+	fcc	'S>D'
+	fdb	LIST
+	RFCS
+	jsr	NPOP		N to X
+	UCNPUSH
+	tfr	x,d
+	tfr	0,x		Default to N >= 0
+	tsta
+	bmi	@argneg
+	bra	@stddon
+@argneg	leax	-1,x		N is < 0. Sign extension is required
+@stddon	jmp	NPUSH
+
 NCLR	fcb	4		Non-standard
 	fcc	'NCLR'		Clear the data (normal) stack
-	fdb	LIST
+	fdb	STOD
 	RFCS
 	ldu	#NSTBOT
 	rts
@@ -1468,8 +1481,7 @@ DOES	fcb	$C5		79-STANDARD (REQ168)
 	fdb	CREATE
 	RFCS
 	ldx	#DOESEX		JSR #DOESEX is compiled (no actual return)
-	stx	2,s		Set as action component
-	rts
+	jmp	EMXASXT		Set as action component
 
 DOESEX	ldx	LSTWAD		Header of the last dictionary entry
 	ldb	,x+
@@ -1496,15 +1508,15 @@ LITERAL	fcb	$87		79-STANDARD (REQ215)
 	fdb	DOES
 	RFCS
 	jsr	NPOP
-	lda	USTATE+1
-	beq	@nojoy		The standard defines no semantics in interp mode
+	tst	USTATE+1
+	bne	@comp
+	rts			The standard defines no semantics in interp mode
 @comp	ldy	DICEND
 	lda	#LDXOPC		LDX immediate
 	jsr	VARCON2		Compile LDX #X
 	sty	DICEND		Update HERE
 	ldx	#NPUSH
-	stx	2,s		Set NPUSH as action component
-@nojoy	rts
+	jmp	EMXASXT		Set NPUSH as action component
 
 * Functionally: : CONSTANT CREATE , DOES> @ ;
 * The following code produces more compact code.
@@ -1658,8 +1670,7 @@ DO	fcb	$C2		79-STANDARD (REQ142)
 	leax	3,x
 	jsr	RPUSH
 	ldx	#DOEX
-	stx	2,s		Set as action component
-	rts
+	jmp	EMXASXT		Set as action component
 
 DOEX	RFXT	jsr,SWAP+7	XT for SWAP
 	RFXT	jsr,TOR+5	XT for >R
@@ -1751,11 +1762,7 @@ UNLESS	fcb	$C6		Non-standard (Perl inspired)
 	fcc	'UNLESS'
 	fdb	IF
 	RFCS
-	IFNE	RELFEAT
-	ldx	#NULP+6		XT for 0=
-	ELSE
-	ldx	#NULP+5		XT for 0=
-	ENDC
+	RFXT	ldx,#NULP+5	XT for 0=
 	jsr	CMPCOM1
 	RFXT	bra,IF+5	XT for IF
 
@@ -1989,7 +1996,7 @@ INF	fcb	1		79-STANDARD (REQ139)
 	leax	1,x
 @inf1	UCNPUSH
 	rts
- 
+
 MAX	fcb	3		79-STANDARD (REQ218)
 	fcc	'MAX'
 	fdb	INF
@@ -2067,6 +2074,14 @@ EXIT	fcb	$C4		79-STANDARD (REQ117)
 	fdb	AGAIN
 	RFCS
 	ldx	DICEND
+	leax	-3,x
+	ldy	JSRLAST
+	cmpr	y,x
+	bne	@noopt		Tail JMP optimization is not possible
+	lda	#JMPOPC		JMP extended
+	sta	,x
+	rts
+@noopt	leax	3,x		Point back to HERE
 	lda	#RTSOPC		RTS inherent
 	sta	,x+
 	stx	DICEND
@@ -2197,7 +2212,7 @@ QUIT	fcb	4		79-STANDARD (REQ211)
 	RFCS
 	clr	USTATE+1
 	RFXT	jsr,RCLR+7	XT for RCLR
-	lds	#RAMSTRT+RAMSIZE Reset system stack pointer
+	lds	#RAMSTRT+RAMSIZE Reset the system stack pointer
 	jsr	PUTCR
 	jmp	INTERP
 
@@ -2221,6 +2236,8 @@ FIND	fcb	4		79-STANDARD (REQ203)
 	jsr	SCNSTOK
 	beq	@find1
 	jsr	SWDIC
+	ldd	PLOAD		Retrieve word payload
+	std	FNDPLD		Make it accessible through PAYLOAD
 	ldd	TOKENEP
 	subd	BSBFADR
 	std	UTOIN		Derive >IN from TOKENEP
@@ -2260,7 +2277,8 @@ BKCOMP	fcb	$C9		79-STANDARD (REQ179)
 	ldx	TOKENSP
 	ldb	#2		Undefined (X points to the offending word)
 	jsr	ERRHDLR		No return
-@bkcmp3	sty	2,s		Set as action component
+@bkcmp3	tfr	y,x
+	jsr	EMXASXT		Set as action component
 	ldd	TOKENSP		Updated by SWDIC if the word was found
 	subd	BSBFADR
 	std	UTOIN
@@ -2281,34 +2299,11 @@ POSTPON	fcb	$C8		ANSI (Core)
 	RFCS
 	RFXT	bra,BKCOMP+12	XT for [COMPILE]
 
-	IFEQ	STRCT79
-COMPILE	fcb	$47		79-STANDARD (REQ146)
-	fcc	'COMPILE'
-	fdb	POSTPON
-	RFCS
-* Return address points to 3 bytes of code (JSR <cfa>) to be inserted HERE and
-* to be skipped before returning to the caller. This is not permitted by a
-* strict interpretation of the 79-STANDARD, which only provides for a threaded
-* implementation (2 bytes payload). For all practical purposes, it works though.
-	puls	x
-	ldy	DICEND
-	lda	,x+		JSR opcode
-	sta	,y+
-	ldd	,x++
-	std	,y++
-	sty	DICEND
-	tfr	x,pc
-	ENDC
-
 * Like the 79-STANDARD COMPILE word, GNU Forth has this as a compile-only word.
 * This is a wise choice since it allows us to possibly optimize it.
 CMPCOMA	fcb	$48		ANSI (Core Ext)
 	fcc	'COMPILE,'	( XT -- )
-	IFNE	STRCT79
 	fdb	POSTPON
-	ELSE
-	fdb	COMPILE
-	ENDC
 	RFCS
 	jsr	NPOP		Execution token to X
 CMPCOM1	ldy	DICEND
@@ -2368,20 +2363,18 @@ COMPR	fcb	$C1		79-STANDARD (REQ196)
 	sta	,x+
 	ENDC
 	stx	DICEND		Update HERE
-	leas	4,s		Drop 2 cells from the system stack (see COMP)
 	IFNE	RELFEAT
 	RFXT	jsr,MONITOR+10	XT for MONITOR. All : words are candidates
 *				for integrity check by ICHECK.
 	ENDC
-	jmp	INTRPRA
+	rts
 
 RECURSE	fcb	$C7		FORTH-83
 	fcc	'RECURSE'
 	fdb	COMPR
 	RFCS
 	ldx	RECADDR		Set up by LOCWRT
-	stx	2,s		Set as action component
-	rts
+	jmp	EMXASXT		Set as action component
 
 FORGET	fcb	6		79-STANDARD (REQ196)
 	fcc	'FORGET'
@@ -2534,10 +2527,10 @@ SOURCE	fcb	6		ANSI (Core)
 @srcdon	jmp	NPUSH
 
 * This is a straightforward implementation borrowed from GNU Forth 'see \':
-* : \  
-*   BLK @ 
-*   IF     >IN @ C/L / 1+ C/L * >IN ! EXIT 
-*   THEN 
+* : \
+*   BLK @
+*   IF     >IN @ C/L / 1+ C/L * >IN ! EXIT
+*   THEN
 *   SOURCE >IN ! DROP ; IMMEDIATE
 * However since C/L (number of columns per line) is 64 (a power of 2), things
 * can be coded in a more compact manner as: >IN @ 63 COM AND 64 + >IN !
@@ -2563,52 +2556,48 @@ PSTR	fcb	$82		79-STANDARD (REQ133)
 	fcc	'."'
 	fdb	BKSLSH
 	RFCS
-	jsr	BKIN2PT		Derive input stream pointer from BLK, >IN
-	tst	,x+
-	beq	@pstr2		Met the end of the input stream before "
-	stx	TOKENSP		Beginning of string address
-@pstr1	lda	,x+
-	beq	@pstr2
-	cmpa	#'"
-	beq	@pstr3
-	bra	@pstr1
-@pstr2	ldb	#12		Missing delimiter
-	jsr	ERRHDLR		No return
-@pstr3	stx	TOKENEP		X points to the character following "
-	clr	-1,x		Overwrite the trailing " with NUL
-	tfr	x,d
-	subd	BSBFADR
-	std	UTOIN		Derive >IN from TOKENEP
+	RFXT	bsr,SQUOTE+5	XT for S"
 	tst	USTATE+1
-	bne	PSTRCMP
-	tfr	x,y		Y has TOKENEP
-	ldx	TOKENSP
-	jsr	PUTS
-	tfr	y,x
-@pstr4	lda	#'"
-	sta	-1,x		Restore the trailing "
-	rts
-PSTRCMP	ldy	DICEND		We are compiling
-	lda	#LDXOPC		LDX immediate
-	sta	,y+
-	leax	5,y
-	stx	,y++
+	bne	@pstcmp
+	RFXT	jmp,TYPE+7
+@pstcmp	RFXT	ldx,#TYPE+7
+	jmp	EMXASXT
+
+SQUOTE	fcb	$82		ANSI (Core)
+	fcc	'S"'
+	fdb	PSTR
+	RFCS
+	tst	USTATE+1
+	bne	@sqcmp
+	ldx	#'"		We are inperpreting
+	jsr	NPUSH
+	RFXT	jsr,WORD+7	XT for WORD
+	RFXT	jmp,COUNT+8	XT for COUNT
+@sqcmp	ldy	DICEND		We are compiling
 	lda	#JMPOPC		JMP extended
 	sta	,y+
-	pshs	y		Jump address beyond the string
-	leay	2,y
-	ldx	TOKENSP
-	ldd	TOKENEP
-	subr	x,d
-	tfr	d,w
-	tfm	x+,y+
+	pshs	y
+	leay	2,y		2 ALLOT
 	sty	DICEND
-	puls	x
-	sty	,x		Install JMP address
-	ldx	#PUTS
-	stx	2,s		Set as action component
-	ldx	TOKENEP
-	bra	@pstr4
+	ldx	#'"
+	jsr	NPUSH
+	RFXT	jsr,WORD+7	XT for WORD
+	jsr	NPOP
+	clra
+	ldb	,x		C@
+	leax	1,x		1+. Skip the byte count (X has HERE)
+	leax	d,x		Skip string length material
+	puls	y
+	stx	,y		Install jump address
+	leay	2,y		Counted string base address to Y
+	lda	#LDXOPC
+	sta	,x+
+	sty	,x++
+	stx	DICEND		Update HERE
+	ldx	#NPUSH
+	jsr	EMXASXT
+	RFXT	ldx,#COUNT+8	XT for COUNT
+	jmp	EMXASXT
 
 * Transactional behaviour is guaranteed here. What this means is that the
 * operation will preserve the data stack contents, should insufficient
@@ -2618,7 +2607,7 @@ PSTRCMP	ldy	DICEND		We are compiling
 * through the 6309 U register, resulting in better performance.
 DPLUS	fcb	2		79-STANDARD (REQ241)
 	fcc	'D+'		( d2 d1 -- d1+d2--signed )
-	fdb	PSTR		Initially ( L2 H2 L1 H1)
+	fdb	SQUOTE		Initially ( L2 H2 L1 H1)
 	RFCS
 	MINDREQ	4		Make sure we have at least 4 cells stacked up
 * At this point sufficient stack depth has been assessed. Let's rock and roll!
@@ -3053,8 +3042,8 @@ PAGE	fcb	4		79-STANDARD (REF)
 	fcc	'PAGE'
 	fdb	SPACES
 	RFCS
-	lda	#FF
-	jmp	PUTCH
+	ldx	#CSVT100
+	jmp	PUTS
 
 CRLF	fcb	2		79-STANDARD (REQ160)
 	fcc	'CR'
@@ -3142,14 +3131,16 @@ TERPRET	fcb	$49		79-STANDARD (REF) I make this compile time only
 	ldd	UBLK
 	bne	@notser
 	ldx	#CMDBUF		Base buffer address for serial line input
-	bra	@gocmd
+	bra	@rsolvd
 * BLK is NZ, map the block in memory.
 @notser	tfr	d,x		Block number to X
 	jsr	NPUSH
 	RFXT	jsr,BLOCK+8	XT for BLOCK. Map the block in
-	jsr	NPOP		Retrieve buffer address
+	UCNPOP			Retrieve buffer address (to X)
 * Note: >IN is supposed to have been set by the caller!
-@gocmd	stx	BSBFADR
+@rsolvd	stx	BSBFADR
+	ldd	UTOIN
+	addr	d,x
 	jmp	_INTERP		Finally invoke _INTERP.
 
 LOAD	fcb	4		79-STANDARD (REQ202)
@@ -3175,7 +3166,7 @@ LOAD1	pshs	x
 	stx	UTOIN		Restore >IN from the return stack
 	jsr	RPOP
 	stx	UBLK		Restore BLK from the return stack
-	jmp	BLK2BB		Update BSBFADR based on the new BLK value
+	jmp	BKIN2PT		Map BLK in (if needed) and update BSBFADR
 
 THRU	fcb	4		79-STANDARD (REF)
 	fcc	'THRU'		( lowblk highblk -- )
@@ -3183,15 +3174,15 @@ THRU	fcb	4		79-STANDARD (REF)
 	RFCS
 	jsr	NPOP
 	tfr	x,y		Y has highblk
-	jsr	NPOP		X has lowblk -- both are unsigned numbers
-@thrlop	cmpr	y,x
-	bls	@cont
+	jsr	NPOP		X has lowblk--both are unsigned numbers
+@thrlop	cmpr	x,y
+	bhs	@cont		Limit is >= to the loop index
 	rts
-@cont	UCNPUSH
-	pshs	x
+@cont	pshs	x,y		Backup loop parameters
+	UCNPUSH			Current block number to the data stack
 	RFXT	bsr,LOAD+7	XT for LOAD
-	puls	x
-	leax	1,x
+	puls	y,x		Retrieve loop parameters
+	leax	1,x		Iterate over to the next screen
 	bra	@thrlop
 
 NXTBLK	fcb	$83		79-STANDARD (REF131)
@@ -3244,13 +3235,16 @@ KEYP	fcb	4		ANSI (Facility)
 	RFCS
 	tfr	0,x
 	lda	#ACIRTS0
-	sta	ACIACTL
+	sta	ACIACTL		Assert RTS
+	ldx	#40
+	bsr	MILLIS1		Wait for 40 milliseconds
+* X is guaranteed to be 0 upon return from MILLIS1.
 	lda	#ACIRDRF
 	bita	ACIACTL
 	beq	@keyp1
-	leax	1,x
+	leax	1,x		Return the 79-STANDARD true flag
 @keyp1	lda	#ACIRTS1
-	sta	ACIACTL
+	sta	ACIACTL		Negate RTS
 	jmp	NPUSH
 
 KEY	fcb	3		79-STANDARD (REQ100)
@@ -3496,11 +3490,12 @@ SYSSTK	fcb	1		Non-standard
 	tfr	s,x
 	jmp	NPUSH
 
-WORDS	fcb	5		ANSI (Tools)
-	fcc	'WORDS'		( -- )
-	fdb	SYSSTK
+PAYLOAD	fcb	7		Non standard
+	fcc	'PAYLOAD'	( -- len ) where len is the code payload
+	fdb	SYSSTK		of the word located by FIND (or NULL)
 	RFCS
-	RFXT	bra,VLIST+8	XT for VLIST
+	ldx	FNDPLD		Code payload reported by FIND
+	jmp	NPUSH
 
 * Differences from the original code:
 * - display number in HEX rather than in the current base.
@@ -3511,7 +3506,7 @@ WORDS	fcb	5		ANSI (Tools)
 *   defined is forgettable (i.e. RAM resident).
 VLIST	fcb	5		Non-standard
 	fcc	'VLIST'		( -- )
-	fdb	WORDS
+	fdb	PAYLOAD
 	RFCS
 	ldx	DICEND
 	stx	VLPRVEP		Last word code address + 1
@@ -3522,7 +3517,7 @@ VLIST	fcb	5		Non-standard
 	pshs	b
 	andb	#WRLNMSK	Mask out word length
 	clra
-	pshs	b		Preserve word length 
+	pshs	b		Preserve word length
 	tfr	d,w
 	tfm	x+,y+
 	puls	a		Restore word length to A
@@ -4195,16 +4190,20 @@ REALEND	equ	*
 * String literals.
 
 * Using CR+LF as it is Minicom's default.
-BOOTMSG	fcb	FF		Form Feed (clear the screen in console context)
+
+* Clear the screen, VT100 style.
+CSVT100	fcb	$1B,'[','H',$1B,'[','J',CR,NUL
+
+BOOTMSG	fcb	$1B,'[','H',$1B,'[','J',CR
 	fcc	'Z79Forth - 6309 FORTH-79 Standard Sub-set.'
 	fcb	CR,LF
-	fcc	'20201219 Copyright Francois Laagel (2020).'
+	fcc	'20210228 Copyright Francois Laagel (2020).'
 	fcb	CR,LF,CR,LF,NUL
 
-RAMOKM	fcc	'RAM0 check OK: 32 KB.'
+RAMOKM	fcc	'RAM OK: 32 KB.'
 CRLFSTR	fcb     CR,LF,NUL
 
-RAMFM	fcc	'RAM0 check failure.'
+RAMFM	fcc	'RAM check failed.'
 	fcb     CR,LF,NUL
 
 OKPRMPT	fcc	' OK'

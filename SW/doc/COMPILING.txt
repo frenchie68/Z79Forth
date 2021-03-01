@@ -1,6 +1,6 @@
 Z79Forth is intended to be compiled with William Astle's LW Tools cross
 development tools. It is made publicly available for download at
-http://www.lwtools.ca/. The current version, as of this writing. is 4.17.
+http://www.lwtools.ca/. The current version, as of this writing, is 4.17.
 
 The preferred development platform is Linux. The Makefile is the src
 directory assumes that lwasm is reachable somewhere in your PATH. By default
@@ -23,15 +23,6 @@ CSSNTVE	0	NZ		Select 0 for a case insensitive implementation
 				be entered as upper case. Be also aware that
 				all the predefined dictionary words are stored
 				in ROM as upper case characters.
-STRCT79	0	NZ		The 79-STANDARD definition of COMPILE assumes
-				a threaded implementation, i.e. one in which
-				each new word reference results in exactly
-				one cell (two bytes) to be added to the
-				dictionary. Z79Forth is a native Forth--most
-				words referenced when compiling will emit three
-				bytes of machine code. Set STRCT79 to 1 if you
-				want to omit the COMPILE word from the builtin
-				dictionary.
 DEBUG	0	NZ		If non-zero, extra validation code will be
 				added to the assembled .hex image. This is
 				most useful when developing but should not be

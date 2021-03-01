@@ -2,7 +2,7 @@
 \ The bare minimum to be able to make sense of
 \ the generated code.
 
-HEX  9 CONSTANT tab
+BASE @  HEX  9 CONSTANT tab
 
 \ Insert a counted string into the dictionary
 : " [CHAR] " WORD C@ 1+ ALLOT ;
@@ -20,12 +20,13 @@ CREATE opc-table
 026 C,  1 C,  " bne"
 0C7 C,  0 C,  " illopc"         \ Illegal opcode (debug mode)
 0   C, -1 C,  " fcb"            \ End of table. Catchall option
+MONITOR
 
 : instr>opsize ( table-addr -- table-addr opsize ) DUP 1+ C@ ;
 : instr>source ( table-addr -- table-addr srcaddr ) DUP 2+ ;
 
 : opcode-lookup ( opcode -- table-addr )
-  >R  opc-table BEGIN
+  >R opc-table BEGIN
     DUP C@ 0=                   \ End of table?
     OVER C@ R@ = OR IF          \ Opcode match?
       R> DROP EXIT
@@ -33,12 +34,17 @@ CREATE opc-table
     2+ DUP C@ 1+ +              \ Point to the next record
   AGAIN ;
 
-: hdmp ( value nbytes -- ) 0 SWAP 0 <# DO # # LOOP #> TYPE ;
-
+: hdmp ( value nbytes -- ) BASE @ >R HEX
+  0 SWAP 0 <# DO # # LOOP #> TYPE  R> BASE ! ;
 : .tab tab EMIT ;
 : .src ( table-addr -- table-addr ) instr>source COUNT TYPE ;
 
-: dis ( nbytes -- ) FIND DUP ROT + SWAP DO
+: dis ( nbytes -- )
+  FIND ?DUP UNLESS
+    ." Undefined word" EXIT     \ Target word must exist
+  THEN
+
+  PAYLOAD SWAP DUP ( nbytes\addr\addr ) ROT + SWAP DO
     CR I 2 hdmp SPACE           \ Hex dump the address
     I C@ 1 hdmp                 \ Opcode hex dump
 
@@ -67,4 +73,6 @@ CREATE opc-table
     THEN
     DROP
   LOOP ;
+
+BASE !
 

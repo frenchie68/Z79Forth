@@ -6,19 +6,11 @@ https://www.complang.tuwien.ac.at/forth/fth79std/FORTH-79.TXT
 0. Important Restrictions
 -------------------------
 79-STANDARD specifies that BASE should accept values between 2 and 70
-inclusively. This implementation can be compiled to be case insensitive (and
-it is by default). Therefore valid values have been restricted to those
+inclusively. This implementation can be compiled to be case insensitive and
+it is, by default. Therefore valid values have been restricted to those
 accepted by the ANSI standard (i.e. {2..36}).
 
 User variables have no special status in Z79Forth, as it is not multitasking.
-
-'COMPILE', as specified by 79-STANDARD, implies a threaded implementation
-in which each newly compiled word will add exactly two bytes to the parameter
-field. Z79Forth is a native Forth, it has no parameter field whatsoever and
-the payload for each newly compiled word is actually 3 bytes. If this
-particular implementation aspect is deemed to be a problem, the dictionary
-can be configured to omit 'COMPILE' by setting STRCT79 to 1 at compilation
-time (see constants.asm).
 
 1. Required Word Set
 --------------------
@@ -65,12 +57,24 @@ as a builtin dictionary word. Its 79 equivalent is:
 
 1.3.1 Implemented
 -----------------
-+LOOP , ." : ; ALLOT BEGIN COMPILE CONSTANT CREATE DO DOES> ELSE FORGET IF
-IMMEDIATE LITERAL LOOP REPEAT STATE THEN UNTIL VARIABLE WHILE [ [COMPILE] ]
++LOOP , ." : ; ALLOT BEGIN CONSTANT CREATE DO DOES> ELSE FORGET IF IMMEDIATE
+LITERAL LOOP REPEAT STATE THEN UNTIL VARIABLE WHILE [ [COMPILE] ]
 
 1.3.2 Not Implemented
 ---------------------
-DEFINITIONS VOCABULARY
+COMPILE DEFINITIONS VOCABULARY
+
+Note: COMPILE is not offered because:
+- a stricly compliant 79-STANDARD implementation is not possible in a native
+  code implementation.
+- a semantically correct implementation is possible--and was, at some point in
+  time provided--but it happens to be incompatible with the tail JSR
+  optimization of Z79Forth.
+
+However, a superior alternative is possible by resorting to ANSI primitives.
+COMPILE <word> is equivalent to:
+
+	['] <word> COMPILE,
 
 1.4 Device Words
 ----------------
@@ -98,9 +102,9 @@ N/A
 2CONSTANT 2ROT 2VARIABLE D- D. D.R D= DMAX DMIN DU<
 
 Note:
-D. is not offered in the EEPROM image. However, DU. can be easily defined as:
+D. is not offered in the EEPROM image. However, UD. can be easily defined as:
 
-	: DU. <# #S #> TYPE ;
+	: UD. <# #S #> TYPE ;
 
 3 Reference Word Set
 --------------------
@@ -118,9 +122,9 @@ ERASE FLD H. IFEND IFTRUE LINELOAD LOADS MAP0 MASK
 NAND NOR NUMBER O. OFFSET OTHERWISE READ-MAP REMEMBER REWIND
 ROTATE S0 SET SP@ TEXT USER WHERE \LOOP
 
-Note:
-1-! is not offered. But -! is, which surprisingly enough, not is scope of the
-79-STANDARD specification.
+Notes:
+[1] 1-! is not offered. But -! is, which surprisingly enough, not is scope of
+the 79-STANDARD specification.
 
 4 FORTH-83 Words
 ----------------
@@ -128,8 +132,8 @@ CMOVE> RECURSE
 
 5 1994 ANSI draft 6 Words
 -------------------------
-\ ['] .S CELLS CHAR [CHAR] COMPILE, INVERT KEY? NIP POSTPONE SOURCE U> TUCK
-UNLOOP WITHIN WORDS
+\ ['] .S CELLS CHAR [CHAR] COMPILE, INVERT KEY? NIP POSTPONE S>D S" SOURCE U>
+TUCK UNLOOP WITHIN
 
 Note: KEY? U> and WITHIN return the 79-STANDARD version of true, i.e. 1.
 When porting code originally designed for an ANSI environment, the ANSI true
@@ -157,31 +161,38 @@ been disabled at compilation time (see SSDFEAT in constants.asm).
 
 8 Additional (non-standard) Words
 ---------------------------------
-0	( -- 0 ) a compact reference to the constant zero.
-1	( -- 1 ) a compact reference to the constant one.
-2	( -- 2 ) a compact reference to the constant two.
--!	( n addr -- ) substracts n from [addr] and stores the result back there.
+<=	( n1 n2 -- flag ) Necessary to be able to run the ORNL sieve benchmark.
+0	( -- 0 ) A compact reference to the constant zero.
+1	( -- 1 ) A compact reference to the constant one.
+2	( -- 2 ) A compact reference to the constant two.
+-!	( n addr -- ) Substracts n from [addr] and stores the result back there.
 -ROT	Equivalent to : -ROT ROT ROT ;
-BYE	resets the system.
-I'	returns the second item from the return stack.
-J'	returns the fourth item from the return stack.
-ICHECK	If the running EEPROM image was compiled with a non-zero RELFEAT
+BYE	Resets the system.
+I'	Returns the second item from the return stack.
+J'	Returns the fourth item from the return stack.
+ICHECK	( -- ) If the running EEPROM image was compiled with a non-zero RELFEAT
 	(see constants.asm), this word will walk through the dictionary linked
 	list and verify that the definition of every monitored word has not
 	been altered since it was defined. Monitored words are all words
 	defined by :, all constants and all CREATEd words to which MONITOR has
-	been applied. Note that you can, conceivably monitor, a VARIABLE but it
+	been applied. Note that you can, conceivably, monitor a VARIABLE but it
 	makes very little sense since the checksum would be computed at
-	MONITOR's execution time that and every subsequent ICHECK nvokation
+	MONITOR's execution time that and every subsequent ICHECK invokation
 	would fail if that variable's value was to be changed later on.
-MONITOR	If the running EEPROM image was compiled with a non-zero RELFEAT
+MONITOR	( -- ) If the running EEPROM image was compiled with a non-zero RELFEAT
 	(see constants.asm), this will compute the value of a byte checksum
 	and store it into the latest defined word's header. This works
 	similarly to the IMMEDIATE and RESTRICT words, in that it only applies
 	to the last defined word and will set a flag in that word's header.
-NCLR	resets the data stack.
-RCLR	resets the return stack.
-S	returns the contents of the system stack pointer (S).
+NCLR	Resets the data stack.
+PAYLOAD	( -- nbytes ) This primitive output is only relevant after an invokation
+	of FIND. It will retrieve a word's definition length (code section)
+	corresponding to the latest call of FIND. This word is of marginal
+	importance. However, it facilitates an implementation of the
+	disassembler in which that payload does not have to be specified
+	at DIS invokation time.
+RCLR	Resets the return stack.
+S	( -- sreg ) Returns the contents of the system stack pointer (S).
 UNLESS	Perl inspired. Functionally equivalent to:
-	: UNLESS COMPILE 0= [COMPILE] IF ; IMMEDIATE RESTRICT
+	: UNLESS ['] 0= COMPILE, [COMPILE] IF ; IMMEDIATE RESTRICT
 
