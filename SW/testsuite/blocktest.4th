@@ -164,7 +164,7 @@ VARIABLE seed  23741 seed !
     >R SWAP R> 0 DO                  \ c-addr h
       4 LSHIFT                       \ c-addr h<<=4
       SWAP C@++ ROT +                \ c-addr' h+=*s
-      DUP [ HEX ] F000 [ DECIMAL ] AND \ c-addr' h high=h&$F000
+      DUP $F000 AND                  \ c-addr' h high=h&$F000
       DUP IF                         \ c-addr' h high
         DUP >R 12 RSHIFT XOR R>      \ c-addr' h^=high>>12 high
       THEN                           \ c-addr' h high
@@ -393,7 +393,7 @@ TUF2-2A \ ." TUF2-2A "
 
 : TUF2-3 ( blk1 blk2 -- blk1 blk2 )     \ update blk1 and blk2
     TUF2-1 TUF2-2 ;
-T{ FIND TUF2-3 2RND-TEST-BLOCKS TUF2       \ run test procedure
+T{ FIND TUF2-3 2RND-TEST-BLOCKS TUF2    \ run test procedure
    2DROP 2= -> TRUE }T
 
 \ FLUSH and then UPDATE is ambiguous and untestable

@@ -80,8 +80,11 @@ Supported control codes are:
 There is no support for other interactive flow control features (like ^S/^Q).
 However this can be mitigated by using ^A/ENTER, if using Minicom.
 
+The recommended terminal size is 25 lines by 80 columns. DUMP assumes 80
+columns are available. LWVI only requires 18 lines by 64 columns.
+
 In order to properly support multiple lines cut & paste, it is recommended to
-configure Minicom with ^AZTD to a 80 ms (or more) delay after newline. A
+configure Minicom with ^AZTD to a 120 ms (or more) delay after newline. A
 setting of ^AZTF of 8 ms between characters may also be required in VT100
 insertion mode.
 
@@ -109,7 +112,4 @@ the following code is known not to work reliably:
 : foo 6 0 do getc loop ;
 012345
 ( Problem: 1 gets dropped!!! )
-
-If using Minicom, this can be mitigated by setting ^AZTD to 20 ms and
-^AZTF to 2 ms.
 

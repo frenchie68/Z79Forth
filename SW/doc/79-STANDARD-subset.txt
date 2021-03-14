@@ -114,6 +114,15 @@ D. is not offered in the EEPROM image. However, UD. can be easily defined as:
 --> .R 1+! 2* 2/ <> <CMOVE AGAIN BL BLANKS C, COM CONTINUED DUMP END FLUSH HEX
 I' INDEX INTERPRET K LAST LINE MS OCTAL PAGE SHIFT THRU U.R VLIST
 
+Note:
+FLUSH is implemented as a straight alias to SAVE-BUFFERS (i.e. the 79-STANDARD
+way), which means that the buffers remain assigned to blocks. However, the
+ANSI semantics of FLUSH mandate that all buffers should be unassigned. If this
+particular interpretation of FLUSH is considered desirable, it can be defined
+as:
+
+	: FLUSH SAVE-BUFFERS EMPTY-BUFFERS ;
+
 3.2 Not Implemented
 -------------------
 !BITS ** +BLOCK -' -MATCH -TEXT /LOOP 1-! ;: ;S <BUILDS >< >MOVE>
@@ -122,8 +131,8 @@ ERASE FLD H. IFEND IFTRUE LINELOAD LOADS MAP0 MASK
 NAND NOR NUMBER O. OFFSET OTHERWISE READ-MAP REMEMBER REWIND
 ROTATE S0 SET SP@ TEXT USER WHERE \LOOP
 
-Notes:
-[1] 1-! is not offered. But -! is, which surprisingly enough, not is scope of
+Note:
+1-! is not offered. But -! is, which surprisingly enough, not is scope of
 the 79-STANDARD specification.
 
 4 FORTH-83 Words
@@ -194,5 +203,20 @@ PAYLOAD	( -- nbytes ) This primitive output is only relevant after an invokation
 RCLR	Resets the return stack.
 S	( -- sreg ) Returns the contents of the system stack pointer (S).
 UNLESS	Perl inspired. Functionally equivalent to:
-	: UNLESS ['] 0= COMPILE, [COMPILE] IF ; IMMEDIATE RESTRICT
+	: UNLESS ['] 0= COMPILE, POSTPONE IF ; IMMEDIATE RESTRICT
+
+9 Extra (non-standard) Features
+-------------------------------
+Numeric literals can be prefixed by a character indicating the BASE in which
+they are to be interpreted/compiled. Please note that this is a straight prefix,
+in that if a minus sign is meant, it is to be placed after the BASE prefix.
+BASE prefix characters are:
+
+$	for hexadecimal.
+& or #	for decimal.
+@	for octal.
+%	for binary.
+
+Attention should be paid to the fact that, due to physical implementation
+constraints, CONVERT does not honor that convention.
 

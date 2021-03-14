@@ -1,0 +1,24 @@
+There are a number of gotchas when porting ANSI code to Z79Forth.
+
+- FIND exists in both but with different semantics.
+- MOVE exists in both but with different semantics. The ANSI MOVE operates
+  on the basis of a byte count; 79-STANDARD operates on cells.
+- The value returned by predicates for <TRUE> is different. ANSI and FORTH-83
+  have -1, whereas 79-STANDARD has 1.
+- PICK and ROLL arguments start at 1 in 79-STANDARD. They begin at 0 in ANSI
+  and FORTH-83.
+
+In general terms, it is a bad idea to redefine standard primitives and,
+by default, Z79Forth will provide no warning when a primitive is redefined.
+However, if such a feature is considered desirable, : can be redefined as:
+
+: :
+  >IN @
+  FIND IF
+    DUP >IN ! CR ." WARNING: " BL WORD COUNT TYPE
+    SPACE ." redefined"
+  THEN  
+  >IN !
+  :
+; IMMEDIATE
+

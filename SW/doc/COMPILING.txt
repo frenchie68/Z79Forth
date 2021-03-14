@@ -1,22 +1,33 @@
 Z79Forth is intended to be compiled with William Astle's LW Tools cross
 development tools. It is made publicly available for download at
-http://www.lwtools.ca/. The current version, as of this writing, is 4.17.
+http://www.lwtools.ca/. The current version, as of this writing, is 4.18.
 
 The preferred development platform is Linux. The Makefile is the src
 directory assumes that lwasm is reachable somewhere in your PATH. By default
-it builds an Intel ihex ROM image and an LST file which can be extremely handy
-when debugging.
+it builds an Intel ihex ROM image (SW/src/forth.hex using the default tunable
+parameters enumerated blow) and an LST file which can be extremely handy when
+debugging.
 
 When building a new image, be sure to have defined all the tunable parameters
 available in src/constants.asm. Of particular importance, with respect to the
 accuracy of the MS primitive, is the value of the MSLCNT constant, because
 it depends on the processor clock's frequency.
 
+If rebuilding the target image from the source code or after having changed
+some of the tunable parameters' value, Under no condition should the value
+of the AVL symbol be negative!
+
 Tunable Build Time Parameters Description
 -----------------------------------------
 Those are defined in src/constants.asm. They are:
 
 Name	Default	Alternative	Description
+VT100	0	NZ		Set to 1 to operate at RS232@9600.
+				This implies an Y1 CXO at 2.45760 MHz.
+				Default is 0 for USB@115200 (7.37280 MHz CXO).
+				This tunable does nothing more than select
+				an ACIA dividing factor of 64 instead of the
+				default 16.
 CSSNTVE	0	NZ		Select 0 for a case insensitive implementation
 				or 1 for a case sensitive one. In case sensitive
 				mode, those digits encoded by a letter _must_

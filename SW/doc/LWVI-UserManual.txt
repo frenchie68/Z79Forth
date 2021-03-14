@@ -1,0 +1,31 @@
+LWVI is a (partial and incomplete) implementation of Bill Joy's VI. It is
+written in Forth and can be found in the software distribution under
+Z79Forth/SW/examples/lwvi.4th. That code has not been blockified yet, as some
+very important features in the 'delete' department are still missing.
+
+Worth mentioning is the fact that this particular VI flavour was designed to
+operate on standard 1 KB Forth blocks. This leads to some quirks and
+limitations. In particular, JOIN and DOT are not supported. In essence, LWVI
+endeavours to maintain a consistent mapping between a screen visualized as 16
+lines by 64 characters and a 1 KB block.
+
+The whole thing was originally developed under GNU Forth and mate-terminal,
+which is believed to implement proper VT100 emulation. No esoteric features
+were used in the process. The actual target is Minicom 2.7.1 VT102 mode with
+BS mapped to BS. The ultimate reference, wrt. terminal programming can be found
+at https://vt100.net/docs/vt102-ug/.
+
+At any given time, LWVI operates operates in one of three modes:
+
+- command (the status bar at line 18 is blank).
+- insert (the status bar displays -- INSERT).
+- replace (the status bar displays -- REPLACE).
+
+The editor is invoked by:
+
+<blocknumber> EDIT
+
+The default mode on entry is the command mode. The insert mode is accessed
+by typing 'i'. the replace mode is accessed by typing 'R'. Both are exited
+by typing <ESC>.
+

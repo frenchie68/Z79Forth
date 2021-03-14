@@ -41,8 +41,9 @@
 * words are CMOVE> and RECURSE. See
 * http://forth.sourceforge.net/standard/fst83/FORTH-83.PRN
 *
-* \ ['] [CHAR] .S CELLS CHAR COMPILE, INVERT KEY? NIP POSTPONE SOURCE TUCK U>
-* UNLOOP and WITHIN have been borrowed from the ANSI draft 6 specification.
+* \ ['] [CHAR] .S CELLS CHAR COMPILE, INVERT KEY? NIP POSTPONE S>D S" SOURCE
+* TUCK U> * UNLOOP and WITHIN have been borrowed from the ANSI draft 6
+* specification.
 * See http://www.forth.org/svfig/Win32Forth/DPANS94.txt
 *
 * RESTRICT is non-standard. It comes from GNU Forth (VolksForth). The " OK"
@@ -106,6 +107,7 @@ UCNPUSH	MACRO	NOEXPAND
 UCNPOP	MACRO	NOEXPAND
 	pulu	x
 	ENDM
+
 * Make sure minimum data stack requirements are satisfied upon word entry.
 * The requirement is expressed in cell size--2 bytes on the 6309.
 * \1 specifies the required number of cells.
@@ -171,6 +173,7 @@ BSBFADR	rmb	2		Base buffer address for the input stream
 	IFNE	DEBUG
 CCREG	rmb	2		A DEBUG variable for predicates (see CMP2)
 	ENDC
+BASBKUP	rmb	1		BASE backup when a base prefix is in use
 CMDLNSZ	rmb	1		Entered character count in GETS (INTERP)
 RDEPTH	rmb	1		Return stack depth in cells
 IRDPTH	rmb	1		Return stack depth when : was last invoked
@@ -523,9 +526,7 @@ FORTHIN	RFXT	jsr,NCLR+7	XT for NCLR. Set up the normal stack
 	ENDC
 * Relocate '@' code to RAM and set it up as the last dictionary entry (RO).
 	ldx	#THEEND		Source address for tfm
-	ldd	#REALEND
-	subr	x,d
-	tfr	d,w		Byte count for tfm
+	ldw	#(REALEND-THEEND) Byte count for tfm
 	ldy	#WDICSPC	Destination address for tfm
 	sty	LSTWAD
 	tfm	x+,y+
@@ -586,6 +587,41 @@ SCNETOK	clrb
 	stb	CURTOKL
 	rts
 
+* Check for numeric literal BASE prefix. On entry X has the input stream
+* pointer. On exit, BASE is altered if needed and the original BASE saved
+* to BASBKUP. If BASE was not changed, BASBKUP will be zero.
+* D is altered, X is updated if a BASE prefix is detected, other registers
+* are untouched.
+CKNBPFX	ldb	,x		B has a potential base prefix character
+	pshs	x
+	ldx	#BASALST	A associative list (A-list) of BASE prefixes
+@pflkup	lda	,x++		Potential BASE prefix character to A
+	beq	@nopfix		Reached the end of the A-list. No prefix found
+	cmpr	b,a		Prefix match?
+	beq	@pfxfnd		Yes
+	bra	@pflkup
+@nopfix	clr	BASBKUP		Nothing to be restored to BASE
+	puls	x
+	rts
+@pfxfnd	lda	UBASE+1
+	sta	BASBKUP		Back up the current BASE value
+	lda	-1,x		The BASE specified by the prefix
+	sta	UBASE+1		Update BASE
+	puls	x
+	leax	1,x		Skip the prefix from the input stream
+* The following is not especially pretty since we are altering system
+* stack contents owned by the caller. Yet it remains conducive to
+* compact code. With only one byte of EEPROM left, I think this is legit.
+	dec	2,s		Decrement the stacked up flavour of CURTOKL
+	rts
+
+* Restore BASE if a numeric literal BASE prefix was detected.
+* X is to be preserved at all cost!
+RSBSPFX	lda	BASBKUP
+	beq	@theend
+	sta	UBASE+1
+@theend	rts
+
 * Check whether BASE is in the supported range ([2..36]).
 CKBASE	lda	UBASE+1		BASE
 	cmpa	#2
@@ -606,18 +642,19 @@ CKBASRA	equ	*
 * This a re-implementation based on CONVERT but unlike CONVERT, which produces
 * an unsigned double as its output, this produces a signed single cell.
 NUMCVT	bsr	CKBASE		No return if BASE isn't in the [2..36] range
-	ldx	TOKENSP
 	lda	CURTOKL		Character count to go through
 	pshs	a
-	clrd			Initialize the result
-	sta	ISNEGF		Assume it be be non-negative
+	clr	ISNEGF		Assume the result is positive
+	ldx	TOKENSP
+	bsr	CKNBPFX		Check for numeric literal BASE prefix
 * Check for optional minus sign.
-	ldf	,x
-	cmpf	#'-
-	bne	@ncnxt
+	lda	,x
+	cmpa	#'-
+	bne	@ncini
 	inc	ISNEGF		Remember to negate the result before returning
 	leax	1,x		Skip the negativity!
 	dec	,s		Decrement token length
+@ncini	clrd			Initialize the result
 @ncnxt	muld	UBASE		D multipled by BASE to Q (D:W)
 	ldb	,x+		Acquire next input char (ignore the product MSC)
 	subb	#'0
@@ -646,6 +683,7 @@ NUMCVT	bsr	CKBASE		No return if BASE isn't in the [2..36] range
 	negd			Acknowledge the negativity
 @ncdone	leas	1,s		Drop token length from the system stack
 	tfr	d,x		Return the result in X
+	bsr	RSBSPFX		Restore BASE if needed
 	rts
 @ncoor	leas	1,s		Drop token length from the system stack
 	ldx	TOKENSP		Current digit is out of range
@@ -1231,9 +1269,10 @@ WBIFDRT	pshs	d
 	bsr	CF1BKWR		Write data buffer to CF
 	leas	2,s		Drop one cell from the system stack (blknum)
 	ldx	,s		Retrieve base buffer address
-	lda	BOFLAGS,x
-	anda	#^(BDIRTY|BMAPPD) Clear the dirty bit and force a re-read
-	sta	BOFLAGS,x	and update the 'flags' field
+	leax	BOFLAGS,x
+	lda	,x		Acquire the 'flags' field
+	anda	#^BDIRTY	Clear the dirty bit
+	sta	,x		and update the 'flags' field
 @alldon	puls	x		Restore X
 	puls	d		and D
 	rts
@@ -1755,9 +1794,7 @@ IFEX	jsr	NPOP
 	rts
 
 * Functionally equivalent to:
-* (ANSI) : UNLESS ['] 0= COMPILE, POSTPONE IF ; IMMEDIATE RESTRICT
-* or
-* (old style) : UNLESS COMPILE NOT [COMPILE] IF ; IMMEDIATE RESTRICT
+* UNLESS ['] 0= COMPILE, POSTPONE IF ; IMMEDIATE RESTRICT
 UNLESS	fcb	$C6		Non-standard (Perl inspired)
 	fcc	'UNLESS'
 	fdb	IF
@@ -4197,7 +4234,7 @@ CSVT100	fcb	$1B,'[','H',$1B,'[','J',CR,NUL
 BOOTMSG	fcb	$1B,'[','H',$1B,'[','J',CR
 	fcc	'Z79Forth - 6309 FORTH-79 Standard Sub-set.'
 	fcb	CR,LF
-	fcc	'20210228 Copyright Francois Laagel (2020).'
+	fcc	'20210314 Copyright Francois Laagel (2020).'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB.'
@@ -4211,7 +4248,7 @@ OKPRMPT	fcc	' OK'
 
 * Error messages for IODZHDL.
 IOPERRM	fcn	'Illegal opcode near '
-DV0ERRM	fcn	'Division by zero near '
+DV0ERRM	fcn	'Division by 0 near '
 
 ERRMTBL	fcn	'Data stack overflow'	Error 0
 	fcn	'Data stack underflow'	Error 1
@@ -4232,7 +4269,21 @@ ERRMTBL	fcn	'Data stack overflow'	Error 0
 	fcn	'Word name too long'	Error 16
 	fcn	'IO error'		Error 17
 
-AVL	equ	*		Marker of available EEPROM space left
+* A-list used for numeric literal base prefixes.
+BASALST	fcc	'$'		Hexadecimal prefix
+	fcb	16
+	fcc	'&'		Decimal prefix
+	fcb	10
+	fcc	'#'		Decimal prefix (an ANSI concession)
+	fcb	10
+	fcc	'%'		Binary prefix
+	fcb	2
+	fcc	'@'		Octal prefix
+	fcb	8
+	fcb	0		End of list marker
+
+* Under no circumstance should the following symbol be negative!
+AVL	equ	VECTBL-*	Available EEPROM space left
 
 *******************************************************************************
 * Interrupt vector table
