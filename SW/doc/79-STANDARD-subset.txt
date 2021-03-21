@@ -36,9 +36,7 @@ U* U/
 # #> #S ( -TRAILING . <# >IN ? ABORT BLK BASE CONVERT COUNT CR DECIMAL EMIT
 EXPECT FIND HERE HOLD KEY PAD QUIT SIGN SPACE SPACES TYPE U. WORD
 
-Note: CONVERT is a strictly unsigned business. It will only be included if
-HVCONV is defined as a non-zero number in SW/src/constants.asm. This is not
-the case by default.
+Note: CONVERT is a strictly unsigned business.
 
 1.2.1 Not Implemented
 ---------------------
@@ -52,7 +50,7 @@ retrieved by resorting to FIND.
 [2] ['] is an ANSI word that is not covered by the 79-STANDARD. It is provided
 as a builtin dictionary word. Its 79 equivalent is:
 
-	: ['] FIND [COMPILE] LITERAL ; IMMEDIATE RESTRICT
+	: ['] FIND POSTPONE LITERAL ; IMMEDIATE RESTRICT
 
 1.3 Compiler Words
 ------------------
@@ -60,23 +58,17 @@ as a builtin dictionary word. Its 79 equivalent is:
 1.3.1 Implemented
 -----------------
 +LOOP , ." : ; ALLOT BEGIN CONSTANT CREATE DO DOES> ELSE FORGET IF IMMEDIATE
-LITERAL LOOP REPEAT STATE THEN UNTIL VARIABLE WHILE [ [COMPILE] ]
+LITERAL LOOP REPEAT STATE THEN UNTIL VARIABLE WHILE [ ]
 
 1.3.2 Not Implemented
 ---------------------
-COMPILE DEFINITIONS VOCABULARY
+[COMPILE] COMPILE DEFINITIONS VOCABULARY
 
-Note: COMPILE is not offered because:
-- a stricly compliant 79-STANDARD implementation is not possible in a native
-  code implementation.
-- a semantically correct implementation is possible--and was, at some point in
-  time provided--but it happens to be incompatible with the tail JSR
-  optimization of Z79Forth.
-
-However, a superior alternative is possible by resorting to ANSI primitives.
-COMPILE <word> is equivalent to:
-
-	['] <word> COMPILE,
+Notes:
+- COMPILE is not offered because a stricly compliant 79-STANDARD implementation
+  is not possible in a native code implementation.
+- [COMPILE] has been phased out because the ANSI POSTPONE is more generic and
+  covers every need that [COMPILE] does.
 
 1.4 Device Words
 ----------------

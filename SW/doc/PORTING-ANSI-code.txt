@@ -49,10 +49,7 @@ integrity check failure, should the original value of the constant ever be
 altered.
 
 ###############################################################################
-POSTPONE is supported natively. Please note that this cannot be implemented as
-a straight alias to [COMPILE] since POSTPONE can be applied transparently to
-both immediate and non-immediate words, whereas [COMPILE] is specified to
-operate on immediate words only.
+POSTPONE is supported natively.
 
 ###############################################################################
 In Z79Forth FIND is a straight equivalent of the ANSI/FORTH-83 '. However,

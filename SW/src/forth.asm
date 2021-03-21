@@ -2298,33 +2298,10 @@ LBRACK	fcb	$C1		79-STANDARD (REQ125)
 	clr	USTATE+1
 	rts
 
-BKCOMP	fcb	$C9		79-STANDARD (REQ179)
-	fcc	'[COMPILE]'
-	fdb	LBRACK
-	RFCS
-	jsr	BKIN2PT		Derive input stream pointer from BLK, >IN
-	tst	,x
-	bne	@bkcmp2
-@bkcmp1	ldb	#5		Missing word name
-	jsr	ERRHDLR		No return
-@bkcmp2	jsr	SCNSTOK
-	beq	@bkcmp1
-	jsr	SWDIC
-	bne	@bkcmp3		Word found. Code address returned in Y
-	ldx	TOKENSP
-	ldb	#2		Undefined (X points to the offending word)
-	jsr	ERRHDLR		No return
-@bkcmp3	tfr	y,x
-	jsr	EMXASXT		Set as action component
-	ldd	TOKENSP		Updated by SWDIC if the word was found
-	subd	BSBFADR
-	std	UTOIN
-	rts
-
-* Functionally: : ['] FIND [COMPILE] LITERAL ; IMMEDIATE RESTRICT
+* Functionally: : ['] FIND POSTPONE LITERAL ; IMMEDIATE RESTRICT
 BKQUOT	fcb	$C3		ANSI (Core)
 	fcb	$5B,$27,$5D
-	fdb	BKCOMP
+	fdb	LBRACK
 	RFCS
 	RFXT	bsr,FIND+7	XT for FIND
 * Data stack topmost cell has the target word address.
@@ -2786,7 +2763,6 @@ TWOFTCH	fcb	2		79-STANDARD (double number extension)
 	tfr	d,x		Most significant cell goes through standard push
 	jmp	NPUSH
 
-	IFNE	HVCONV
 CONVERT	fcb	7		79-STANDARD (REQ195)
 	fcc	'CONVERT'	( d1 addr1 -- d2 addr2 )
 	fdb	TWOFTCH
@@ -2858,15 +2834,10 @@ CONVERT	fcb	7		79-STANDARD (REQ195)
 	bra	@cvloop		Here we go again
 @cvoor	stx	,u		Update ADDR2
 	rts
-	ENDC
 
 CVTE	fcb	2
 	fcc	'#>'
-	IFNE	HVCONV
 	fdb	CONVERT
-	ELSE
-	fdb	TWOFTCH
-	ENDC
 	RFCS
 	jsr	NPOP
 	jsr	NPOP		Drop 2 cells from the data stack
