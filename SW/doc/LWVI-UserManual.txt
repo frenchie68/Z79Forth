@@ -1,3 +1,7 @@
+                 LWVI User's Guide and Implementation Reference
+
+1 Introduction
+--------------
 LWVI is a (partial and incomplete) implementation of Bill Joy's VI. It is
 written in Forth and can be found in the software distribution under
 Z79Forth/SW/examples/lwvi.4th. That code has not been blockified yet, as some
@@ -7,25 +11,104 @@ Worth mentioning is the fact that this particular VI flavour was designed to
 operate on standard 1 KB Forth blocks. This leads to some quirks and
 limitations. In particular, JOIN and DOT are not supported. In essence, LWVI
 endeavours to maintain a consistent mapping between a screen visualized as 16
-lines by 64 characters and a 1 KB block.
+lines of 64 characters and a 1 KB block. In actuality (i.e. as considered from
+a memory storage standpoint), the block being edited is nothing more than a
+1024 byte NUL terminated string.
 
 The whole thing was originally developed under GNU Forth and mate-terminal,
-which is believed to implement proper VT100 emulation. No esoteric features
-were used in the process. The actual target is Minicom 2.7.1 VT102 mode with
-BS mapped to BS. The ultimate reference, wrt. terminal programming can be found
-at https://vt100.net/docs/vt102-ug/.
+which is believed to implement proper VT100 emulation. The actual target is
+Minicom 2.7.1 in VT102 mode with BS mapped to BS.
 
-At any given time, LWVI operates operates in one of three modes:
+At any given time, LWVI operates operates in one of four modes:
 
 - command (the status bar at line 18 is blank).
 - insert (the status bar displays -- INSERT).
 - replace (the status bar displays -- REPLACE).
+- quit (after having saved block being edited).
 
 The editor is invoked by:
 
 <blocknumber> EDIT
 
+BEWARE: there is no undo support and changes cannot be discarded!!! Just as
+with so many many other Forthy things, the user is supposed to know what he/she
+is doing.
+
 The default mode on entry is the command mode. The insert mode is accessed
-by typing 'i'. the replace mode is accessed by typing 'R'. Both are exited
+by typing 'i'. The replace mode is accessed by typing 'R'. Both are exited
 by typing <ESC>.
+
+2 Recommended Minicom Settings
+------------------------------
+Please refer to SW/doc/79-STANDARD-docreq.txt section 6 ("An operator's
+terminal"). In general, due to potential flow control issues, cut paste
+should be avoided and the replace mode should be the preferred option.
+
+3 The Command Mode
+------------------
+This allows to move the cursor around, to delete text, to switch to insert or
+replace modes and to quit the editor. Most commands accept a command count
+prefix. In what follows, that optional count is denoted by [nn] and, if
+unspecified, always default to one. '^' denotes the <Control> key.
+
+'0'	Move the cursor to the beginning of the current line.
+'$'	Move the cursor to the end of the current line (last non blank
+	character).
+'[nn]j'	Move the cursor down (nn times).
+'[nn]k'	Move the cursor up (nn times).
+'[nn]h'	Move the cursor left (nn times).
+'[nn]l'	Move the cursor right (nn times).
+'[nn]w'	Move the cursor to the beginning of the next word (nn times).
+'[nn]b'	Move the cursor to the beginning of the next word (nn times).
+'[nn]W' Equivalent to '[nn]w'
+'[nn]B'	Equivalent to '[nn]b'
+'[nn]+'	Move the cursor to the first non-blank character of the next line
+	(nn times).
+'[nn]-'	Move the cursor to the first non-blank character of the previous line
+	(nn times).
+'[nn]f[char] Move the cursor to the (nn th) following occurence of the
+	specified character. The search is case sensitive, it starts one
+	character after the current cursor position (scope: current line).
+'[nn]g'	Go to line number [nn]. The cursor horizontal position is reset to
+	column #1.
+'G'	Go to the last empty line. The cursor horizontal position is reset to
+	column #1. Please note that if line 16 is not empty (all blanks), this
+	command will take no action.
+'^g'	Display the current line number, column number and block number
+	for one second in the status line (line 18).
+'[nn]x'	Delete the character immediately below the cursor (nn times).
+'[nn]X'	Delete the character to the left of the cursor (if any), optionally
+	nn times.
+'d0'	Delete the current line contents up to and excluding the character
+	under the current cursor position.
+'d$'	Delete the current line contents from the character below the current
+	cursor position to the end of the current line.
+'[nn]d[mm]w'	Delete nn times mm words from the current cursor position
+	(scope: current line). Please note that if not enough words cannot be
+	identified, this command will be the equivalent of 'd$'.
+'[nn]df[char]'	Delete characters from the current cursor position up to
+	the nn-th occurence of the specified character (scope: current line).
+	NOT IMPLEMENTED YET.
+'[nn]dd' Delete nn lines starting with the current line. Resets the cursor
+	position to column #1. NOT IMPLEMENTED YET.
+'[nn]r[char]'	Replace nn characters starting from the current cursor position
+	with the specified character. This can be extremely handy to initialize
+	lines where a character is repeated a number of times.
+'i'	Insert--switch to insert mode. The cursor position remains unchanged.
+'a'	Append--switch to insert mode, after pointing to the next character
+	immediately to the right of the current cursor position. The equivalent
+	input is 'li'.
+'R'	Enter the replace mode. The cursor position is unchanged.
+':q'	Save the content of the current buffer and exit the editor.
+
+4 The Replace Mode
+------------------
+
+5 The Insert Mode
+------------------
+
+6 Implementation Reference
+--------------------------
+This section is written for myself and those adventurous to consider the
+implementation of missing functionality.
 

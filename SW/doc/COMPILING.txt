@@ -28,6 +28,10 @@ VT100	0	NZ		Set to 1 to operate at RS232@9600.
 				This tunable does nothing more than select
 				an ACIA dividing factor of 64 instead of the
 				default 16.
+HVCONV	0	NZ		Include CONVERT in the default dictionary.
+				This defaults to false as it prevents a proper
+				implementation of the ANSI POSTPONE primitive,
+				due to EEPROM capacity limitations.
 CSSNTVE	0	NZ		Select 0 for a case insensitive implementation
 				or 1 for a case sensitive one. In case sensitive
 				mode, those digits encoded by a letter _must_

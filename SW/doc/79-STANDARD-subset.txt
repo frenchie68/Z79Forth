@@ -36,7 +36,9 @@ U* U/
 # #> #S ( -TRAILING . <# >IN ? ABORT BLK BASE CONVERT COUNT CR DECIMAL EMIT
 EXPECT FIND HERE HOLD KEY PAD QUIT SIGN SPACE SPACES TYPE U. WORD
 
-Note: CONVERT is a strictly unsigned business.
+Note: CONVERT is a strictly unsigned business. It will only be included if
+HVCONV is defined as a non-zero number in SW/src/constants.asm. This is not
+the case by default.
 
 1.2.1 Not Implemented
 ---------------------
@@ -186,8 +188,8 @@ ICHECK	( -- ) If the running EEPROM image was compiled with a non-zero RELFEAT
 	defined by :, all constants and all CREATEd words to which MONITOR has
 	been applied. Note that you can, conceivably, monitor a VARIABLE but it
 	makes very little sense since the checksum would be computed at
-	MONITOR's execution time that and every subsequent ICHECK invokation
-	would fail if that variable's value was to be changed later on.
+	MONITOR's execution time and every subsequent ICHECK invokation would
+	fail if that variable's value had been altered in the meantime.
 MONITOR	( -- ) If the running EEPROM image was compiled with a non-zero RELFEAT
 	(see constants.asm), this will compute the value of a byte checksum
 	and store it into the latest defined word's header. This works
@@ -196,10 +198,11 @@ MONITOR	( -- ) If the running EEPROM image was compiled with a non-zero RELFEAT
 NCLR	Resets the data stack.
 PAYLOAD	( -- nbytes ) This primitive output is only relevant after an invokation
 	of FIND. It will retrieve a word's definition length (code section)
-	corresponding to the latest call of FIND. This word is of marginal
+	corresponding to the latest reference to FIND. This word is of marginal
 	importance. However, it facilitates an implementation of the
-	disassembler in which that payload does not have to be specified
-	at DIS invokation time.
+	disassembler in which that payload does not have to be specified at
+	DIS's invokation time (see SW/examples/dis.4th for a minimal
+	disassembler implementation).
 RCLR	Resets the return stack.
 S	( -- sreg ) Returns the contents of the system stack pointer (S).
 UNLESS	Perl inspired. Functionally equivalent to:

@@ -1,16 +1,133 @@
+                      Porting ANSI Code to Z79Forth
+
 There are a number of gotchas when porting ANSI code to Z79Forth.
 
 - FIND exists in both but with different semantics.
 - MOVE exists in both but with different semantics. The ANSI MOVE operates
-  on the basis of a byte count; 79-STANDARD operates on cells.
+  on the basis of a byte count; 79-STANDARD operates on cells. The most
+  immediate mapping for the ANSI MOVE is CMOVE. Of course <CMOVE or CMOVE>
+  can also be appropriate, depending on the circumstances.
 - The value returned by predicates for <TRUE> is different. ANSI and FORTH-83
   have -1, whereas 79-STANDARD has 1.
 - PICK and ROLL arguments start at 1 in 79-STANDARD. They begin at 0 in ANSI
   and FORTH-83.
+- The 79-STANDARD FLUSH is a straight alias to SAVE-BUFFERS. The ANSI flavour
+  of FLUSH has the same semantics but also requires that the buffers be
+  unassigned. This can be achieved with:
 
-In general terms, it is a bad idea to redefine standard primitives and,
-by default, Z79Forth will provide no warning when a primitive is redefined.
-However, if such a feature is considered desirable, : can be redefined as:
+  : FLUSH FLUSH EMPTY-BUFFERS ;
+
+###############################################################################
+The ANSI predicates provided by Z79Forth are KEY? U> and WITHIN. They return
+the 79-STANDARD version of true, i.e. 1. When porting code originally designed
+for an ANSI environment, the ANSI true can be implemented by simply having the
+following definitions:
+
+        : 0<> IF -1 ELSE 0 THEN ;
+        : KEY? KEY? 0<> ;
+        : WITHIN WITHIN 0<> ;
+        : U> U> 0<> ;
+
+This can be useful when dealing with code that has "environmental
+dependencies."
+
+###############################################################################
+ANSI VALUE objects are constants whose value can be redefined by resorting to
+TO. For instance:
+
+100 VALUE radius
+[Some code]
+200 TO radius
+
+This can be achieved (in a very implementation specific way) in Z79Forth with:
+
+: VALUE CONSTANT ;
+: TO FIND ?DUP IF 1+ ! THEN ;
+
+However, if the reliability feature is configured, ICHECK will report a code
+integrity check failure, should the original value of the constant ever be
+altered.
+
+###############################################################################
+POSTPONE is supported natively. Please note that this cannot be implemented as
+a straight alias to [COMPILE] since POSTPONE can be applied transparently to
+both immediate and non-immediate words, whereas [COMPILE] is specified to
+operate on immediate words only.
+
+###############################################################################
+In Z79Forth FIND is a straight equivalent of the ANSI/FORTH-83 '. However,
+since ' has a very specific 79-STANDARD meaning that cannot be provided
+by an implementation where there is no parameter field, ' cannot be officially
+supported. See "Test patterns" for DEFER/IS below for more.
+
+###############################################################################
+RSHIFT/LSHIFT can be implemented on the top of the 79-STANDARD SHIFT word as:
+
+: LSHIFT SHIFT ;
+: RSHIFT NEGATE SHIFT ;
+
+###############################################################################
+2R@/2R>/2>R can be implemented in Z79Forth as:
+
+: 2R@ I' I ;
+: 2R> R> R> SWAP ;
+: 2>R SWAP >R >R ;
+
+These words can be invoked in compilation mode only.
+
+###############################################################################
+DEFER/IS deal with execution tokens management. This is an implementation based
+on the specifications available at https://forth-standard.org.
+
+: DEFER ( "name" -- )
+  CREATE ['] ABORT ,
+  DOES> ( ... -- ... )
+    @ EXECUTE ;
+: DEFER! ( xt1 xt2 -- ) 9 + ! ;         \ Z79Forth specific
+: IS ( xt "<spaces>name" -- ) STATE @ IF
+    POSTPONE [']   POSTPONE DEFER!
+  ELSE
+    FIND DEFER!
+  THEN
+; IMMEDIATE
+
+Application example from the "Forth Programmer's Handbook" by Conklin/Rather
+(Forth Inc.):
+
+DEFER numeral
+: t1 1 . ;
+: t2 2 . ;
+: one ['] t1 IS numeral ;
+: two ['] t2 IS numeral ;
+one numeral
+\ 1 is printed.
+two numeral
+\ 2 is printed.
+
+Test patterns (this requires SW/testsuite/tester.4th to have been loaded
+previously):
+
+: ' FIND ;
+T{ DEFER defer2 ->   }T
+T{ ' * ' defer2 DEFER! -> }T
+T{   2 3 defer2 -> 6 }T
+T{ ' + IS defer2 ->   }T
+T{    1 2 defer2 -> 3 }T 
+
+###############################################################################
+INTERPRET is the closest thing to the ANSI EVALUATE word. But the respective
+specifications are quite different. The definition of a proper mapping from one
+to the other is left as an exercise to the reader.
+
+###############################################################################
+--> is the closest thing to the ANSI REFILL word. But the respective
+specifications are quite different. The definition of a proper mapping from one
+to the other is left as an exercise to the reader.
+
+###############################################################################
+In general, it is a bad idea to redefine standard primitives and, by default,
+Z79Forth will provide no warning when a primitive is redefined. However, if
+such a feature is considered desirable, : can be redefined as:
 
 : :
   >IN @
@@ -20,5 +137,5 @@ However, if such a feature is considered desirable, : can be redefined as:
   THEN  
   >IN !
   :
-; IMMEDIATE
+;
 

@@ -1,7 +1,9 @@
 * Begin configuration tunable parameters.
+
 VT100	equ	0		Set to 1 to operate at RS232@9600
 *				This implies an Y1 CXO at 2.45760 MHz.
 *				Default is 0 for USB@115200 (7.37280 MHz CXO).
+HVCONV	equ	0		Have CONVERT included in the standard dictionary
 CSSNTVE	equ	0		Words and HEX numbers are case sensitive if NZ
 DEBUG	equ	0		Enforce assertions and miscellaneous checks
 CKOVRUN	equ	0		Check for overruns in GETCH
@@ -15,6 +17,7 @@ RELFEAT	equ	1		Set to 1 to enable the reliability feature
 *MSLCNT	equ	662		at 4 MHz emulation mode
 *MSLCNT	equ	794		at 4 MHz native mode
 MSLCNT	equ	994		at 5 MHz native mode
+
 * End configuration tunable parameters.
 
 * Memory map.

@@ -162,6 +162,7 @@ JSRLAST	rmb	2		Last compilation address of #JSROPC
 VLPRVEP	rmb	2		Used in VLIST to compute word code length
 VLPRVHD	rmb	2		Used in VLIST to compute word code length
 MRUBUFA	rmb	2		Most recently used buffer address
+BSBFADR	rmb	2		Base buffer address for the input stream
 
 * Global variables.
 UBASE	rmb	2		Base for numbers input and output--BASE
@@ -169,7 +170,6 @@ USTATE	rmb	2		0 if interpreting, 1 if compiling--STATE
 UTOIN	rmb	2		User variable for >IN
 UBLK	rmb	2		User variable for BLK
 USCR	rmb	2		User variable for SCR (output for LIST)
-BSBFADR	rmb	2		Base buffer address for the input stream
 	IFNE	DEBUG
 CCREG	rmb	2		A DEBUG variable for predicates (see CMP2)
 	ENDC
@@ -2331,10 +2331,35 @@ BKQUOT	fcb	$C3		ANSI (Core)
 	RFXT	jmp,LITERAL+10	XT for LITERAL
 
 POSTPON	fcb	$C8		ANSI (Core)
-	fcc	'POSTPONE'	( -- ) as an alias for [COMPILE]
-	fdb	BKQUOT
+	fcc	'POSTPONE'	Not a straight alias to [COMPILE]
+	fdb	BKQUOT		Non-immediate words deserve special treatment
 	RFCS
-	RFXT	bra,BKCOMP+12	XT for [COMPILE]
+	jsr	BKIN2PT		Derive input stream pointer from BLK, >IN
+	tst	,x
+	bne	@postp2
+@postp1	ldb	#5		Missing word name
+	jsr	ERRHDLR		No return
+@postp2	jsr	SCNSTOK
+	beq	@postp1
+	jsr	SWDIC
+	bne	@postp3		Word found. Code address returned in Y
+	ldx	TOKENSP
+	ldb	#2		Undefined (X points to the offending word)
+	jsr	ERRHDLR		No return
+@postp3	tfr	y,x		X has the actual execution token
+	tst	IMDFLG
+	beq	@postp5		Target word is not immediate
+	jsr	EMXASXT		Set as action component
+@postp4	ldd	TOKENSP		Updated by SWDIC if the word was found
+	subd	BSBFADR
+	std	UTOIN
+	rts
+* The word being considered is non-immediate. The equivalent input should be:
+* ['] <word> COMPILE, We have the XT for <word> in X/Y.
+@postp5	jsr	LITER
+	RFXT	ldx,#CMPCOMA+11
+	jsr	EMXASXT
+	bra	@postp4
 
 * Like the 79-STANDARD COMPILE word, GNU Forth has this as a compile-only word.
 * This is a wise choice since it allows us to possibly optimize it.
@@ -2761,6 +2786,7 @@ TWOFTCH	fcb	2		79-STANDARD (double number extension)
 	tfr	d,x		Most significant cell goes through standard push
 	jmp	NPUSH
 
+	IFNE	HVCONV
 CONVERT	fcb	7		79-STANDARD (REQ195)
 	fcc	'CONVERT'	( d1 addr1 -- d2 addr2 )
 	fdb	TWOFTCH
@@ -2832,10 +2858,15 @@ CONVERT	fcb	7		79-STANDARD (REQ195)
 	bra	@cvloop		Here we go again
 @cvoor	stx	,u		Update ADDR2
 	rts
+	ENDC
 
 CVTE	fcb	2
 	fcc	'#>'
+	IFNE	HVCONV
 	fdb	CONVERT
+	ELSE
+	fdb	TWOFTCH
+	ENDC
 	RFCS
 	jsr	NPOP
 	jsr	NPOP		Drop 2 cells from the data stack
@@ -4234,7 +4265,7 @@ CSVT100	fcb	$1B,'[','H',$1B,'[','J',CR,NUL
 BOOTMSG	fcb	$1B,'[','H',$1B,'[','J',CR
 	fcc	'Z79Forth - 6309 FORTH-79 Standard Sub-set.'
 	fcb	CR,LF
-	fcc	'20210314 Copyright Francois Laagel (2020).'
+	fcc	'20210321 Copyright Francois Laagel (2020).'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB.'
