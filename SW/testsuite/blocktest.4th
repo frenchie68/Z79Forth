@@ -331,7 +331,7 @@ T{ FIND TUF2-3 2RND-TEST-BLOCKS TUF2    \ run test procedure
 TESTING SAVE-BUFFERS%
 
 \ In principle, all the tests above can be repeated with
-\ SAVE-BUFERS instead of FLUSH. However, only the full random
+\ SAVE-BUFFERS instead of FLUSH. However, only the full random
 \ test is repeated...
 T{ LIMIT-TEST-BLOCK FIRST-TEST-BLOCK WRITE-RND-BLOCKS-WITH-HASH
      SAVE-BUFFERS
