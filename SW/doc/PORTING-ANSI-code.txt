@@ -2,15 +2,25 @@
 
 There are a number of gotchas when porting ANSI code to Z79Forth.
 
-- FIND exists in both but with different semantics.
+- FIND exists in both but with different semantics. In most circumstances,
+  the ANSI ' is equivalent to the Z79Forth FIND word.
+
 - MOVE exists in both but with different semantics. The ANSI MOVE operates
-  on the basis of a byte count; 79-STANDARD operates on cells. The most
-  immediate mapping for the ANSI MOVE is CMOVE. Of course <CMOVE or CMOVE>
-  can also be appropriate, depending on the circumstances.
+  on the basis of a byte count; 79-STANDARD operates on cells. An ANSI
+  compliant MOVE can be defined with:
+
+	: MOVE ( addr1 addr2 u -- )
+          DUP 2OVER                       \ addr1 addr2 u u addr1 addr2
+          SWAP -                          \ addr1 addr2 u u addr2-addr1
+          SWAP                            \ addr1 addr2 u addr2-addr1 u
+          U< IF CMOVE> ELSE CMOVE THEN ;
+
 - The value returned by predicates for <TRUE> is different. ANSI and FORTH-83
   have -1, whereas 79-STANDARD has 1.
+
 - PICK and ROLL arguments start at 1 in 79-STANDARD. They begin at 0 in ANSI
   and FORTH-83.
+
 - The 79-STANDARD FLUSH is a straight alias to SAVE-BUFFERS. The ANSI flavour
   of FLUSH has the same semantics but also requires that the buffers be
   unassigned. This can be achieved with:
@@ -120,6 +130,9 @@ to the other is left as an exercise to the reader.
 --> is the closest thing to the ANSI REFILL word. But the respective
 specifications are quite different. The definition of a proper mapping from one
 to the other is left as an exercise to the reader.
+
+###############################################################################
+>NUMBER cannot be emulated based on CONVERT.
 
 ###############################################################################
 In general, it is a bad idea to redefine standard primitives and, by default,

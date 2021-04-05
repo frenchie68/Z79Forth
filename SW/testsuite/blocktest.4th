@@ -1,8 +1,7 @@
-\ Test the Z79Forth block word set (FLA 21/02/10).
 \ The original code has been amended to check for 79-STANDARD
-\ compliance rather than for ANSI compliance.
+\ correctness rather than for ANSI compliance.
 
-\ This program was written by Steve Palmer in 2015, with
+\ This program was written by Steve R. Palmer in 2015, with
 \ contributions from others where indicated, and is in the
 \ public domain - it can be distributed and/or modified in any
 \ way but please retain this notice.
@@ -13,8 +12,6 @@
 \ PURPOSE.
 
 \ The tests are not claimed to be comprehensive or correct
-\ Block #433                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 
 \ Version 0.1 23 October 2015  First Version
 \ Version 0.2 15 November 2015 Updated after feedback from
@@ -29,30 +26,12 @@
 \ LIST SCR THRU
 
 
-\ Block #434                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 \ Assumptions and dependencies:
 \ - tester.4th has been loaded prior to this file
 
-: B.MARKER ;
-
-TESTING Block word set.
+TESTING Block word set%
 
 DECIMAL
-\ Glue code:
-: ALIGN ;                       : ALIGNED ;
-: CELL+ 1 CELLS + ;
-: CHAR+ 1+ ;                    : CHARS ; IMMEDIATE
-: 2R> R> R> SWAP ;
-: 2>R SWAP >R >R ;
-\ Block #435                                                 -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
-
-
-
-
-
-
 
 \ Define these constants from the system documentation
 \ provided.  WARNING: The contents of the test blocks will be
@@ -61,8 +40,6 @@ DECIMAL
 \   FIRST-TEST-BLOCK <= u < LIMIT-TEST-BLOCK
 \ The tests need at least 2 test blocks in the range to
 \ complete.
-\ Block #436                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 130 CONSTANT FIRST-TEST-BLOCK
 140 CONSTANT LIMIT-TEST-BLOCK \ one beyond the last
 16 CONSTANT BITS/CELL
@@ -77,10 +54,8 @@ LIMIT-TEST-BLOCK FIRST-TEST-BLOCK - CONSTANT TEST-BLOCK-COUNT
     ." Error: at least 2 test blocks are required" CR ABORT
   THEN ;
 CHK2
-\ Block #437                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 
-TESTING Random Number Utilities.
+TESTING Random Number Utilities%
 
 \ The block tests make extensive use of random numbers to
 \ select blocks to test and to set the contents of the block.
@@ -93,8 +68,6 @@ TESTING Random Number Utilities.
     DUP CELL+ SWAP @ ;
 : !++ ( x a-addr -- a-addr+4 )
     TUCK ! CELL+ ;
-\ Block #438                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 : C@++ ( c-addr -- c-addr;char+ c-addr@ )
     DUP CHAR+ SWAP C@ ;
 : C!++ ( char c-addr -- c-addr+1 )
@@ -105,12 +78,10 @@ TESTING Random Number Utilities.
 \ Initialize the PRNG seed seed.
 VARIABLE seed  23741 seed !
 
-\ The linear congruential pseudo random number generator itself.
+\ The linear congruential pseudo random number generator itself
 : RANDOM seed @ 613 * 5179 + DUP seed ! ;
 : RANDOM-BOUND ( lower upper -- rnd )
   OVER - RANDOM ABS SWAP MOD + ;
-\ Block #439                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 
 : BLOCK-RND ( -- rnd )                RANDOM ;
 : BLOCK-RANDOM ( lower upper -- rnd ) RANDOM-BOUND ;
@@ -125,8 +96,6 @@ VARIABLE seed  23741 seed !
 
 
 
-\ Block #440                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 \ : foo CR 30000 0 DO
 \     RND-TEST-BLOCK DUP FIRST-TEST-BLOCK LIMIT-TEST-BLOCK
 \     WITHIN IF DROP
@@ -141,8 +110,6 @@ VARIABLE seed  23741 seed !
     WHILE               \ blk1 blk1
       DROP              \ blk1
     REPEAT ;            \ blk1 blk2
-\ Block #441                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 
 \ PostCondition: T{ 2RND-TEST-BLOCKS = -> FALSE }T
 \ : bar 30000 0 DO
@@ -154,11 +121,6 @@ VARIABLE seed  23741 seed !
 \ first random test block in a sequence of length u
 : RND-TEST-BLOCK-SEQ ( u -- blks )
   FIRST-TEST-BLOCK LIMIT-TEST-BLOCK ROT 1- - BLOCK-RANDOM ;
-
-
-
-\ Block #442                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 
 : ELF-HASH-ACCUMULATE ( hash c-addr u -- hash )
     >R SWAP R> 0 DO                  \ c-addr h
@@ -173,9 +135,7 @@ VARIABLE seed  23741 seed !
 
 : ELF-HASH ( c-addr u -- hash )
     0 -ROT ELF-HASH-ACCUMULATE ;
-\ Block #443                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
-TESTING BLOCK (read-only mode).
+TESTING BLOCK (read-only mode)%
 
 \ BLOCK signature
 T{ RND-TEST-BLOCK BLOCK DUP ALIGNED = -> TRUE }T
@@ -189,15 +149,13 @@ T{ LIMIT-TEST-BLOCK FIRST-TEST-BLOCK BLOCK-ALL -> }T
 
 \ BLOCK twice on same block returns the same value
 T{ RND-TEST-BLOCK DUP BLOCK SWAP BLOCK = -> TRUE }T
-\ Block #444                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 
 \ BLOCK twice on distinct block numbers
 \ may or may not return the same value!
 \ Nothing to test
 
 \ -------------------------------------------------------------
-TESTING BUFFER (read-only mode).
+TESTING BUFFER (read-only mode)%
 
 \ Although it is not in the spirit of the specification,
 \ a compliant definition of BUFFER would be
@@ -205,8 +163,6 @@ TESTING BUFFER (read-only mode).
 \ So we can only repeat the tests for BLOCK ...
 \ FLA note: this is not the case. BUFFER allows blocks to be
 \ written to mass storage without having to be read first.
-\ Block #445                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 
 \ BUFFER signature
 T{ RND-TEST-BLOCK BUFFER DUP ALIGNED = -> TRUE }T
@@ -221,8 +177,6 @@ T{ LIMIT-TEST-BLOCK FIRST-TEST-BLOCK BUFFER-ALL -> }T
 \ BUFFER twice on the same block returns the same value
 T{ RND-TEST-BLOCK DUP BUFFER SWAP BUFFER = -> TRUE }T
 
-\ Block #446                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 \ BUFFER twice on distinct block numbers
 \ may or may not return the same value!
 \ Nothing to test
@@ -231,14 +185,12 @@ T{ RND-TEST-BLOCK DUP BUFFER SWAP BUFFER = -> TRUE }T
 T{ RND-TEST-BLOCK DUP BUFFER SWAP BLOCK = -> TRUE }T
 
 \ -------------------------------------------------------------
-TESTING Read and Write access with UPDATE and FLUSH.
+TESTING Read and Write access with UPDATE and FLUSH%
 
 \ Ideally, we'd like to be able to test the persistence across
 \ power cycles of the writes, but we can't do that in a simple
 \ test. The tests below could be fooled by a large buffers
 \ store and a tricky FLUSH but what else are you going to do?
-\ Block #447                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 \ Signatures
 T{ RND-TEST-BLOCK BLOCK DROP UPDATE -> }T
 T{ FLUSH -> }T
@@ -253,8 +205,6 @@ T{ FLUSH -> }T
    UPDATE FLUSH                   \ blk hash
    SWAP BLOCK                     \ hash blk-addr2
    1024 ELF-HASH = -> TRUE }T ; TUF-A \ ." TUF-A "
-\ Block #448                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 
 \ Boundary Test: Modify first character
 : TUF-B T{ RND-TEST-BLOCK          \ blk
@@ -265,9 +215,6 @@ T{ FLUSH -> }T
    SWAP BLOCK                      \ hash blk-addr2
    1024 ELF-HASH = -> TRUE }T ;
 TUF-B \ ." TUF-B "
-
-\ Block #449                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 
 \ Boundary Test: Modify last character
 : TUF-C T{ RND-TEST-BLOCK          \ blk
@@ -282,9 +229,6 @@ TUF-C \ ." TUF-C "
 \ the test range
 1024 8 * BITS/CELL / CONSTANT CELLS/BLOCK
 
-\ Block #450                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
-
 : PREPARE-RND-BLOCK ( hash blk -- hash' )
   BUFFER DUP                     \ hash blk-addr blk-addr
   CELLS/BLOCK 0 DO               \ hash blk-addr blk-addr[i]
@@ -297,9 +241,6 @@ TUF-C \ ." TUF-C "
     I PREPARE-RND-BLOCK UPDATE   \ hash'
   LOOP ;                         \ hash'
 
-\ Block # 451                                               -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
-
 : READ-BLOCKS-AND-HASH ( blk2 blk1 -- hash )
   0 -ROT DO                            \ hash(i)
     I BLOCK 1024 ELF-HASH-ACCUMULATE   \ hash(i+1)
@@ -311,8 +252,6 @@ T{ LIMIT-TEST-BLOCK FIRST-TEST-BLOCK
      READ-BLOCKS-AND-HASH =
    -> TRUE }T
 
-\ Block #452                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 : TUF1 ( xt blk -- hash )
     DUP BLANK-BUFFER               \ xt blk blk-addr1
     1024 ELF-HASH                  \ xt blk hash
@@ -327,8 +266,6 @@ T{ FIND TUF1-1 RND-TEST-BLOCK TUF1 -> TRUE }T
 \ Double FLUSH make no difference
 : TUF1-2 ( -- ) UPDATE FLUSH FLUSH ;
 T{ FIND TUF1-2 RND-TEST-BLOCK TUF1 -> TRUE }T
-\ Block #453                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 
 \ FLUSH only saves UPDATEd buffers
 : TUF-D T{ RND-TEST-BLOCK              \ blk
@@ -340,8 +277,6 @@ T{ FIND TUF1-2 RND-TEST-BLOCK TUF1 -> TRUE }T
    = -> TRUE }T ; TUF-D \ ." TUF-D "
 
 
-\ Block #454                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 \ UPDATE only marks the current block buffer as dirty.
 \ This test needs at least 2 distinct buffers, though this is
 \ not a requirement of the language specification. If 2
@@ -356,8 +291,6 @@ T{ FIND TUF1-2 RND-TEST-BLOCK TUF1 -> TRUE }T
       UPDATE \ xt blk1 blk2 hash1
     OVER 0 SWAP PREPARE-RND-BLOCK
       UPDATE \ xt blk1 blk2 hash1 hash2
-\ Block #455                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
     2>R                            \ xt blk1 blk2
     FLUSH                          \ xt blk1 blk2
     OVER 0 SWAP PREPARE-RND-BLOCK  \ xt blk1 blk2 hash1'
@@ -372,8 +305,6 @@ T{ FIND TUF1-2 RND-TEST-BLOCK TUF1 -> TRUE }T
 
 : 2= ( x1 x2 x3 x4 -- flag )
     ROT = -ROT = AND ;
-\ Block #456                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 : TUF2-0 ( blk1 blk2 -- blk1 blk2 ) ;   \ no updates
 T{ FIND TUF2-0 2RND-TEST-BLOCKS TUF2    \ run test procedure
    2SWAP 2DROP 2= -> TRUE }T      \ compare expected and actual
@@ -388,8 +319,6 @@ TUF2-1A \ ." TUF2-1A "
 : TUF2-2A T{ ['] TUF2-2 2RND-TEST-BLOCKS \ run test procedure
   TUF2 DROP ROT DROP SWAP 2= -> TRUE }T ;
 TUF2-2A \ ." TUF2-2A "
-\ Block #457                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 
 : TUF2-3 ( blk1 blk2 -- blk1 blk2 )     \ update blk1 and blk2
     TUF2-1 TUF2-2 ;
@@ -399,13 +328,11 @@ T{ FIND TUF2-3 2RND-TEST-BLOCKS TUF2    \ run test procedure
 \ FLUSH and then UPDATE is ambiguous and untestable
 
 \ -------------------------------------------------------------
-TESTING SAVE-BUFFERS.
+TESTING SAVE-BUFFERS%
 
-\ In principle, all the tests above can be repeated with SAVE-BU
-\ SAVE-BUFFERS instead of FLUSH.  However, only the full random
+\ In principle, all the tests above can be repeated with
+\ SAVE-BUFERS instead of FLUSH. However, only the full random
 \ test is repeated...
-\ Block #458                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 T{ LIMIT-TEST-BLOCK FIRST-TEST-BLOCK WRITE-RND-BLOCKS-WITH-HASH
      SAVE-BUFFERS
    LIMIT-TEST-BLOCK FIRST-TEST-BLOCK READ-BLOCKS-AND-HASH =
@@ -420,15 +347,13 @@ T{ RND-TEST-BLOCK DUP BLANK-BUFFER
    SAVE-BUFFERS        SWAP BUFFER = -> TRUE }T
 T{ RND-TEST-BLOCK DUP BLANK-BUFFER
    UPDATE SAVE-BUFFERS SWAP BUFFER = -> TRUE }T
-\ Block #459                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 T{ RND-TEST-BLOCK DUP BLANK-BUFFER
    SAVE-BUFFERS        SWAP BLOCK  = -> TRUE }T
 T{ RND-TEST-BLOCK DUP BLANK-BUFFER
    UPDATE SAVE-BUFFERS SWAP BLOCK  = -> TRUE }T
 
 \ -------------------------------------------------------------
-TESTING BLK.
+TESTING BLK%
 
 \ Signature
 T{ BLK DUP ALIGNED = -> TRUE }T
@@ -436,14 +361,12 @@ T{ BLK DUP ALIGNED = -> TRUE }T
 \ None of the words considered so far effect BLK
 T{ BLK @ RND-TEST-BLOCK BUFFER DROP BLK @ = -> TRUE }T
 T{ BLK @ RND-TEST-BLOCK BLOCK  DROP BLK @ = -> TRUE }T
-\ Block #460                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 T{ BLK @ UPDATE                     BLK @ = -> TRUE }T
 T{ BLK @ FLUSH        BLK @ = -> TRUE }T
 T{ BLK @ SAVE-BUFFERS BLK @ = -> TRUE }T
 
 \ -------------------------------------------------------------
-TESTING LOAD.
+TESTING LOAD%
 
 \ Signature: n LOAD --> blank screen
 : TUF3 T{ RND-TEST-BLOCK DUP BLANK-BUFFER DROP UPDATE FLUSH
@@ -452,8 +375,6 @@ TUF3 \ ." TUF3 "
 : TUF4 T{ BLK @ RND-TEST-BLOCK DUP BLANK-BUFFER DROP UPDATE
   FLUSH LOAD BLK @ = -> TRUE }T ;
 TUF4 \ ." TUF4 "
-\ Block #461                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 : WRITE-BLOCK ( blk c-addr u -- )
   ROT BLANK-BUFFER SWAP CHARS CMOVE UPDATE FLUSH ;
 
@@ -468,8 +389,6 @@ TUF4 \ ." TUF4 "
 \ Boundary Test: LIMIT-TEST-BLOCK-1
 : TUF7 T{ BLOCK-RND LIMIT-TEST-BLOCK 1- 2DUP TL1 LOAD =
   -> TRUE }T ;              TUF7 \ ." TUF7 "
-\ Block #462                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 : WRITE-AT-END-OF-BLOCK ( blk c-addr u -- )
   ROT BLANK-BUFFER
   OVER 1024 SWAP - CHARS +
@@ -484,8 +403,6 @@ TUF4 \ ." TUF4 "
 \ u: "BLK @"; u LOAD
 : TL3 ( blk -- )
   S" BLK @" WRITE-BLOCK ;
-\ Block #463                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 
 : TUF9 T{ RND-TEST-BLOCK DUP TL3 DUP LOAD = -> TRUE }T ;
 TUF9 \ ." TUF9 "
@@ -500,9 +417,6 @@ TUF9 \ ." TUF9 "
     BL HOLD
   #S #> ;                    \ c-addr u
 
-\ Block #464                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
-
 \ Nested LOADs
 \ u2: "BLK @"; u1: "LOAD u2"; u1 LOAD
 : TL6 ( blk1 blk2 -- )
@@ -516,8 +430,6 @@ TUF10 \ ." TUF10 "
 \ not a \ requirement of the language specification. If 2
 \ distinct buffers are not returned, then the tests quits with
 \ an error condition.
-\ Block #465                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 : TL7 ( blk1 blk2 -- u1 u2 rnd2 blk2-addr rnd1' rnd1 )
   OVER BUFFER OVER BUFFER = IF  \ test needs 2 distinct buffers
     2DROP 0 0 0 0 0 0           \ Dummy result
@@ -532,8 +444,6 @@ TUF10 \ ." TUF10 "
     \ Now LOAD blk2
     DUP LOAD DUP >R             \ blk1 blk2 blk2-addr
 
-\ Block #466                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
     \ Write a new blk2
     DUP 1024 BL FILL            \ blk1 blk2 blk2-addr
     BLOCK-RND DUP >R            \ blk1 blk2 blk2-addr rnd2
@@ -548,8 +458,6 @@ TUF10 \ ." TUF10 "
 T{ 2RND-TEST-BLOCKS TL7         \ run test procedure
    SWAP DROP SWAP DROP          \ u2 u1 rnd2 rnd1
    2= -> TRUE }T
-\ Block #467                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 
 \ I would expect LOAD to work on the contents of the buffer
 \ cache and not the block device, but the specification doesn't
@@ -557,14 +465,11 @@ T{ 2RND-TEST-BLOCKS TL7         \ run test procedure
 \ cache, but the specification doesn't say so.
 
 \ -------------------------------------------------------------
-TESTING LIST and SCR.
+TESTING LIST and SCR%
 
 \ Signatures
 T{ SCR DUP ALIGNED = -> TRUE }T
 \ LIST signature is test implicitly in the following tests...
-
-\ Block #468                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 
 : TLS1 ( blk -- )
   S" Should show a (mostly) blank screen" WRITE-BLOCK ;
@@ -579,8 +484,6 @@ T{ FIRST-TEST-BLOCK DUP TLS2 LIST -> }T
 : TLS3 ( blk -- )
   S" List of the Last test block" WRITE-BLOCK ;
 T{ LIMIT-TEST-BLOCK 1- DUP TLS3 LIST -> }T
-\ Block #469                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
 \ Boundary Test: End of Screen
 : TLS4 ( blk -- )
   S" End of Screen" WRITE-AT-END-OF-BLOCK ;
@@ -595,9 +498,6 @@ T{ BLK @ RND-TEST-BLOCK DUP TLS5 LIST BLK @ = -> TRUE }T
 \ SCR is unchanged by Earlier words
 T{ SCR @ FLUSH SCR @ = -> TRUE }T
 
-\ Block #470                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
-
 : TUF-E T{ SCR @ FLUSH DUP 1+ BUFFER DROP SCR @ =
   -> TRUE }T ; TUF-E \ ." TUF-E "
 : TUF-F T{ SCR @ FLUSH DUP 1+ BLOCK DROP SCR @ =
@@ -611,9 +511,7 @@ TUF-H \ ." TUF-H "
     S" SCR @" WRITE-BLOCK ;
 : TUF-I T{ SCR @ RND-TEST-BLOCK DUP TLS6 LOAD SCR @ OVER 2=
   -> TRUE }T ; TUF-I \ ." TUF-I "
-\ Block #471                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
-TESTING EMPTY-BUFFERS.
+TESTING EMPTY-BUFFERS%
 
 T{ EMPTY-BUFFERS -> }T
 T{ BLK @ EMPTY-BUFFERS BLK @ = -> TRUE }T
@@ -627,8 +525,6 @@ T{ SCR @ EMPTY-BUFFERS SCR @ = -> TRUE }T
    OVER BLOCK [CHAR] \ SWAP C!       \ blk hash
    UPDATE EMPTY-BUFFERS FLUSH        \ blk hash
    SWAP BLOCK                        \ hash blk-addr2
-\ Block #472                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
    1024 ELF-HASH = -> TRUE }T ;
 TUF-J \ ." TUF-J "
 
@@ -642,15 +538,13 @@ TUF-K \ ." TUF-K "
 \ FLUSH and then EMPTY-BUFFERS is acceptable but untestable
 \ EMPTY-BUFFERS and then UPDATE is ambiguous and untestable
 
-TESTING >IN manipulation from a block source.
-\ Block #473                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
+TESTING >IN manipulation from a block source%
 : TIN ( blk -- )
   S" 1 8 >IN +!     2        3" WRITE-BLOCK ;
 : TUF-L T{ RND-TEST-BLOCK DUP TIN LOAD -> 1 3 }T ;
 TUF-L \ ." TUF-L "
 \ -------------------------------------------------------------
-TESTING \, from a block source.
+TESTING \, from a block source%
 
 64 CONSTANT C/L
 
@@ -659,8 +553,6 @@ TESTING \, from a block source.
 
 \ Discards to the end of the line
 : TCSIRIR1 ( blk -- )
-\ Block #474                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
   BLANK-BUFFER
   C/L 1024 U< IF
     S" 2222 \ 3333" WRITE-BLOCK-LINE
@@ -671,12 +563,10 @@ TESTING \, from a block source.
 TUF-M \ ." TUF-M "
 
 \ -------------------------------------------------------------
-TESTING THRU.
+TESTING THRU%
 
 : TT1 ( blks -- )
   DUP S" BLK" WRITE-BLOCK
-\ Block #475                                                -->
-\ Test the Z79Forth block word set (FLA 21/02/10).
   1+  S" @"  WRITE-BLOCK ;
 : TUF-N T{ 2 RND-TEST-BLOCK-SEQ DUP TT1 DUP DUP 1+ THRU 1- =
   -> TRUE }T ;
@@ -687,6 +577,4 @@ TUF-N \ ." TUF-N "
 \ BLOCK-ERRORS SET-ERROR-COUNT
 
 CR ." End of Block word tests"
-
-\ Block #476
 

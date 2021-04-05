@@ -21,7 +21,7 @@
 \    cell.
 \ 3. All other live cells die in the next generation.
 \    Similarly, all other dead cells stay dead.
-\ ************************************************************* 
+\ *************************************************************
 
 \ VOCABULARY Life ONLY FORTH ALSO Life Life DEFINITIONS
 
@@ -71,8 +71,8 @@ CREATE new-board cellwidth CELLS ALLOT \ allocate nextgen space
 : 2^n ( n -- 2^n )
 \ *G A means to generate a single bit that is 2 to the power of
 \ ** the index n. n is checked for being no greater than the
-\ ** maximum cell width. Input range is checked and out of range
-\ ** inputs return a zero.
+\ ** maximum cell width. Input range is checked and out of
+\ ** range inputs return a zero.
   inrange? IF
     1 SWAP SHIFT
   ELSE
@@ -180,7 +180,11 @@ CREATE new-board cellwidth CELLS ALLOT \ allocate nextgen space
 \ -------------------------------------------------------------
 
 : new>old ( -- )
-  new-board board cellwidth MOVE
+  cellwidth 0 DO
+    I DUP
+    NGRow@ SWAP
+    ROW!
+  LOOP
 ;
 \ -------------------------------------------------------------
 
@@ -198,8 +202,8 @@ CREATE new-board cellwidth CELLS ALLOT \ allocate nextgen space
 
 : .Nboard ( -- )
 \ *G Print the Game of Life New board state.
-  cellwidth 0
-  DO   I .Nbline
+  cellwidth 0 DO
+    I .Nbline
   LOOP
 ;
 \ -------------------------------------------------------------

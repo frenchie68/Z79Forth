@@ -41,10 +41,9 @@
 * words are CMOVE> and RECURSE. See
 * http://forth.sourceforge.net/standard/fst83/FORTH-83.PRN
 *
-* \ ['] [CHAR] .S CELLS CHAR COMPILE, INVERT KEY? NIP POSTPONE S>D S" SOURCE
-* TUCK U> * UNLOOP and WITHIN have been borrowed from the ANSI draft 6
-* specification.
-* See http://www.forth.org/svfig/Win32Forth/DPANS94.txt
+* \ ['] [CHAR] .S ACCEPT CELLS CHAR COMPILE, INVERT KEY? NIP POSTPONE S>D S"
+* SOURCE TUCK U> * UNLOOP and WITHIN have been borrowed from the ANSI draft 6
+* specification. See http://www.forth.org/svfig/Win32Forth/DPANS94.txt
 *
 * RESTRICT is non-standard. It comes from GNU Forth (VolksForth). The " OK"
 * non-prompt string also does, by the way. Thanks to Anton Ertl for his terse
@@ -90,6 +89,9 @@
 * Obligatory literary reference:
 * "The paper is very heavy going, and I should never have read it, had I not
 * written it myself." J. E. Littlewood (1885-1977).
+*
+* A preferred musical reference of mine also is available at:
+* https://www.youtube.com/watch?v=8pxQZVBlnbA&t=156s
 
 pragma	opt cd,operandsizewarning
 
@@ -610,8 +612,8 @@ CKNBPFX	ldb	,x		B has a potential base prefix character
 	puls	x
 	leax	1,x		Skip the prefix from the input stream
 * The following is not especially pretty since we are altering system
-* stack contents owned by the caller. Yet it remains conducive to
-* compact code. With only one byte of EEPROM left, I think this is legit.
+* stack contents owned by the caller. Yet it remains conducive to more
+* compact code. With only a few bytes of EEPROM left, I think this is legit.
 	dec	2,s		Decrement the stacked up flavour of CURTOKL
 	rts
 
@@ -2290,7 +2292,7 @@ RBRACK	fcb	1		79-STANDARD (REQ126)
 	rts
 
 * Note: the standard does not mandate that this primitive be executed in
-* definitions only. IMHO, it ought to, Therefore I am forcing the C bit here.
+* definitions only. IMHO, it ought to, therefore I am forcing the C bit here.
 LBRACK	fcb	$C1		79-STANDARD (REQ125)
 	fcc	'['
 	fdb	RBRACK
@@ -2326,8 +2328,8 @@ POSTPON	fcb	$C8		ANSI (Core)
 @postp3	tfr	y,x		X has the actual execution token
 	tst	IMDFLG
 	beq	@postp5		Target word is not immediate
-	jsr	EMXASXT		Set as action component
-@postp4	ldd	TOKENSP		Updated by SWDIC if the word was found
+@postp4	jsr	EMXASXT		Set as action component
+	ldd	TOKENSP		Updated by SWDIC if the word was found
 	subd	BSBFADR
 	std	UTOIN
 	rts
@@ -2335,7 +2337,6 @@ POSTPON	fcb	$C8		ANSI (Core)
 * ['] <word> COMPILE, We have the XT for <word> in X/Y.
 @postp5	jsr	LITER
 	RFXT	ldx,#CMPCOMA+11
-	jsr	EMXASXT
 	bra	@postp4
 
 * Like the 79-STANDARD COMPILE word, GNU Forth has this as a compile-only word.
@@ -2345,12 +2346,7 @@ CMPCOMA	fcb	$48		ANSI (Core Ext)
 	fdb	POSTPON
 	RFCS
 	jsr	NPOP		Execution token to X
-CMPCOM1	ldy	DICEND
-	lda	#JSROPC
-	jsr	CHKRTS
-	jsr	VARCON2
-	sty	DICEND
-	rts
+CMPCOM1	jmp	EMXASXT
 
 * As per the standard, : is not immediate. This allows for further interesting
 * developments, like tracing words execution...
@@ -3071,11 +3067,13 @@ SPACES	fcb	6		79-STANDARD (REQ231)
 	RFCS
 	jsr	NPOP
 	tfr	x,w
+	tstw
+	beq	@spcs2
 	lda	#SP
 @spcs1	jsr	PUTCH
 	decw
 	bne	@spcs1
-	rts
+@spcs2	rts
 
 PAGE	fcb	4		79-STANDARD (REF)
 	fcc	'PAGE'
@@ -3154,7 +3152,7 @@ EXPECT	fcb	6		79-STANDARD (REQ189)
 	fcc	'EXPECT'	( addr count -- )
 	fdb	DASHTR
 	RFCS
-	jsr	NPOP
+EXPCT1	jsr	NPOP
 	tfr	x,d		Buffer length to B
 	jsr	NPOP		Buffer address to X. B is preserved
 	tstb
@@ -3162,9 +3160,18 @@ EXPECT	fcb	6		79-STANDARD (REQ189)
 	incb			Account for the NUL terminator
 @expct1	jmp	GETS
 
+ACCEPT	fcb	6		ANSI (Core)
+	fcc	'ACCEPT'
+	fdb	EXPECT
+	RFCS
+	bsr	EXPCT1
+	clra
+	pshu	d		This saves us "tfr d,x" and "UCNPUSH"
+	rts
+
 TERPRET	fcb	$49		79-STANDARD (REF) I make this compile time only
 	fcc	'INTERPRET'	( -- )
-	fdb	EXPECT
+	fdb	ACCEPT
 	RFCS
 * Obtain a base buffer address based on the value of BLK.
 	ldd	UBLK
@@ -4236,7 +4243,7 @@ CSVT100	fcb	$1B,'[','H',$1B,'[','J',CR,NUL
 BOOTMSG	fcb	$1B,'[','H',$1B,'[','J',CR
 	fcc	'Z79Forth - 6309 FORTH-79 Standard Sub-set.'
 	fcb	CR,LF
-	fcc	'20210321 Copyright Francois Laagel (2020).'
+	fcc	'20210405 Copyright Francois Laagel (2019).'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB.'
@@ -4254,7 +4261,7 @@ DV0ERRM	fcn	'Division by 0 near '
 
 ERRMTBL	fcn	'Data stack overflow'	Error 0
 	fcn	'Data stack underflow'	Error 1
-	fcn	'Undefined'		Error 2
+	fcn	'?'			Error 2 (Undefined)
 	fcn	'User ABORT'		Error 3
 	fcn	''			Error 4 (formerly "Division by zero")
 	fcn	'Missing word name'	Error 5

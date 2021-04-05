@@ -51,7 +51,7 @@ CHAR $ CONSTANT E.ASC.$
 : E.VT100.BS 1 E.VT100.CUB ;
 : E.VT100.INS 4 E.VT100.IRMI ; ( VT100 insert mode )
 : E.VT100.RPL 4 E.VT100.IRMR ; ( VT100 replace mode )
-: E.VT100.ED$ 0 E.VT100.ED ;   ( VT100 delete to end of screen )
+: E.VT100.ED$ 0 E.VT100.ED ;  ( VT100 delete to end of screen )
 
 VARIABLE E.MODE ( 0: COMMAND, 1: INSERT, 2: REPLACE, 3: QUIT  )
 VARIABLE E.COL#  VARIABLE E.LIN#
@@ -222,7 +222,7 @@ VARIABLE E.MINICOM.BUG.WORKAROUND
       THEN THEN
     THEN
   -1 +LOOP 2DROP ;
-: E.WORD.FWD-ADDR.GET ( -- addr ) 0 ( default address returned )
+: E.WORD.FWD-ADDR.GET ( -- addr ) 0 ( default addr. returned )
   1 E.WORD.INIT DO
     I E.WORD.BOUNDARY.FIND
     OVER 0= IF ROT DROP I -ROT LEAVE THEN

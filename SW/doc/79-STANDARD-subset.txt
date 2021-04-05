@@ -68,7 +68,7 @@ Notes:
 - COMPILE is not offered because a stricly compliant 79-STANDARD implementation
   is not possible in a native code implementation.
 - [COMPILE] has been phased out because the ANSI POSTPONE is more generic and
-  covers every need that [COMPILE] does.
+  covers every need that [COMPILE] satisfies and then some.
 
 1.4 Device Words
 ----------------
@@ -135,8 +135,8 @@ CMOVE> RECURSE
 
 5 1994 ANSI draft 6 Words
 -------------------------
-\ ['] .S CELLS CHAR [CHAR] COMPILE, INVERT KEY? NIP POSTPONE S>D S" SOURCE U>
-TUCK UNLOOP WITHIN
+\ ['] .S ACCEPT CELLS CHAR [CHAR] COMPILE, INVERT KEY? NIP POSTPONE S>D S"
+SOURCE U> TUCK UNLOOP WITHIN
 
 Note: KEY? U> and WITHIN return the 79-STANDARD version of true, i.e. 1.
 When porting code originally designed for an ANSI environment, the ANSI true

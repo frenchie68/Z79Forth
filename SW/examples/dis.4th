@@ -1,8 +1,7 @@
-\ Z79Forth 6309 disassembler. June 6, 2020. FLA
 \ The bare minimum to be able to make sense of
 \ the generated code.
 
-BASE @  HEX  9 CONSTANT tab
+9 CONSTANT tab
 
 \ Insert a counted string into the dictionary
 : " [CHAR] " WORD C@ 1+ ALLOT ;
@@ -12,13 +11,13 @@ CREATE opc-table
 \ 1 byte: opcode value
 \ 1 byte: operand size
 \ counted string: source code
-0BD C,  2 C,  " jsr"
-08E C,  2 C,  " ldx"
-07E C,  2 C,  " jmp"
-039 C,  0 C,  " rts"
-025 C,  1 C,  " bcs"
-026 C,  1 C,  " bne"
-0C7 C,  0 C,  " illopc"         \ Illegal opcode (debug mode)
+$BD C,  2 C,  " jsr"
+$8E C,  2 C,  " ldx"
+$7E C,  2 C,  " jmp"
+$39 C,  0 C,  " rts"
+$25 C,  1 C,  " bcs"
+$26 C,  1 C,  " bne"
+$C7 C,  0 C,  " illopc"         \ Illegal opcode (debug mode)
 0   C, -1 C,  " fcb"            \ End of table. Catchall option
 MONITOR
 
@@ -49,7 +48,7 @@ MONITOR
     I C@ 1 hdmp                 \ Opcode hex dump
 
     I C@ opcode-lookup          \ table-addr
-    instr>opsize 0FF = IF       \ Data (FCB)
+    instr>opsize $FF = IF       \ Data (FCB)
       .tab  .tab  .src  .tab
       [CHAR] $ EMIT
       I C@ 1 hdmp               \ Dump byte at address I
@@ -73,6 +72,4 @@ MONITOR
     THEN
     DROP
   LOOP ;
-
-BASE !
 
