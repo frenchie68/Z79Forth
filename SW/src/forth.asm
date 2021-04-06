@@ -913,7 +913,7 @@ CMP2RA	ldy	,u
 	tfr	b,cc
 	rts
 
-* Used by CMOVE, <CMOVE, CMOVE>, MOVE.
+* Used by CMOVE, CMOVE>, MOVE.
 ACQMOVP	MINDREQ	3		At least 3 cells must be stacked up
 ACQVMRA	ldw	,u		Byte count
 	ldy	2,u		Destination address
@@ -1048,7 +1048,7 @@ NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
 	fdb	CMP2RA		Missing operand in any of U<, U>, <, >
 	fcn	'CMP2RA'
 	fdb	ACQVMRA		Three operands missing in any of CMOVE,
-*				<CMOVE, CMOVE>, MOVE
+*				CMOVE>, MOVE
 	fcn	'ACQVMRA'
 	fdb	MINTLRA		Main interpreter loop return address
 	fcn	'MINTLRA'
@@ -4094,17 +4094,9 @@ CMOVED	fcb	6		FORTH-83
 	tfm	x-,y-
 @cmovd1	rts
 
-DCMOVE	fcb	6		79-STANDARD (REF)
-	fcc	'<CMOVE'
-	fdb	CMOVED
-	RFCS
-	jsr	ACQMOVP
-	tfm	x-,y-
-	rts
-
 CMOVE	fcb	5		79-STANDARD (REQ153)
 	fcc	'CMOVE'
-	fdb	DCMOVE
+	fdb	CMOVED
 	RFCS
 	jsr	ACQMOVP
 	tfm	x+,y+
@@ -4243,7 +4235,7 @@ CSVT100	fcb	$1B,'[','H',$1B,'[','J',CR,NUL
 BOOTMSG	fcb	$1B,'[','H',$1B,'[','J',CR
 	fcc	'Z79Forth - 6309 FORTH-79 Standard Sub-set.'
 	fcb	CR,LF
-	fcc	'20210405 Copyright Francois Laagel (2019).'
+	fcc	'20210406 Copyright Francois Laagel (2019).'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB.'
@@ -4261,7 +4253,7 @@ DV0ERRM	fcn	'Division by 0 near '
 
 ERRMTBL	fcn	'Data stack overflow'	Error 0
 	fcn	'Data stack underflow'	Error 1
-	fcn	'?'			Error 2 (Undefined)
+	fcn	'Undefined'		Error 2
 	fcn	'User ABORT'		Error 3
 	fcn	''			Error 4 (formerly "Division by zero")
 	fcn	'Missing word name'	Error 5

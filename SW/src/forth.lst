@@ -414,12 +414,12 @@
                       (        forth.asm):00238         * Book" for a description of interrupt stacks in native 6309 mode.
 E000 113C40           (        forth.asm):00239 (4)     IODZHDL bitmd   #$40            Illegal opcode?
 E003 2705             (        forth.asm):00240 (3)             beq     @iodzh1
-E005 8EFEA5           (        forth.asm):00241 (3)             ldx     #IOPERRM
+E005 8EFE94           (        forth.asm):00241 (3)             ldx     #IOPERRM
 E008 2008             (        forth.asm):00242 (3)             bra     @iodxh2
 E00A 113C80           (        forth.asm):00243 (4)     @iodzh1 bitmd   #$80            Division by zero?
 E00D 2725             (        forth.asm):00244 (3)             beq     @iodzh3         And you may ask yourself, well
                       (        forth.asm):00245         *                               How did I get here?
-E00F 8EFEBA           (        forth.asm):00246 (3)             ldx     #DV0ERRM
+E00F 8EFEA9           (        forth.asm):00246 (3)             ldx     #DV0ERRM
 E012 BDE1DB           (        forth.asm):00247 (7)     @iodxh2 jsr     PUTS
 E015 EC6C             (        forth.asm):00248 (5+1)           ldd     12,s            Return code address (PC)
 E017 8E034E           (        forth.asm):00249 (3)             ldx     #HEXBUF
@@ -454,7 +454,7 @@ E03D B7D800           (        forth.asm):00277 (4)             sta     ACIACTL 
 E040 8655             (        forth.asm):00278 (2)             lda     #ACIRTS1
 E042 B7D800           (        forth.asm):00279 (4)             sta     ACIACTL         No IRQ on RDRF, RTS high, 8N1, 115200 bps
                       (        forth.asm):00280         
-E045 8EFE18           (        forth.asm):00281 (3)             ldx     #BOOTMSG        Identity statement
+E045 8EFE07           (        forth.asm):00281 (3)             ldx     #BOOTMSG        Identity statement
                       (        forth.asm):00282         
                       (        forth.asm):00283         * Send the NUL terminated string pointed to by X to the ACIA.
                       (        forth.asm):00284         * The RAM is not assumed to be working.
@@ -482,7 +482,7 @@ E070 313F             (        forth.asm):00305 (4+1)   @ramf2  leay    -1,y
 E072 26FC             (        forth.asm):00306 (3)             bne     @ramf2
 E074 5A               (        forth.asm):00307 (1)             decb
 E075 26F5             (        forth.asm):00308 (3)             bne     @ramf1
-E077 8EFE8B           (        forth.asm):00309 (3)             ldx     #RAMFM
+E077 8EFE7A           (        forth.asm):00309 (3)             ldx     #RAMFM
 E07A 20CC             (        forth.asm):00310 (3)             bra     INIT            Here we go again
                       (        forth.asm):00311         
                       (        forth.asm):00312         * RAM Initialization to all $C7 if DEBUG mode is enabled else zeroes.
@@ -504,7 +504,7 @@ E08E 8601             (        forth.asm):00327 (2)             lda     #VARSPC/
 E090 1F8B             (        forth.asm):00328 (4)             tfr     a,dp
      01               (        forth.asm):00329                 SETDP   VARSPC/256
                       (        forth.asm):00330                 ENDC
-E092 8EFE7A           (        forth.asm):00331 (3)             ldx     #RAMOKM
+E092 8EFE69           (        forth.asm):00331 (3)             ldx     #RAMOKM
 E095 BDE1DB           (        forth.asm):00332 (7)             jsr     PUTS
 E098 BDE241           (        forth.asm):00333 (7)             jsr     FORTHIN         Global variables initialization
 E09B BDE786           (        forth.asm):00334 (7)             jsr     CFINIT          CompactFlash card initialization
@@ -549,7 +549,7 @@ E0DE 0D35             (        forth.asm):00372 (4)             tst     NBCTFB0 
 E0E0 2601             (        forth.asm):00373 (3)             bne     @more1          Yes
 E0E2 39               (        forth.asm):00374 (4)             rts                     No, we're done here
 E0E3 0F35             (        forth.asm):00375 (5)     @more1  clr     NBCTFB0         The -->/CONTINUED exception only applies once
-E0E5 8EFE9F           (        forth.asm):00376 (3)             ldx     #OKPRMPT        Provide OK feedback
+E0E5 8EFE8E           (        forth.asm):00376 (3)             ldx     #OKPRMPT        Provide OK feedback
 E0E8 0D21             (        forth.asm):00377 (4)             tst     USTATE+1        No OK feedback if we're compiling, just CRLF
 E0EA 2702             (        forth.asm):00378 (3)             beq     @more2
 E0EC 3003             (        forth.asm):00379 (4+1)           leax    3,x             Skip the ' OK' string when compiling
@@ -719,7 +719,7 @@ E1E5 3516             (      console.asm):00032 (4+4)   @puts2  puls    d,x
 E1E7 39               (      console.asm):00033 (4)             rts
                       (      console.asm):00034         
 E1E8 3410             (      console.asm):00035 (4+2)   PUTCR   pshs    x
-E1EA 8EFE88           (      console.asm):00036 (3)             ldx     #CRLFSTR
+E1EA 8EFE77           (      console.asm):00036 (3)             ldx     #CRLFSTR
 E1ED 8DEC             (      console.asm):00037 (6)             bsr     PUTS
 E1EF 3510             (      console.asm):00038 (4+2)           puls    x
 E1F1 39               (      console.asm):00039 (4)             rts
@@ -796,7 +796,7 @@ E244 BDEA18           (        forth.asm):00525                 RFXT    jsr,RCLR
                       (        forth.asm):00527                 bsr     PAGE0IN
                       (        forth.asm):00528                 ENDC
                       (        forth.asm):00529         * Relocate '@' code to RAM and set it up as the last dictionary entry (RO).
-E247 8EFE00           (        forth.asm):00530 (3)             ldx     #THEEND         Source address for tfm
+E247 8EFDEF           (        forth.asm):00530 (3)             ldx     #THEEND         Source address for tfm
 E24A 10860010         (        forth.asm):00531 (4)             ldw     #(REALEND-THEEND) Byte count for tfm
 E24E 108E0C10         (        forth.asm):00532 (4)             ldy     #WDICSPC        Destination address for tfm
 E252 109F06           (        forth.asm):00533 (5)             sty     LSTWAD
@@ -865,7 +865,7 @@ E29F 39               (        forth.asm):00590 (4)             rts
                       (        forth.asm):00596         * are untouched.
 E2A0 E684             (        forth.asm):00597 (4+0)   CKNBPFX ldb     ,x              B has a potential base prefix character
 E2A2 3410             (        forth.asm):00598 (4+2)           pshs    x
-E2A4 8EFFDF           (        forth.asm):00599 (3)             ldx     #BASALST        A associative list (A-list) of BASE prefixes
+E2A4 8EFFD6           (        forth.asm):00599 (3)             ldx     #BASALST        A associative list (A-list) of BASE prefixes
 E2A7 A681             (        forth.asm):00600 (4+2)   @pflkup lda     ,x++            Potential BASE prefix character to A
 E2A9 2707             (        forth.asm):00601 (3)             beq     @nopfix         Reached the end of the A-list. No prefix found
 E2AB 103798           (        forth.asm):00602 (4)             cmpr    b,a             Prefix match?
@@ -1182,7 +1182,7 @@ E488 3344             (        forth.asm):00912 (4+1)           leau    4,u
 E48A 1F9A             (        forth.asm):00913 (4)             tfr     b,cc
 E48C 39               (        forth.asm):00914 (4)             rts
                       (        forth.asm):00915         
-                      (        forth.asm):00916         * Used by CMOVE, <CMOVE, CMOVE>, MOVE.
+                      (        forth.asm):00916         * Used by CMOVE, CMOVE>, MOVE.
 E48D CC0244BDE336     (        forth.asm):00917         ACQMOVP MINDREQ 3               At least 3 cells must be stacked up
 E493 10A6C4           (        forth.asm):00918 (6+0)   ACQVMRA ldw     ,u              Byte count
 E496 10AE42           (        forth.asm):00919 (6+1)           ldy     2,u             Destination address
@@ -1207,7 +1207,7 @@ E49E 3430             (        forth.asm):00937 (4+4)   FDCTSYM pshs    y,x
 E4A0 1F21             (        forth.asm):00938 (4)             tfr     y,x             Potential execution token to X
 E4A2 8CE83E           (        forth.asm):00939 (3)             cmpx    #EBUFS
 E4A5 2505             (        forth.asm):00940 (3)             blo     @fdstr2 
-E4A7 8CFE00           (        forth.asm):00941 (3)             cmpx    #THEEND
+E4A7 8CFDEF           (        forth.asm):00941 (3)             cmpx    #THEEND
 E4AA 250D             (        forth.asm):00942 (3)             blo     @fdsmtc
 E4AC 8C0C10           (        forth.asm):00943 (3)     @fdstr2 cmpx    #WDICSPC        Term 2 of the predicate for a valid word addr
 E4AF 2504             (        forth.asm):00944 (3)             blo     @fdsnom
@@ -1266,7 +1266,7 @@ E502 27B1             (        forth.asm):00996 (3)             beq     @fdsnom 
 E504 1F01             (        forth.asm):00997 (4)             tfr     d,x             Point to previous word header
 E506 10810C10         (        forth.asm):00998 (4)             cmpw    #WDICSPC        Are we transitioning from RAM to ROM?
 E50A 26B2             (        forth.asm):00999 (3)             bne     @fdslop         No singularity
-E50C 1086FE00         (        forth.asm):01000 (4)             ldw     #THEEND         Won't be able to diagnose the ROM based @...
+E50C 1086FDEF         (        forth.asm):01000 (4)             ldw     #THEEND         Won't be able to diagnose the ROM based @...
 E510 20AC             (        forth.asm):01001 (3)             bra     @fdslop
                       (        forth.asm):01002         
                       (        forth.asm):01003         * Find the best possible symbolic approximation of Y and store it to the
@@ -1317,7 +1317,7 @@ E57C 434B445054524100 (        forth.asm):01047                 fcn     'CKDPTRA
 E584 E47C             (        forth.asm):01048                 fdb     CMP2RA          Missing operand in any of U<, U>, <, >
 E586 434D5032524100   (        forth.asm):01049                 fcn     'CMP2RA'
 E58D E493             (        forth.asm):01050                 fdb     ACQVMRA         Three operands missing in any of CMOVE,
-                      (        forth.asm):01051         *                               <CMOVE, CMOVE>, MOVE
+                      (        forth.asm):01051         *                               CMOVE>, MOVE
 E58F 414351564D524100 (        forth.asm):01052                 fcn     'ACQVMRA'
 E597 E0BE             (        forth.asm):01053                 fdb     MINTLRA         Main interpreter loop return address
 E599 4D494E544C524100 (        forth.asm):01054                 fcn     'MINTLRA'
@@ -1390,7 +1390,7 @@ E64D 8627             (        forth.asm):01120 (2)     @endquo lda     #''
 E64F BDE1B7           (        forth.asm):01121 (7)             jsr     PUTCH
 E652 8620             (        forth.asm):01122 (2)             lda     #SP
 E654 BDE1B7           (        forth.asm):01123 (7)             jsr     PUTCH
-E657 8EFECE           (        forth.asm):01124 (3)     @perrm  ldx     #ERRMTBL        Regular error handling
+E657 8EFEBD           (        forth.asm):01124 (3)     @perrm  ldx     #ERRMTBL        Regular error handling
 E65A 5D               (        forth.asm):01125 (1)     @nxterr tstb
 E65B 2633             (        forth.asm):01126 (3)             bne     @skerrm
 E65D BDE1DB           (        forth.asm):01127 (7)             jsr     PUTS            Print error message
@@ -3574,7 +3574,7 @@ F5B2 04               (        forth.asm):03078         PAGE    fcb     4       
 F5B3 50414745         (        forth.asm):03079                 fcc     'PAGE'
 F5B7 F595             (        forth.asm):03080                 fdb     SPACES
 F5B9 C7               (        forth.asm):03081                 RFCS
-F5BA 8EFE10           (        forth.asm):03082 (3)             ldx     #CSVT100
+F5BA 8EFDFF           (        forth.asm):03082 (3)             ldx     #CSVT100
 F5BD 7EE1DB           (        forth.asm):03083 (3)             jmp     PUTS
                       (        forth.asm):03084         
 F5C0 02               (        forth.asm):03085         CRLF    fcb     2               79-STANDARD (REQ160)
@@ -4147,9 +4147,9 @@ F9D9 BDE1DB           (        forth.asm):03647 (7)             jsr     PUTS
 F9DC 9E18             (        forth.asm):03649 (4)             ldx     VLPRVHD
 F9DE 8C0C10           (        forth.asm):03650 (3)             cmpx    #WDICSPC
 F9E1 2608             (        forth.asm):03651 (3)             bne     @vlist7
-F9E3 8EFDF5           (        forth.asm):03652 (3)             ldx     #QMARK          Word just before @ (ROM flavor)
+F9E3 8EFDE4           (        forth.asm):03652 (3)             ldx     #QMARK          Word just before @ (ROM flavor)
 F9E6 9F18             (        forth.asm):03653 (4)             stx     VLPRVHD
-F9E8 8EFE00           (        forth.asm):03654 (3)             ldx     #THEEND
+F9E8 8EFDEF           (        forth.asm):03654 (3)             ldx     #THEEND
 F9EB 9F16             (        forth.asm):03655 (4)     @vlist7 stx     VLPRVEP
 F9ED 3510             (        forth.asm):03656 (4+2)           puls    x
 F9EF 3504             (        forth.asm):03657 (4+1)           puls    b
@@ -4592,263 +4592,256 @@ FD12 105C             (        forth.asm):04093 (2)             incw
 FD14 113912           (        forth.asm):04094 (6+?)           tfm     x-,y-
 FD17 39               (        forth.asm):04095 (4)     @cmovd1 rts
                       (        forth.asm):04096         
-FD18 06               (        forth.asm):04097         DCMOVE  fcb     6               79-STANDARD (REF)
-FD19 3C434D4F5645     (        forth.asm):04098                 fcc     '<CMOVE'
-FD1F FCF9             (        forth.asm):04099                 fdb     CMOVED
-FD21 C7               (        forth.asm):04100                 RFCS
-FD22 BDE48D           (        forth.asm):04101 (7)             jsr     ACQMOVP
-FD25 113912           (        forth.asm):04102 (6+?)           tfm     x-,y-
-FD28 39               (        forth.asm):04103 (4)             rts
+FD18 05               (        forth.asm):04097         CMOVE   fcb     5               79-STANDARD (REQ153)
+FD19 434D4F5645       (        forth.asm):04098                 fcc     'CMOVE'
+FD1E FCF9             (        forth.asm):04099                 fdb     CMOVED
+FD20 C7               (        forth.asm):04100                 RFCS
+FD21 BDE48D           (        forth.asm):04101 (7)             jsr     ACQMOVP
+FD24 113812           (        forth.asm):04102 (6+?)           tfm     x+,y+
+FD27 39               (        forth.asm):04103 (4)             rts
                       (        forth.asm):04104         
-FD29 05               (        forth.asm):04105         CMOVE   fcb     5               79-STANDARD (REQ153)
-FD2A 434D4F5645       (        forth.asm):04106                 fcc     'CMOVE'
-FD2F FD18             (        forth.asm):04107                 fdb     DCMOVE
-FD31 C7               (        forth.asm):04108                 RFCS
-FD32 BDE48D           (        forth.asm):04109 (7)             jsr     ACQMOVP
-FD35 113812           (        forth.asm):04110 (6+?)           tfm     x+,y+
-FD38 39               (        forth.asm):04111 (4)             rts
-                      (        forth.asm):04112         
-FD39 04               (        forth.asm):04113         MOVE    fcb     4               79-STANDARD (REQ113)
-FD3A 4D4F5645         (        forth.asm):04114                 fcc     'MOVE'          ( srcaddr dstaddr ncells -- )
-FD3E FD29             (        forth.asm):04115                 fdb     CMOVE
-FD40 C7               (        forth.asm):04116                 RFCS
-FD41 BDE48D           (        forth.asm):04117 (7)             jsr     ACQMOVP
-FD44 105D             (        forth.asm):04118 (2)             tstw
-FD46 2F06             (        forth.asm):04119 (3)             ble     @move1
-FD48 103066           (        forth.asm):04120 (4)             addr    w,w             Convert cells to bytes
-FD4B 113812           (        forth.asm):04121 (6+?)           tfm     x+,y+
-FD4E 39               (        forth.asm):04122 (4)     @move1  rts
-                      (        forth.asm):04123         
-FD4F 05               (        forth.asm):04124         CELLS   fcb     5               ANSI-X3.215-1994
-FD50 43454C4C53       (        forth.asm):04125                 fcc     'CELLS'
-FD55 FD39             (        forth.asm):04126                 fdb     MOVE
-FD57 C7               (        forth.asm):04127                 RFCS
-FD58 BDE6BD           (        forth.asm):04128 (7)             jsr     NPOP
-FD5B 103011           (        forth.asm):04129 (4)             addr    x,x
-FD5E 3610             (        forth.asm):04130                 UCNPUSH
-FD60 39               (        forth.asm):04131 (4)             rts
-                      (        forth.asm):04132         
-FD61 04               (        forth.asm):04133         LAST    fcb     4               79-STANDARD (REF)
-FD62 4C415354         (        forth.asm):04134                 fcc     'LAST'
-FD66 FD4F             (        forth.asm):04135                 fdb     CELLS
-FD68 C7               (        forth.asm):04136                 RFCS
-FD69 9E06             (        forth.asm):04137 (4)             ldx     LSTWAD
-FD6B 7EE6AF           (        forth.asm):04138 (3)             jmp     NPUSH
-                      (        forth.asm):04139         
-FD6E 04               (        forth.asm):04140         HERE    fcb     4               79-STANDARD (REQ188)
-FD6F 48455245         (        forth.asm):04141                 fcc     'HERE'
-FD73 FD61             (        forth.asm):04142                 fdb     LAST
-FD75 C7               (        forth.asm):04143                 RFCS
-FD76 9E08             (        forth.asm):04144 (4)             ldx     DICEND
-FD78 7EE6AF           (        forth.asm):04145 (3)             jmp     NPUSH
-                      (        forth.asm):04146         
-FD7B 02               (        forth.asm):04147         PLUSST  fcb     2               79-STANDARD (REQ157)
-FD7C 2B21             (        forth.asm):04148                 fcc     '+!'            ( incr addr -- )
-FD7E FD6E             (        forth.asm):04149                 fdb     HERE
-FD80 C7               (        forth.asm):04150                 RFCS
-FD81 CC0246BDE336     (        forth.asm):04151                 MINDREQ 2               We need at least two cells stacked up
-FD87 AEC4             (        forth.asm):04152 (5+0)           ldx     ,u              ADDR to X
-FD89 EC84             (        forth.asm):04153 (5+0)           ldd     ,x              @ADDR to D
-FD8B E342             (        forth.asm):04154 (5+1)           addd    2,u             Add INCR to D
-FD8D ED84             (        forth.asm):04155 (5+0)   PLUSST1 std     ,x              Store the sum back to ADDR
-FD8F 3344             (        forth.asm):04156 (4+1)           leau    4,u             Drop two cells from the data stack
-FD91 39               (        forth.asm):04157 (4)             rts
-                      (        forth.asm):04158         
-FD92 03               (        forth.asm):04159         ONEPST  fcb     3               79-STANDARD (REF)
-FD93 312B21           (        forth.asm):04160                 fcc     '1+!'
-FD96 FD7B             (        forth.asm):04161                 fdb     PLUSST
-FD98 C7               (        forth.asm):04162                 RFCS
-FD99 CC0248BDE336     (        forth.asm):04163                 MINDREQ 1
-FD9F AEC4             (        forth.asm):04164 (5+0)           ldx     ,u
-FDA1 EC84             (        forth.asm):04165 (5+0)           ldd     ,x
-FDA3 104C             (        forth.asm):04166 (2)             incd
-FDA5 ED84             (        forth.asm):04167 (5+0)           std     ,x
-FDA7 3342             (        forth.asm):04168 (4+1)           leau    2,u
-FDA9 39               (        forth.asm):04169 (4)             rts
-                      (        forth.asm):04170         
-FDAA 02               (        forth.asm):04171         MINUSST fcb     2               79-STANDARD (REQ157)
-FDAB 2D21             (        forth.asm):04172                 fcc     '-!'            ( incr addr -- )
-FDAD FD92             (        forth.asm):04173                 fdb     ONEPST
-FDAF C7               (        forth.asm):04174                 RFCS
-FDB0 CC0246BDE336     (        forth.asm):04175                 MINDREQ 2               We need at least two cells stacked up
-FDB6 AEC4             (        forth.asm):04176 (5+0)           ldx     ,u              ADDR to X
-FDB8 EC84             (        forth.asm):04177 (5+0)           ldd     ,x              @ADDR to D
-FDBA A342             (        forth.asm):04178 (5+1)           subd    2,u             Substract INCR from D
-FDBC 20CF             (        forth.asm):04179 (3)             bra     PLUSST1
-                      (        forth.asm):04180         
-FDBE 02               (        forth.asm):04181         CSTORE  fcb     2               79-STANDARD (REQ219)
-FDBF 4321             (        forth.asm):04182                 fcc     'C!'            ( val8 addr -- )
-FDC1 FDAA             (        forth.asm):04183                 fdb     MINUSST
-FDC3 C7               (        forth.asm):04184                 RFCS
-FDC4 CC0246BDE336     (        forth.asm):04185                 MINDREQ 2               We need at least two cells stacked up
-FDCA A643             (        forth.asm):04186 (4+1)           lda     3,u             VAL8 to A
-FDCC A7D4             (        forth.asm):04187 (4+3)           sta     [,u]            Actual store to ADDR
-FDCE 3344             (        forth.asm):04188 (4+1)           leau    4,u             Drop two cells from the data stack
-FDD0 39               (        forth.asm):04189 (4)             rts
-                      (        forth.asm):04190         
-FDD1 01               (        forth.asm):04191         STORE   fcb     1               79-STANDARD (REQ112)
-FDD2 21               (        forth.asm):04192                 fcc     '!'             ( data addr -- )
-FDD3 FDBE             (        forth.asm):04193                 fdb     CSTORE
-FDD5 C7               (        forth.asm):04194                 RFCS
-FDD6 CC0246BDE336     (        forth.asm):04195                 MINDREQ 2               At least two cells need to be stacked up
-FDDC EC42             (        forth.asm):04196 (5+1)           ldd     2,u             DATA to D
-FDDE EDD4             (        forth.asm):04197 (5+3)           std     [,u]            Actual store to ADDR
-FDE0 3344             (        forth.asm):04198 (4+1)           leau    4,u             Drop two cells from the user stack
-FDE2 39               (        forth.asm):04199 (4)             rts
-                      (        forth.asm):04200         
-FDE3 02               (        forth.asm):04201         CFETCH  fcb     2               79-STANDARD (REQ156)
-FDE4 4340             (        forth.asm):04202                 fcc     'C@'            ( addr -- val8 )
-FDE6 FDD1             (        forth.asm):04203                 fdb     STORE
-FDE8 C7               (        forth.asm):04204                 RFCS
-FDE9 CC0248BDE336     (        forth.asm):04205                 MINDREQ 1               We need at least one cell stacked up
-FDEF 4F               (        forth.asm):04206 (1)             clra
-FDF0 E6D4             (        forth.asm):04207 (4+3)           ldb     [,u]
-FDF2 EDC4             (        forth.asm):04208 (5+0)           std     ,u
-FDF4 39               (        forth.asm):04209 (4)             rts
-                      (        forth.asm):04210         
-FDF5 01               (        forth.asm):04211         QMARK   fcb     1               79-STANDARD (REQ194)
-FDF6 3F               (        forth.asm):04212                 fcc     '?'
-FDF7 FDE3             (        forth.asm):04213                 fdb     CFETCH
-FDF9 C7               (        forth.asm):04214                 RFCS
-FDFA BD0C15           (        forth.asm):04215 (7)             jsr     RAMFTCH         Call the RAM based incarnation of @
-FDFD 7EF50F           (        forth.asm):04216                 RFXT    jmp,DOT+4       XT for .
-                      (        forth.asm):04217         
-                      (        forth.asm):04218         * End of ROM part of the builtin dictionary.
-     FE00             (        forth.asm):04219         THEEND  equ     *               This is the end, Beautiful friend
-                      (        forth.asm):04220         *                               This is the end, My only friend
-                      (        forth.asm):04221         
-                      (        forth.asm):04222         * This transactional word is relocated to RAM, so that we can compile new
-                      (        forth.asm):04223         * definitions. FORTHIN will take care of that and adjust the relevant pointers.
-FE00 01               (        forth.asm):04224         FETCH   fcb     1               79-STANDARD (REQ199)
-FE01 40               (        forth.asm):04225                 fcc     '@'             ( addr -- data )
-FE02 FDF5             (        forth.asm):04226                 fdb     QMARK
-FE04 C7               (        forth.asm):04227                 RFCS
-FE05 CC0248BDE336     (        forth.asm):04228                 MINDREQ 1               At least one cell needs to be stacked up
-FE0B ECD4             (        forth.asm):04229 (5+3)           ldd     [,u]
-FE0D EDC4             (        forth.asm):04230 (5+0)           std     ,u              Returned through the data stack
-FE0F 39               (        forth.asm):04231 (4)             rts
-                      (        forth.asm):04232         
-     FE10             (        forth.asm):04233         REALEND equ     *
+FD28 04               (        forth.asm):04105         MOVE    fcb     4               79-STANDARD (REQ113)
+FD29 4D4F5645         (        forth.asm):04106                 fcc     'MOVE'          ( srcaddr dstaddr ncells -- )
+FD2D FD18             (        forth.asm):04107                 fdb     CMOVE
+FD2F C7               (        forth.asm):04108                 RFCS
+FD30 BDE48D           (        forth.asm):04109 (7)             jsr     ACQMOVP
+FD33 105D             (        forth.asm):04110 (2)             tstw
+FD35 2F06             (        forth.asm):04111 (3)             ble     @move1
+FD37 103066           (        forth.asm):04112 (4)             addr    w,w             Convert cells to bytes
+FD3A 113812           (        forth.asm):04113 (6+?)           tfm     x+,y+
+FD3D 39               (        forth.asm):04114 (4)     @move1  rts
+                      (        forth.asm):04115         
+FD3E 05               (        forth.asm):04116         CELLS   fcb     5               ANSI-X3.215-1994
+FD3F 43454C4C53       (        forth.asm):04117                 fcc     'CELLS'
+FD44 FD28             (        forth.asm):04118                 fdb     MOVE
+FD46 C7               (        forth.asm):04119                 RFCS
+FD47 BDE6BD           (        forth.asm):04120 (7)             jsr     NPOP
+FD4A 103011           (        forth.asm):04121 (4)             addr    x,x
+FD4D 3610             (        forth.asm):04122                 UCNPUSH
+FD4F 39               (        forth.asm):04123 (4)             rts
+                      (        forth.asm):04124         
+FD50 04               (        forth.asm):04125         LAST    fcb     4               79-STANDARD (REF)
+FD51 4C415354         (        forth.asm):04126                 fcc     'LAST'
+FD55 FD3E             (        forth.asm):04127                 fdb     CELLS
+FD57 C7               (        forth.asm):04128                 RFCS
+FD58 9E06             (        forth.asm):04129 (4)             ldx     LSTWAD
+FD5A 7EE6AF           (        forth.asm):04130 (3)             jmp     NPUSH
+                      (        forth.asm):04131         
+FD5D 04               (        forth.asm):04132         HERE    fcb     4               79-STANDARD (REQ188)
+FD5E 48455245         (        forth.asm):04133                 fcc     'HERE'
+FD62 FD50             (        forth.asm):04134                 fdb     LAST
+FD64 C7               (        forth.asm):04135                 RFCS
+FD65 9E08             (        forth.asm):04136 (4)             ldx     DICEND
+FD67 7EE6AF           (        forth.asm):04137 (3)             jmp     NPUSH
+                      (        forth.asm):04138         
+FD6A 02               (        forth.asm):04139         PLUSST  fcb     2               79-STANDARD (REQ157)
+FD6B 2B21             (        forth.asm):04140                 fcc     '+!'            ( incr addr -- )
+FD6D FD5D             (        forth.asm):04141                 fdb     HERE
+FD6F C7               (        forth.asm):04142                 RFCS
+FD70 CC0246BDE336     (        forth.asm):04143                 MINDREQ 2               We need at least two cells stacked up
+FD76 AEC4             (        forth.asm):04144 (5+0)           ldx     ,u              ADDR to X
+FD78 EC84             (        forth.asm):04145 (5+0)           ldd     ,x              @ADDR to D
+FD7A E342             (        forth.asm):04146 (5+1)           addd    2,u             Add INCR to D
+FD7C ED84             (        forth.asm):04147 (5+0)   PLUSST1 std     ,x              Store the sum back to ADDR
+FD7E 3344             (        forth.asm):04148 (4+1)           leau    4,u             Drop two cells from the data stack
+FD80 39               (        forth.asm):04149 (4)             rts
+                      (        forth.asm):04150         
+FD81 03               (        forth.asm):04151         ONEPST  fcb     3               79-STANDARD (REF)
+FD82 312B21           (        forth.asm):04152                 fcc     '1+!'
+FD85 FD6A             (        forth.asm):04153                 fdb     PLUSST
+FD87 C7               (        forth.asm):04154                 RFCS
+FD88 CC0248BDE336     (        forth.asm):04155                 MINDREQ 1
+FD8E AEC4             (        forth.asm):04156 (5+0)           ldx     ,u
+FD90 EC84             (        forth.asm):04157 (5+0)           ldd     ,x
+FD92 104C             (        forth.asm):04158 (2)             incd
+FD94 ED84             (        forth.asm):04159 (5+0)           std     ,x
+FD96 3342             (        forth.asm):04160 (4+1)           leau    2,u
+FD98 39               (        forth.asm):04161 (4)             rts
+                      (        forth.asm):04162         
+FD99 02               (        forth.asm):04163         MINUSST fcb     2               79-STANDARD (REQ157)
+FD9A 2D21             (        forth.asm):04164                 fcc     '-!'            ( incr addr -- )
+FD9C FD81             (        forth.asm):04165                 fdb     ONEPST
+FD9E C7               (        forth.asm):04166                 RFCS
+FD9F CC0246BDE336     (        forth.asm):04167                 MINDREQ 2               We need at least two cells stacked up
+FDA5 AEC4             (        forth.asm):04168 (5+0)           ldx     ,u              ADDR to X
+FDA7 EC84             (        forth.asm):04169 (5+0)           ldd     ,x              @ADDR to D
+FDA9 A342             (        forth.asm):04170 (5+1)           subd    2,u             Substract INCR from D
+FDAB 20CF             (        forth.asm):04171 (3)             bra     PLUSST1
+                      (        forth.asm):04172         
+FDAD 02               (        forth.asm):04173         CSTORE  fcb     2               79-STANDARD (REQ219)
+FDAE 4321             (        forth.asm):04174                 fcc     'C!'            ( val8 addr -- )
+FDB0 FD99             (        forth.asm):04175                 fdb     MINUSST
+FDB2 C7               (        forth.asm):04176                 RFCS
+FDB3 CC0246BDE336     (        forth.asm):04177                 MINDREQ 2               We need at least two cells stacked up
+FDB9 A643             (        forth.asm):04178 (4+1)           lda     3,u             VAL8 to A
+FDBB A7D4             (        forth.asm):04179 (4+3)           sta     [,u]            Actual store to ADDR
+FDBD 3344             (        forth.asm):04180 (4+1)           leau    4,u             Drop two cells from the data stack
+FDBF 39               (        forth.asm):04181 (4)             rts
+                      (        forth.asm):04182         
+FDC0 01               (        forth.asm):04183         STORE   fcb     1               79-STANDARD (REQ112)
+FDC1 21               (        forth.asm):04184                 fcc     '!'             ( data addr -- )
+FDC2 FDAD             (        forth.asm):04185                 fdb     CSTORE
+FDC4 C7               (        forth.asm):04186                 RFCS
+FDC5 CC0246BDE336     (        forth.asm):04187                 MINDREQ 2               At least two cells need to be stacked up
+FDCB EC42             (        forth.asm):04188 (5+1)           ldd     2,u             DATA to D
+FDCD EDD4             (        forth.asm):04189 (5+3)           std     [,u]            Actual store to ADDR
+FDCF 3344             (        forth.asm):04190 (4+1)           leau    4,u             Drop two cells from the user stack
+FDD1 39               (        forth.asm):04191 (4)             rts
+                      (        forth.asm):04192         
+FDD2 02               (        forth.asm):04193         CFETCH  fcb     2               79-STANDARD (REQ156)
+FDD3 4340             (        forth.asm):04194                 fcc     'C@'            ( addr -- val8 )
+FDD5 FDC0             (        forth.asm):04195                 fdb     STORE
+FDD7 C7               (        forth.asm):04196                 RFCS
+FDD8 CC0248BDE336     (        forth.asm):04197                 MINDREQ 1               We need at least one cell stacked up
+FDDE 4F               (        forth.asm):04198 (1)             clra
+FDDF E6D4             (        forth.asm):04199 (4+3)           ldb     [,u]
+FDE1 EDC4             (        forth.asm):04200 (5+0)           std     ,u
+FDE3 39               (        forth.asm):04201 (4)             rts
+                      (        forth.asm):04202         
+FDE4 01               (        forth.asm):04203         QMARK   fcb     1               79-STANDARD (REQ194)
+FDE5 3F               (        forth.asm):04204                 fcc     '?'
+FDE6 FDD2             (        forth.asm):04205                 fdb     CFETCH
+FDE8 C7               (        forth.asm):04206                 RFCS
+FDE9 BD0C15           (        forth.asm):04207 (7)             jsr     RAMFTCH         Call the RAM based incarnation of @
+FDEC 7EF50F           (        forth.asm):04208                 RFXT    jmp,DOT+4       XT for .
+                      (        forth.asm):04209         
+                      (        forth.asm):04210         * End of ROM part of the builtin dictionary.
+     FDEF             (        forth.asm):04211         THEEND  equ     *               This is the end, Beautiful friend
+                      (        forth.asm):04212         *                               This is the end, My only friend
+                      (        forth.asm):04213         
+                      (        forth.asm):04214         * This transactional word is relocated to RAM, so that we can compile new
+                      (        forth.asm):04215         * definitions. FORTHIN will take care of that and adjust the relevant pointers.
+FDEF 01               (        forth.asm):04216         FETCH   fcb     1               79-STANDARD (REQ199)
+FDF0 40               (        forth.asm):04217                 fcc     '@'             ( addr -- data )
+FDF1 FDE4             (        forth.asm):04218                 fdb     QMARK
+FDF3 C7               (        forth.asm):04219                 RFCS
+FDF4 CC0248BDE336     (        forth.asm):04220                 MINDREQ 1               At least one cell needs to be stacked up
+FDFA ECD4             (        forth.asm):04221 (5+3)           ldd     [,u]
+FDFC EDC4             (        forth.asm):04222 (5+0)           std     ,u              Returned through the data stack
+FDFE 39               (        forth.asm):04223 (4)             rts
+                      (        forth.asm):04224         
+     FDFF             (        forth.asm):04225         REALEND equ     *
+                      (        forth.asm):04226         
+                      (        forth.asm):04227         *******************************************************************************
+                      (        forth.asm):04228         * String literals.
+                      (        forth.asm):04229         
+                      (        forth.asm):04230         * Using CR+LF as it is Minicom's default.
+                      (        forth.asm):04231         
+                      (        forth.asm):04232         * Clear the screen, VT100 style.
+FDFF 1B5B481B5B4A0D00 (        forth.asm):04233         CSVT100 fcb     $1B,'[','H',$1B,'[','J',CR,NUL
                       (        forth.asm):04234         
-                      (        forth.asm):04235         *******************************************************************************
-                      (        forth.asm):04236         * String literals.
-                      (        forth.asm):04237         
-                      (        forth.asm):04238         * Using CR+LF as it is Minicom's default.
-                      (        forth.asm):04239         
-                      (        forth.asm):04240         * Clear the screen, VT100 style.
-FE10 1B5B481B5B4A0D00 (        forth.asm):04241         CSVT100 fcb     $1B,'[','H',$1B,'[','J',CR,NUL
-                      (        forth.asm):04242         
-FE18 1B5B481B5B4A0D   (        forth.asm):04243         BOOTMSG fcb     $1B,'[','H',$1B,'[','J',CR
-FE1F 5A3739466F727468 (        forth.asm):04244                 fcc     'Z79Forth - 6309 FORTH-79 Standard Sub-set.'
+FE07 1B5B481B5B4A0D   (        forth.asm):04235         BOOTMSG fcb     $1B,'[','H',$1B,'[','J',CR
+FE0E 5A3739466F727468 (        forth.asm):04236                 fcc     'Z79Forth - 6309 FORTH-79 Standard Sub-set.'
      202D203633303920
      464F5254482D3739
      205374616E646172
      64205375622D7365
      742E
-FE49 0D0A             (        forth.asm):04245                 fcb     CR,LF
-FE4B 3230323130343035 (        forth.asm):04246                 fcc     '20210405 Copyright Francois Laagel (2019).'
+FE38 0D0A             (        forth.asm):04237                 fcb     CR,LF
+FE3A 3230323130343036 (        forth.asm):04238                 fcc     '20210406 Copyright Francois Laagel (2019).'
      20436F7079726967
      6874204672616E63
      6F6973204C616167
      656C202832303139
      292E
-FE75 0D0A0D0A00       (        forth.asm):04247                 fcb     CR,LF,CR,LF,NUL
-                      (        forth.asm):04248         
-FE7A 52414D204F4B3A20 (        forth.asm):04249         RAMOKM  fcc     'RAM OK: 32 KB.'
+FE64 0D0A0D0A00       (        forth.asm):04239                 fcb     CR,LF,CR,LF,NUL
+                      (        forth.asm):04240         
+FE69 52414D204F4B3A20 (        forth.asm):04241         RAMOKM  fcc     'RAM OK: 32 KB.'
      3332204B422E
-FE88 0D0A00           (        forth.asm):04250         CRLFSTR fcb     CR,LF,NUL
-                      (        forth.asm):04251         
-FE8B 52414D2063686563 (        forth.asm):04252         RAMFM   fcc     'RAM check failed.'
+FE77 0D0A00           (        forth.asm):04242         CRLFSTR fcb     CR,LF,NUL
+                      (        forth.asm):04243         
+FE7A 52414D2063686563 (        forth.asm):04244         RAMFM   fcc     'RAM check failed.'
      6B206661696C6564
      2E
-FE9C 0D0A00           (        forth.asm):04253                 fcb     CR,LF,NUL
-                      (        forth.asm):04254         
-FE9F 204F4B           (        forth.asm):04255         OKPRMPT fcc     ' OK'
-FEA2 0D0A00           (        forth.asm):04256                 fcb     CR,LF,NUL
-                      (        forth.asm):04257         
-                      (        forth.asm):04258         * Error messages for IODZHDL.
-FEA5 496C6C6567616C20 (        forth.asm):04259         IOPERRM fcn     'Illegal opcode near '
+FE8B 0D0A00           (        forth.asm):04245                 fcb     CR,LF,NUL
+                      (        forth.asm):04246         
+FE8E 204F4B           (        forth.asm):04247         OKPRMPT fcc     ' OK'
+FE91 0D0A00           (        forth.asm):04248                 fcb     CR,LF,NUL
+                      (        forth.asm):04249         
+                      (        forth.asm):04250         * Error messages for IODZHDL.
+FE94 496C6C6567616C20 (        forth.asm):04251         IOPERRM fcn     'Illegal opcode near '
      6F70636F6465206E
      6561722000
-FEBA 4469766973696F6E (        forth.asm):04260         DV0ERRM fcn     'Division by 0 near '
+FEA9 4469766973696F6E (        forth.asm):04252         DV0ERRM fcn     'Division by 0 near '
      2062792030206E65
      61722000
-                      (        forth.asm):04261         
-FECE 4461746120737461 (        forth.asm):04262         ERRMTBL fcn     'Data stack overflow'   Error 0
+                      (        forth.asm):04253         
+FEBD 4461746120737461 (        forth.asm):04254         ERRMTBL fcn     'Data stack overflow'   Error 0
      636B206F76657266
      6C6F7700
-FEE2 4461746120737461 (        forth.asm):04263                 fcn     'Data stack underflow'  Error 1
+FED1 4461746120737461 (        forth.asm):04255                 fcn     'Data stack underflow'  Error 1
      636B20756E646572
      666C6F7700
-FEF7 3F00             (        forth.asm):04264                 fcn     '?'                     Error 2 (Undefined)
-FEF9 557365722041424F (        forth.asm):04265                 fcn     'User ABORT'            Error 3
+FEE6 556E646566696E65 (        forth.asm):04256                 fcn     'Undefined'             Error 2
+     6400
+FEF0 557365722041424F (        forth.asm):04257                 fcn     'User ABORT'            Error 3
      525400
-FF04 00               (        forth.asm):04266                 fcn     ''                      Error 4 (formerly "Division by zero")
-FF05 4D697373696E6720 (        forth.asm):04267                 fcn     'Missing word name'     Error 5
+FEFB 00               (        forth.asm):04258                 fcn     ''                      Error 4 (formerly "Division by zero")
+FEFC 4D697373696E6720 (        forth.asm):04259                 fcn     'Missing word name'     Error 5
      776F7264206E616D
      6500
-FF17 496E636F72726563 (        forth.asm):04268                 fcn     'Incorrect STATE'       Error 6
+FF0E 496E636F72726563 (        forth.asm):04260                 fcn     'Incorrect STATE'       Error 6
      7420535441544500
-FF27 52657475726E2073 (        forth.asm):04269                 fcn     'Return stack overflow' Error 7
+FF1E 52657475726E2073 (        forth.asm):04261                 fcn     'Return stack overflow' Error 7
      7461636B206F7665
      72666C6F7700
-FF3D 52657475726E2073 (        forth.asm):04270                 fcn     'Return stack underflow' Error 8
+FF34 52657475726E2073 (        forth.asm):04262                 fcn     'Return stack underflow' Error 8
      7461636B20756E64
      6572666C6F7700
-FF54 496C6C6567616C20 (        forth.asm):04271                 fcn     'Illegal construct'     Error 9
+FF4B 496C6C6567616C20 (        forth.asm):04263                 fcn     'Illegal construct'     Error 9
      636F6E7374727563
      7400
-FF66 417373657274696F (        forth.asm):04272                 fcn     'Assertion failed'      Error 10
+FF5D 417373657274696F (        forth.asm):04264                 fcn     'Assertion failed'      Error 10
      6E206661696C6564
      00
-FF77 522F4F20776F7264 (        forth.asm):04273                 fcn     'R/O word'              Error 11
+FF6E 522F4F20776F7264 (        forth.asm):04265                 fcn     'R/O word'              Error 11
      00
-FF80 4D697373696E6720 (        forth.asm):04274                 fcn     'Missing delimiter'     Error 12
+FF77 4D697373696E6720 (        forth.asm):04266                 fcn     'Missing delimiter'     Error 12
      64656C696D697465
      7200
-FF92 496C6C6567616C20 (        forth.asm):04275                 fcn     'Illegal argument'      Error 13
+FF89 496C6C6567616C20 (        forth.asm):04267                 fcn     'Illegal argument'      Error 13
      617267756D656E74
      00
-FFA3 4E6F206D61746368 (        forth.asm):04276                 fcn     'No matching CREATE'    Error 14
+FF9A 4E6F206D61746368 (        forth.asm):04268                 fcn     'No matching CREATE'    Error 14
      696E672043524541
      544500
-FFB6 496E76616C696420 (        forth.asm):04277                 fcn     'Invalid BASE'          Error 15
+FFAD 496E76616C696420 (        forth.asm):04269                 fcn     'Invalid BASE'          Error 15
      4241534500
-FFC3 576F7264206E616D (        forth.asm):04278                 fcn     'Word name too long'    Error 16
+FFBA 576F7264206E616D (        forth.asm):04270                 fcn     'Word name too long'    Error 16
      6520746F6F206C6F
      6E6700
-FFD6 494F206572726F72 (        forth.asm):04279                 fcn     'IO error'              Error 17
+FFCD 494F206572726F72 (        forth.asm):04271                 fcn     'IO error'              Error 17
      00
-                      (        forth.asm):04280         
-                      (        forth.asm):04281         * A-list used for numeric literal base prefixes.
-FFDF 24               (        forth.asm):04282         BASALST fcc     '$'             Hexadecimal prefix
-FFE0 10               (        forth.asm):04283                 fcb     16
-FFE1 26               (        forth.asm):04284                 fcc     '&'             Decimal prefix
-FFE2 0A               (        forth.asm):04285                 fcb     10
-FFE3 23               (        forth.asm):04286                 fcc     '#'             Decimal prefix (an ANSI concession)
-FFE4 0A               (        forth.asm):04287                 fcb     10
-FFE5 25               (        forth.asm):04288                 fcc     '%'             Binary prefix
-FFE6 02               (        forth.asm):04289                 fcb     2
-FFE7 40               (        forth.asm):04290                 fcc     '@'             Octal prefix
-FFE8 08               (        forth.asm):04291                 fcb     8
-FFE9 00               (        forth.asm):04292                 fcb     0               End of list marker
-                      (        forth.asm):04293         
-                      (        forth.asm):04294         * Under no circumstance should the following symbol be negative!
-     0006             (        forth.asm):04295         AVL     equ     VECTBL-*        Available EEPROM space left
-                      (        forth.asm):04296         
-                      (        forth.asm):04297         *******************************************************************************
-                      (        forth.asm):04298         * Interrupt vector table
-                      (        forth.asm):04299                 org     VECTBL
-                      (        forth.asm):04300         
-FFF0 E000             (        forth.asm):04301                 fdb     IODZHDL         Illegal opcode/Division by zero trap
-FFF2 E035             (        forth.asm):04302                 fdb     SWI3HDL         SWI 3 interrupt vector address
-FFF4 E035             (        forth.asm):04303                 fdb     SWI2HDL         SWI 2 interrupt vector address
-FFF6 E035             (        forth.asm):04304                 fdb     FIRQHDL         FIRQ interrupt vector address
-FFF8 E035             (        forth.asm):04305                 fdb     IRQHDL          IRA interrupt vector address
-FFFA E035             (        forth.asm):04306                 fdb     SWIHDL          SWI interrupt vector address
-FFFC E035             (        forth.asm):04307                 fdb     NMIHDL          NMI vector address
-FFFE E036             (        forth.asm):04308                 fdb     RSTHDL          RESET vector address
-                      (        forth.asm):04309         
+                      (        forth.asm):04272         
+                      (        forth.asm):04273         * A-list used for numeric literal base prefixes.
+FFD6 24               (        forth.asm):04274         BASALST fcc     '$'             Hexadecimal prefix
+FFD7 10               (        forth.asm):04275                 fcb     16
+FFD8 26               (        forth.asm):04276                 fcc     '&'             Decimal prefix
+FFD9 0A               (        forth.asm):04277                 fcb     10
+FFDA 23               (        forth.asm):04278                 fcc     '#'             Decimal prefix (an ANSI concession)
+FFDB 0A               (        forth.asm):04279                 fcb     10
+FFDC 25               (        forth.asm):04280                 fcc     '%'             Binary prefix
+FFDD 02               (        forth.asm):04281                 fcb     2
+FFDE 40               (        forth.asm):04282                 fcc     '@'             Octal prefix
+FFDF 08               (        forth.asm):04283                 fcb     8
+FFE0 00               (        forth.asm):04284                 fcb     0               End of list marker
+                      (        forth.asm):04285         
+                      (        forth.asm):04286         * Under no circumstance should the following symbol be negative!
+     000F             (        forth.asm):04287         AVL     equ     VECTBL-*        Available EEPROM space left
+                      (        forth.asm):04288         
+                      (        forth.asm):04289         *******************************************************************************
+                      (        forth.asm):04290         * Interrupt vector table
+                      (        forth.asm):04291                 org     VECTBL
+                      (        forth.asm):04292         
+FFF0 E000             (        forth.asm):04293                 fdb     IODZHDL         Illegal opcode/Division by zero trap
+FFF2 E035             (        forth.asm):04294                 fdb     SWI3HDL         SWI 3 interrupt vector address
+FFF4 E035             (        forth.asm):04295                 fdb     SWI2HDL         SWI 2 interrupt vector address
+FFF6 E035             (        forth.asm):04296                 fdb     FIRQHDL         FIRQ interrupt vector address
+FFF8 E035             (        forth.asm):04297                 fdb     IRQHDL          IRA interrupt vector address
+FFFA E035             (        forth.asm):04298                 fdb     SWIHDL          SWI interrupt vector address
+FFFC E035             (        forth.asm):04299                 fdb     NMIHDL          NMI vector address
+FFFE E036             (        forth.asm):04300                 fdb     RSTHDL          RESET vector address
+                      (        forth.asm):04301         
 
 Symbol Table:
 [ G] _BS                              E1F2
@@ -4880,8 +4873,8 @@ Symbol Table:
 [ G] AGAIN                            EE97
 [ G] ALLOT                            FCAC
 [ G] AND                              ED45
-[ G] AVL                              0006
-[ G] BASALST                          FFDF
+[ G] AVL                              000F
+[ G] BASALST                          FFD6
 [ G] BASBKUP                          0128
 [ G] BASE                             FA07
 [ G] BCSOPC                           2503
@@ -4905,7 +4898,7 @@ Symbol Table:
 [ G] BNEOPC                           2603
 [ G] BOBLKNO                          0402
 [ G] BOFLAGS                          0401
-[ G] BOOTMSG                          FE18
+[ G] BOOTMSG                          FE07
 [ G] BOTERM                           0400
 [ G] BS                               0008
 [ G] BSBFADR                          011C
@@ -4914,7 +4907,7 @@ Symbol Table:
 [ G] BUFFER                           E8B9
 [ G] BYE                              F13D
 [ G] CCOMMA                           FC87
-[ G] CELLS                            FD4F
+[ G] CELLS                            FD3E
 [ G] CF1BKRD                          E808
 [ G] CF1BKWR                          E823
 [ G] CF1BPRE                          E7EB
@@ -4939,7 +4932,7 @@ Symbol Table:
 [ G] CFERRCD                          0138
 [ G] CFERRCK                          E740
 [ G] CFERROR                          C001
-[ G] CFETCH                           FDE3
+[ G] CFETCH                           FDD2
 [ G] CFFEATR                          C001
 [ G] CFIDDEV                          00EC
 [ G] CFINIT                           E786
@@ -4966,7 +4959,7 @@ Symbol Table:
 [ G] CMDBFSZ                          0084
 [ G] CMDBUF                           02CA
 [ G] CMDLNSZ                          0129
-[ G] CMOVE                            FD29
+[ G] CMOVE                            FD18
 [ G] CMOVED                           FCF9
 [ G] CMP2                             E476
 [ G] CMP2RA                           E47C
@@ -4988,11 +4981,11 @@ Symbol Table:
 [ G] CREAT1                           EA58
 [ G] CREATE                           EA36
 [ G] CRLF                             F5C0
-[ G] CRLFSTR                          FE88
+[ G] CRLFSTR                          FE77
 [ G] CSSNTVE                          0000
-[ G] CSTORE                           FDBE
+[ G] CSTORE                           FDAD
 [ G] CSUMFLM                          EB9E
-[ G] CSVT100                          FE10
+[ G] CSVT100                          FDFF
 [ G] CURTOKL                          0132
 [ G] CVISSGN                          0131
 [ G] CVNSTR                           E341
@@ -5003,7 +4996,6 @@ Symbol Table:
 [ G] CVTE                             F402
 [ G] CVTFCN                           012F
 [ G] DASHTR                           F60A
-[ G] DCMOVE                           FD18
 [ G] DDUMP                            FB5E
 [ G] DEBUG                            0000
 [ G] DECIMAL                          FA31
@@ -5039,7 +5031,7 @@ Symbol Table:
 [ G] DROP                             FBF0
 [ G] DUMP                             FA4F
 [ G] DUP                              FBDE
-[ G] DV0ERRM                          FEBA
+[ G] DV0ERRM                          FEA9
 [ G] DZEQ                             F2CB
 [ G] EBUFS                            E83E
 [ G] ELSE                             EC8A
@@ -5051,7 +5043,7 @@ Symbol Table:
 [ G] EQ                               ECBD
 [ G] ERRHD1                           E639
 [ G] ERRHDLR                          E636
-[ G] ERRMTBL                          FECE
+[ G] ERRMTBL                          FEBD
 [ G] ERRPCK                           FC2A
 [ G] ETX                              0003
 [ G] EXCT                             F123
@@ -5059,7 +5051,7 @@ Symbol Table:
 [ G] EXPCT1                           F64F
 [ G] EXPECT                           F645
 [ G] FDCTSYM                          E49E
-[ G] FETCH                            FE00
+[ G] FETCH                            FDEF
 [ G] FILL                             FCC2
 [ G] FILL1                            FCCF
 [ G] FIND                             EFDB
@@ -5075,7 +5067,7 @@ Symbol Table:
 [ G] HDMP4                            E175
 [ G] HDRCSUM                          EB48
 [ G] HDRSKIP                          EB3E
-[ G] HERE                             FD6E
+[ G] HERE                             FD5D
 [ G] HEX                              FA42
 [ G] HEX1D                            E15C
 [ G] HEXBFSZ                          0050
@@ -5105,7 +5097,7 @@ Symbol Table:
 [ G] INVERT                           ED6F
 [ G] IODZHDL                          E000
 [ G] IOERR                            E7D0
-[ G] IOPERRM                          FEA5
+[ G] IOPERRM                          FE94
 [ G] IOSTRT                           C000
 [ G] IRDPTH                           012B
 [ G] IRQHDL                           E035
@@ -5115,7 +5107,7 @@ Symbol Table:
 [ G] JSROPC                           00BD
 [ G] KEY                              F763
 [ G] KEYP                             F73E
-[ G] LAST                             FD61
+[ G] LAST                             FD50
 [ G] LBRACK                           F00D
 [ G] LDXOPC                           008E
 [ G] LEAVE                            EF50
@@ -5140,12 +5132,12 @@ Symbol Table:
 [ G] MIN                              EE42
 [ G] MINTLRA                          E0BE
 [ G] MINUS                            F7C2
-[ G] MINUSST                          FDAA
+[ G] MINUSST                          FD99
 [ G] MOD                              F8BE
 [ G] MONFLM                           0020
 [ G] MONITOR                          EB21
 [ G] MORE                             E0D6
-[ G] MOVE                             FD39
+[ G] MOVE                             FD28
 [ G] MROT                             FC7B
 [ G] MRUBUFA                          011A
 [ G] MSLCNT                           03E2
@@ -5173,11 +5165,11 @@ Symbol Table:
 [ G] NXTBLK                           F6EE
 [ G] NXTBLK1                          F6F9
 [ G] OCTAL                            FA22
-[ G] OKPRMPT                          FE9F
+[ G] OKPRMPT                          FE8E
 [ G] ONEL                             F807
 [ G] ONEM                             F7D6
 [ G] ONEP                             F79B
-[ G] ONEPST                           FD92
+[ G] ONEPST                           FD81
 [ G] OR                               ED2F
 [ G] OVER                             FC44
 [ G] PAD                              F5C9
@@ -5192,8 +5184,8 @@ Symbol Table:
 [ G] PLOOPEX                          EC0B
 [ G] PLOPEX1                          EC0E
 [ G] PLUS                             F787
-[ G] PLUSST                           FD7B
-[ G] PLUSST1                          FD8D
+[ G] PLUSST                           FD6A
+[ G] PLUSST1                          FD7C
 [ G] POSTPON                          F021
 [ G] pragma                           0000
 [ G] PRBLKIN                          E611
@@ -5202,22 +5194,22 @@ Symbol Table:
 [ G] PUTCH                            E1B7
 [ G] PUTCR                            E1E8
 [ G] PUTS                             E1DB
-[ G] QMARK                            FDF5
+[ G] QMARK                            FDE4
 [ G] QRYDUP                           FB99
 [ G] QUIT                             EFB0
 [ G] RAMCHK                           E058
 [ G] RAMFAIL                          E06A
-[ G] RAMFM                            FE8B
+[ G] RAMFM                            FE7A
 [SG] RAMFTCH                          0C15
 [SG] RAMFTCH                          0C14
 [ G] RAMOK                            E07C
-[ G] RAMOKM                           FE7A
+[ G] RAMOKM                           FE69
 [ G] RAMSIZE                          8000
 [ G] RAMSTRT                          0000
 [ G] RBRACK                           F003
 [ G] RCLR                             EA10
 [ G] RDEPTH                           012A
-[ G] REALEND                          FE10
+[ G] REALEND                          FDFF
 [ G] RECADDR                          0112
 [ G] RECURSE                          F0C4
 [ G] RELFEAT                          0001
@@ -5259,7 +5251,7 @@ Symbol Table:
 [ G] SSDFEAT                          0001
 [ G] STATE                            F9F8
 [ G] STOD                             E9EA
-[ G] STORE                            FDD1
+[ G] STORE                            FDC0
 [ G] STRSL1                           F8E1
 [ G] STRSLMD                          F901
 [ G] STRSLSH                          F8D7
@@ -5274,7 +5266,7 @@ Symbol Table:
 [ G] TBUFF                            039E
 [ G] TBUFSZ                           0048
 [ G] TERPRET                          F66E
-[ G] THEEND                           FE00
+[ G] THEEND                           FDEF
 [ G] THEN                             ECAB
 [ G] THRU                             F6CC
 [ G] TOIN                             E942

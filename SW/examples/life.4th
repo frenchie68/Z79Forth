@@ -1,4 +1,3 @@
-\ Game of Life - PEB
 \ In memory of the late John Horton Conway, inventor of the
 \ first computerised version in 1970. John Horton Conway died
 \ from the Corona Virus (COVID-19) pandemic on 11th April 2020.
