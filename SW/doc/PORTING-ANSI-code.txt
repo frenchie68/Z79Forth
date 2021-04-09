@@ -2,8 +2,7 @@
 
 There are a number of gotchas when porting ANSI code to Z79Forth.
 
-- FIND exists in both but with different semantics. In most circumstances,
-  the ANSI ' is equivalent to the Z79Forth FIND word.
+- FIND exists in both but with different semantics.
 
 - MOVE exists in both but with different semantics. The ANSI MOVE operates
   on the basis of a byte count; 79-STANDARD operates on cells. An ANSI

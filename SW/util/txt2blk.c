@@ -117,15 +117,26 @@ openOutputBlock(int blockNo) {
 }
 
 void
+unlinkBlock(int blockNo) {
+  char	outputFilename[32];
+
+  if(fileOutput) {
+    sprintf(outputFilename, "block.%08d", blockNo);
+    unlink(outputFilename);
+  }
+  /* Nothing to do if the output is directly to disk */
+}
+
+void
 emitLineToBuffer(char *addr) {
   memcpy(blockPtr, addr, 1 + MAXCOL);
   blockPtr += 1 + MAXCOL;
 }
 
 void
-bufferToBlock(int fd, int blkNo) {
+bufferToBlock(int fd, int blockNo) {
   if(!fileOutput)      /* We're writing directly to a disk device */
-    lseek(fd, blkNo * BLOCKSIZE, SEEK_SET);
+    lseek(fd, blockNo * BLOCKSIZE, SEEK_SET);
   (void)write(fd, buffer, BLOCKSIZE);    /* Flush the buffer */
 }
 
@@ -192,10 +203,21 @@ processInputFile(FILE *inFile) {
       lineCountInBlock++;
     }
 
-    emitBlankLines(lineCountInBlock);
-    bufferToBlock(outFd, currentBlockNo);
-    close(outFd);
-    lastWrittenBlockNo = currentBlockNo++;
+    /* At this point, either we have a full buffer, or the input source file
+       has been read entirely. */
+    if((headerLine && lineCountInBlock == 1) || !lineCountInBlock) {
+      /* If we get here, we are about to write an empty buffer (content wise) */
+      assert(!continued);
+      close(outFd);
+      unlinkBlock(currentBlockNo);
+      lastWrittenBlockNo = currentBlockNo - 1;
+    }
+    else {
+      emitBlankLines(lineCountInBlock);
+      bufferToBlock(outFd, currentBlockNo);
+      close(outFd);
+      lastWrittenBlockNo = currentBlockNo++;
+    }
   } while(continued);
 
   printf("%d input lines processed\n", inputLineCount);
@@ -203,7 +225,10 @@ processInputFile(FILE *inFile) {
     lastWrittenBlockNo, fileOutput ? "files" : "disk");
 
   printf("You may invoke this program with:\n");
-  printf("%d %d THRU\n", startingBlockNo, lastWrittenBlockNo);
+  if(startingBlockNo == lastWrittenBlockNo)
+    printf("%d LOAD\n", startingBlockNo);
+  else
+    printf("%d %d THRU\n", startingBlockNo, lastWrittenBlockNo);
 }
 
 int

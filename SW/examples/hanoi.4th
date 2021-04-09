@@ -1,4 +1,3 @@
-( Towers of Hanoi. Original code by Peter Midnight.           )
 ( Forth Dimensions, II/2. July/August 1980, page 32.          )
 ( Z79Forth adaptations, FLA, 07/14/2020.                      )
 
@@ -63,38 +62,45 @@ CREATE RING  N 2+  ALLOT               ( array[1..N] of bytes )
     DUP I 1 COLOR DISPLAY
     HWAIT
   -1 +LOOP  DROP ;
+
 : MOVERIGHT ( size source_tower dest_tower -- )
   POS 1+  SWAP  POS 1+  DO
     DUP I 1- 1 BL DISPLAY
     DUP I 1 COLOR DISPLAY
     HWAIT
   LOOP DROP ;
+
 : TRAVERSE ( size source_tower dest_tower -- )
   2DUP >  IF MOVELEFT ELSE MOVERIGHT THEN ;
-: MOVE ( size source_tower dest_tower -- )
+
+: TMOVE ( size source_tower dest_tower -- )
   -ROT 2DUP RAISE  >R 2DUP R> ROT TRAVERSE
   2DUP  RING + 1- C!  SWAP LOWER ;
 
 : MULTIMOV ( size source dest spare -- )
   4 PICK  1 =  IF
-    DROP MOVE
+    DROP TMOVE
   ELSE
     >R >R SWAP 1- SWAP R> R>
     4DUP SWAP RECURSE
-    4DUP DROP  ROT 1+ -ROT  MOVE
+    4DUP DROP  ROT 1+ -ROT  TMOVE
     -ROT SWAP  RECURSE
   THEN ;
+
 : MAKETOWER ( tower -- )
   POS  4 N +  3 DO
     DUP I GOTOXY  [CHAR] | EMIT
   LOOP  DROP ;
+
 : MAKEBASE ( -- )
   0 N 4 + GOTOXY  N 6 * 3 +  0 DO
     [CHAR] - EMIT
   LOOP ;
+
 : MAKERING ( tower size -- )
   2DUP RING + 1- C!
   SWAP LOWER ;
+
 : SETUP ( -- ) PAGE
   N 1+ 0 DO  1 RING I + C!  LOOP
   3 0 DO  I MAKETOWER  LOOP
@@ -110,3 +116,5 @@ CREATE RING  N 2+  ALLOT               ( array[1..N] of bytes )
   UNTIL KEY DROP
   2DROP 2DROP ;
 
+8 TOWERS
+FORGET H.MARKER

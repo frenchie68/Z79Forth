@@ -101,14 +101,68 @@ unspecified, always default to one. '^' denotes the <Control> key.
 'R'	Enter the replace mode. The cursor position is unchanged.
 ':q'	Save the content of the current buffer and exit the editor.
 
-4 The Replace Mode
-------------------
+Note: due to a known bug, ':anything but q or <Escape>' will cause an error
+condition and the editior will stop being executed. Edition can be resumed
+with:
 
-5 The Insert Mode
-------------------
+	SCR @ EDIT
 
-6 Implementation Reference
+The SCR user variable is set by the latest invokation of LIST, which the
+editor calls when it is initially invoked. Should the latest LISTed screen
+need to be blanked, this can be done by using:
+
+	WIPE
+
+4 The Insert and Replace Modes
+------------------------------
+They are functionally very similar. The insert mode is entered from the command
+mode by typing 'i'. The replace mode is entered from the command mode by typing
+'R'. Both are exited by typing <Escape>. In both modes, text can be entered
+freely but it is not permitted to move the cursor back to a column prior to the
+one when the mode was entered, except after a carriage return has been entered
+in which case no such constraint will be enforced.
+
+5 Implementation Reference
 --------------------------
 This section is written for myself and those adventurous to consider the
 implementation of missing functionality.
+
+5.1 Basic Terminology
+---------------------
+Memory space	A world view in which things begin at offset 0. This can be the
+cursor position with respect to the beginning of the block being edited or
+the value of variables such as E.COL# E.LIN#.
+
+Terminal space	Arguments are expressed from a lowest possible value of 1.
+This applies, for instance, to the line and column numbers passed to
+E.VT100.CUP (aka gotoxy).
+
+5.3 Terminal layout
+-------------------
+Minicom is used in VT102 emulation mode with <backspace> mapped to <Backspace>.
+
+- Line 1 (in terminal space) is left blank.
+- Lines 2-17 contain an image of the block being edited.
+- Line 18 can be blank, or contain an indication of the current editing mode
+  (INSERT / REPLACE) or a status line (current line and column numbers,
+  starting from 1, block number starting from 0).
+
+5.2 Global Variables
+--------------------
+E.MODE	0: COMMAND, 1: INSERT, 2: REPLACE, 3: QUIT
+E.COL#	current cursor column number in memory space.
+E.LIN#	current cursor line number in memory space.
+SCR1	a "virtual" variable that contains the base buffer address of the
+	block being editing in memory.
+E.CMD.COUNT the value of nn when a command such as [nn]<cmd>... is used.
+	The word E.CMD.COUNT.GET returns E.CMD.COUNT, with 1 as a default
+	if no command count prefix was specified.
+E.CMD.SUBCOUNT the value of mm when a command such a [nn]<cmd>[mm] is used.
+	The word E.CMD.SUBCOUNT.GET returns E.CMD.SUBCOUNT, with 1 as a default
+        if no command subcount prefix was specified.
+E.MINICOM.BUG.WORKAROUND A bug exists in Minicom 2.7.1, which causes characters
+	starting at the current cursor position and up to the end of the current
+	line to be blanked when switching to insert mode. This variable is used
+	as a flag to mitigate the effect of that bug without requiring a fixed
+	version of the tool.
 
