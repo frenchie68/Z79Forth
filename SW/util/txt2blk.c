@@ -76,7 +76,7 @@ FILE	*inputFile;
 void
 usage(void) {
   fprintf(stderr, "usage: %s -i <inputFilename>  -s <startingBlockNo> "
-    "[-h <headerLine> [-d <device>]\n", SELF);
+    "[-h <headerLine>] [-d <device>]\n", SELF);
   exit(1);
 }
 
