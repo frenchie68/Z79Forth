@@ -137,7 +137,7 @@ Terminal space	Arguments are expressed from a lowest possible value of 1.
 This applies, for instance, to the line and column numbers passed to
 E.VT100.CUP (aka gotoxy).
 
-5.3 Terminal layout
+5.2 Terminal layout
 -------------------
 Minicom is used in VT102 emulation mode with <backspace> mapped to <Backspace>.
 
@@ -147,7 +147,48 @@ Minicom is used in VT102 emulation mode with <backspace> mapped to <Backspace>.
   (INSERT / REPLACE) or a status line (current line and column numbers,
   starting from 1, block number starting from 0).
 
-5.2 Global Variables
+5.3 Code Organization
+---------------------
+- Disabled GNU Forth compatibility layer.
+- Enabled Z79Forth specifics.
+- Constant definitions.
+- VT100 control primitives (E.VT100.*).
+- Global variables.
+- Editor commands support words.
+- Central jump table (defines all the accepted commands).
+- E.COMMAND, insert and replace mode handling primitives.
+- Editor entry point (E.LWVI) and alias (EDIT).
+
+5.4 VT100 Control Primitives
+----------------------------
+E.VT100.CSI ( -- ) emits the control sequence introducer (<Escape>[).
+E.VT100.NP ( n -- ) converts n to a 2 digit number (in decimal) representing
+	a VT100 command numeric parameter.
+E.VT100-1PCMD a defining word used to create all the VT100 commands requiring
+	only one parameter. Those commands are:
+
+	E.VT100.CUB ( count -- ) cursor backward.
+	E.VT100.CUF ( count -- ) cursor forward.
+	E.VT100.CUD ( count -- ) cursor down.
+	E.VT100.CUU ( count -- ) cursor up.
+	E.VT100.IRMI ( 4 -- ) switch to insert mode.
+	E.VT100.IRMR ( 4 -- ) switch to replace mode.
+	E.VT100.DCH ( count -- ) delete character starting at the current
+		cursor position.
+	E.VT100.IL ( count -- ) insert line
+	E.VT100.DL ( count -- ) delete line
+	E.VT100.ED ( 0 -- ) erase in display. Blanks characters from the
+		current cursor position to the end of the screen.
+
+Derived commands:
+E.VT100.CUP ( x y -- ) aka GOTOXY. X and Y must be expressed in terminal space.
+E.VT100.BS ( -- ) cursor backward by one column.
+E.VT100.INS ( -- ) switches to insert mode.
+E.VT100.RPL ( -- ) switches to replace mode.
+E.VT100.ED$ ( -- ) Banks characters from the current cursor position to the
+	end of the screen.
+
+5.5 Global Variables
 --------------------
 E.MODE	0: COMMAND, 1: INSERT, 2: REPLACE, 3: QUIT
 E.COL#	current cursor column number in memory space.
@@ -165,4 +206,7 @@ E.MINICOM.BUG.WORKAROUND A bug exists in Minicom 2.7.1, which causes characters
 	line to be blanked when switching to insert mode. This variable is used
 	as a flag to mitigate the effect of that bug without requiring a fixed
 	version of the tool.
+
+5.6 Editor Commands Support Words
+---------------------------------
 

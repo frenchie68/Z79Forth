@@ -1,0 +1,16 @@
+: viload 16 44 THRU ;    : lifeload 50 76 THRU ;
+: disload 90 94 THRU ;   : palfltload 110 LOAD ;
+: palgenload 112 LOAD ;  : hanload 120 127 THRU ;
+\ [130..140[ used by the Forth2012 block word set test suite
+: sapinload 300 LOAD ;
+: f12testload 400 404 THRU \ Test infrastructure setup
+  405 465 THRU             \ Core word set test
+  466 504 THRU             \ Block word set test
+;
+
+: nb PAGE SCR @ 1+ LIST ;
+
+disload               \ Load the disassembler at startup time
+2 4 THRU              \ Load block dbg support and : extension
+
+." Block #" BLK @ U. ." loaded." CR

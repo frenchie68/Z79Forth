@@ -1,0 +1,12 @@
+\ Extension to :                                                
+\ Issue a warning if a word is being redefined.                 
+                                                                
+: :                                                             
+  >IN @                                                         
+  FIND IF                                                       
+    DUP >IN ! CR ." WARNING: " BL WORD COUNT TYPE               
+    SPACE ." is being redefined"                                         
+  THEN                                                          
+  >IN !                                                         
+  :                                                             
+;      

@@ -10,7 +10,7 @@
 
 ./txt2blk -i ../examples/dis.4th -d /dev/sdb -s 90 \
 -h '\ Z79Forth 6309 disassembler. FLA, June 6, 2020.'
-# : disload 90 95 THRU ;
+# : disload 90 94 THRU ;
 
 ./txt2blk -i ../examples/palflt.4th -d /dev/sdb -s 110 \
 -h '\ Palindrome numbers filtering [10..50000]. FLA Dec 10, 2020'

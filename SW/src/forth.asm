@@ -4235,7 +4235,7 @@ CSVT100	fcb	$1B,'[','H',$1B,'[','J',CR,NUL
 BOOTMSG	fcb	$1B,'[','H',$1B,'[','J',CR
 	fcc	'Z79Forth - 6309 FORTH-79 Standard Sub-set.'
 	fcb	CR,LF
-	fcc	'20210406 Copyright Francois Laagel (2019).'
+	fcc	'20210425 Copyright Francois Laagel (2019).'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB.'

@@ -4738,7 +4738,7 @@ FE0E 5A3739466F727468 (        forth.asm):04236                 fcc     'Z79Fort
      64205375622D7365
      742E
 FE38 0D0A             (        forth.asm):04237                 fcb     CR,LF
-FE3A 3230323130343036 (        forth.asm):04238                 fcc     '20210406 Copyright Francois Laagel (2019).'
+FE3A 3230323130343235 (        forth.asm):04238                 fcc     '20210425 Copyright Francois Laagel (2019).'
      20436F7079726967
      6874204672616E63
      6F6973204C616167
