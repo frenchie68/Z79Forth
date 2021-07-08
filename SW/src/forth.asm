@@ -90,8 +90,8 @@
 * "The paper is very heavy going, and I should never have read it, had I not
 * written it myself." J. E. Littlewood (1885-1977).
 *
-* A preferred musical reference of mine also is available at:
-* https://www.youtube.com/watch?v=8pxQZVBlnbA&t=156s
+* The original soundtrack for this work is available at:
+* https://youtu.be/YqXZtGyFyDo?t=4023 (J.S. Bach BWV 1080, contrapunctus 14).
 
 pragma	opt cd,operandsizewarning
 
@@ -214,6 +214,7 @@ TBUFF	rmb	TBUFSZ		Output for CVNSTR. Also used by DUMP
 
 	align	16
 BUF0	rmb	BLKSIZ+4
+
 	align	16
 BUF1	rmb	BLKSIZ+4
 
@@ -264,19 +265,15 @@ SWI2HDL	equ	*
 FIRQHDL	equ	*
 IRQHDL	equ	*
 SWIHDL	equ	*
-NMIHDL	sync			Go to low power mode idling forever
+NMIHDL	bra	*		These should never happen
 
-RSTHDL	orcc	#$50		Disable interrupts
-
-* In theory, this means 15% extra performance.
-* In practice, this means an extra 5 mA current comsumption.
-* The additional performance is measurable so I am going for it.
-	ldmd	#1		Establish 6309 native mode
+* Interrupts are disabled by default upon reset.
+RSTHDL	ldmd	#1		Establish 6309 native mode
 
 	lda	#ACIRSET
 	sta	ACIACTL		ACIA master reset
 	lda	#ACIRTS1
-	sta	ACIACTL		No IRQ on RDRF, RTS high, 8N1, 115200 bps
+	sta	ACIACTL		RTS# high, 8N1
 
 	ldx	#BOOTMSG	Identity statement
 
@@ -323,17 +320,17 @@ RAMOK	ldx	#RAMSTRT
 
 * Initialize the system stack pointer and the direct page base address register.
 	lds	#RAMSTRT+RAMSIZE
-	IFNE	USEDP
 	lda	#VARSPC/256
 	tfr	a,dp
 	SETDP	VARSPC/256
-	ENDC
+
 	ldx	#RAMOKM
 	jsr	PUTS
 	jsr	FORTHIN		Global variables initialization
 	jsr	CFINIT		CompactFlash card initialization
 	tst	CFCARDP
 	beq	INTERP
+
 * A CF card is present, LOAD block #1.
 	ldx	#1
 	jsr	LOAD1
@@ -373,7 +370,7 @@ MORE	tst	,x
 	bne	@more1		Yes
 	rts			No, we're done here
 @more1	clr	NBCTFB0		The -->/CONTINUED exception only applies once
-	ldx	#OKPRMPT	Provide OK feedback
+	ldx	#OKFEEDB	Provide OK feedback
 	tst	USTATE+1	No OK feedback if we're compiling, just CRLF
 	beq	@more2
 	leax	3,x		Skip the ' OK' string when compiling
@@ -554,8 +551,7 @@ EMPT1B	stx	MRUBUFA		Update most recently used buffer address
 	std	,x		Clear terminator and flags fields
 	IFNE	DEBUG
 	ldd	#$C7C7
-	leax	2,x
-	std	,x		Dummy block number
+	std	2,x		Dummy block number
 	ENDC
 	rts
 
@@ -692,6 +688,7 @@ NUMCVT	bsr	CKBASE		No return if BASE isn't in the [2..36] range
 	ldb	#2		Undefined (X points to the offending word)
 	jsr	ERRHDLR		No return
 NUMCVRA	equ	*		For symbolic stack dump purposes
+	nop
 
 * Check for minimal data stack depth. On input D has the lowest possible stack
 * address that satisfies the needs of the caller. This routine is meant
@@ -1045,6 +1042,8 @@ NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
 	fcn	'CKBASRA'
 	fdb	CKDPTRA		Not enough parameters supplied (transac. behav.)
 	fcn	'CKDPTRA'
+	fdb	CHKNDPT		Check data stack minimum depth (transac. behav.)
+	fcn	'CHKNDPT'
 	fdb	CMP2RA		Missing operand in any of U<, U>, <, >
 	fcn	'CMP2RA'
 	fdb	ACQVMRA		Three operands missing in any of CMOVE,
@@ -1144,7 +1143,7 @@ ERRHD1	cmpb	#2		Undefined symbol?
 	beq	@wastrp		We're just back from the trap handler
 	leas	2,s		Point to the next item on the stack
 @wastrp	cmps	#RAMSTRT+RAMSIZE
-	beq	@errdon		We're done here
+	bhs	@errdon		We're done here
 	ldy	,s
 	bra	@dmptos
 @skerrm	lda	,x+		Scan for the next error message
@@ -1462,14 +1461,13 @@ STOD	fcb	3		ANSI Core ( n -- d )
 	fdb	LIST
 	RFCS
 	jsr	NPOP		N to X
-	UCNPUSH
-	tfr	x,d
-	tfr	0,x		Default to N >= 0
+	UCNPUSH			Push back low order cell
+	clrd			High order cell: default to N >= 0
+	exg	d,x
 	tsta
-	bmi	@argneg
-	bra	@stddon
-@argneg	leax	-1,x		N is < 0. Sign extension is required
-@stddon	jmp	NPUSH
+	lbpl	NPUSH
+	leax	-1,x		N is < 0. Sign extension is required. -1 to X
+	jmp	NPUSH
 
 NCLR	fcb	4		Non-standard
 	fcc	'NCLR'		Clear the data (normal) stack
@@ -2334,7 +2332,7 @@ POSTPON	fcb	$C8		ANSI (Core)
 	std	UTOIN
 	rts
 * The word being considered is non-immediate. The equivalent input should be:
-* ['] <word> COMPILE, We have the XT for <word> in X/Y.
+* ['] <word> COMPILE, We have the XT for <word> in X.
 @postp5	jsr	LITER
 	RFXT	ldx,#CMPCOMA+11
 	bra	@postp4
@@ -2513,11 +2511,11 @@ WORD	fcb	4		79-STANDARD (REQ181)
 @word0	puls	x
 	UCNPUSH			Push back HERE
 	rts
-@word1	jsr	SCNSTOK		Scan for the next non-space character
+@word1	leax	1,x		Skip space character after WORD or leading delim
+	lda	,x
 	beq	@word5		EOL reached, this is the end
-	lda	,x+		First non-space character
 	cmpr	f,a		Leading delimiter matched?
-	bne	@word3		No
+	beq	@word1		Yes
 @word2	lda	,x+		Acquire next character from the input stream
 @word3	sta	,y+
 	beq	@word4		EOL reached
@@ -2759,6 +2757,7 @@ TWOFTCH	fcb	2		79-STANDARD (double number extension)
 	tfr	d,x		Most significant cell goes through standard push
 	jmp	NPUSH
 
+	IFNE	HVCONV
 CONVERT	fcb	7		79-STANDARD (REQ195)
 	fcc	'CONVERT'	( d1 addr1 -- d2 addr2 )
 	fdb	TWOFTCH
@@ -2830,10 +2829,15 @@ CONVERT	fcb	7		79-STANDARD (REQ195)
 	bra	@cvloop		Here we go again
 @cvoor	stx	,u		Update ADDR2
 	rts
+	ENDC
 
 CVTE	fcb	2
 	fcc	'#>'
+	IFNE	HVCONV
 	fdb	CONVERT
+	ELSE
+	fdb	TWOFTCH
+	ENDC
 	RFCS
 	jsr	NPOP
 	jsr	NPOP		Drop 2 cells from the data stack
@@ -3281,7 +3285,7 @@ KEYP	fcb	4		ANSI (Facility)
 	RFCS
 	tfr	0,x
 	lda	#ACIRTS0
-	sta	ACIACTL		Assert RTS
+	sta	ACIACTL		Assert RTS#
 	ldx	#40
 	bsr	MILLIS1		Wait for 40 milliseconds
 * X is guaranteed to be 0 upon return from MILLIS1.
@@ -3290,7 +3294,7 @@ KEYP	fcb	4		ANSI (Facility)
 	beq	@keyp1
 	leax	1,x		Return the 79-STANDARD true flag
 @keyp1	lda	#ACIRTS1
-	sta	ACIACTL		Negate RTS
+	sta	ACIACTL		Negate RTS#
 	jmp	NPUSH
 
 KEY	fcb	3		79-STANDARD (REQ100)
@@ -4233,18 +4237,20 @@ REALEND	equ	*
 CSVT100	fcb	$1B,'[','H',$1B,'[','J',CR,NUL
 
 BOOTMSG	fcb	$1B,'[','H',$1B,'[','J',CR
-	fcc	'Z79Forth - 6309 FORTH-79 Standard Sub-set.'
+	fcc	'Z79Forth 6309/'
+	POLINTM			Polling/interrupt flag mode
+	fcc	' FORTH-79 Standard Sub-set'
 	fcb	CR,LF
-	fcc	'20210425 Copyright Francois Laagel (2019).'
+	fcc	'20210706 Copyright Francois Laagel (2019)'
 	fcb	CR,LF,CR,LF,NUL
 
-RAMOKM	fcc	'RAM OK: 32 KB.'
+RAMOKM	fcc	'RAM OK: 32 KB'
 CRLFSTR	fcb     CR,LF,NUL
 
-RAMFM	fcc	'RAM check failed.'
+RAMFM	fcc	'RAM check failed'
 	fcb     CR,LF,NUL
 
-OKPRMPT	fcc	' OK'
+OKFEEDB	fcc	' OK'
 	fcb	CR,LF,NUL
 
 * Error messages for IODZHDL.
@@ -4294,7 +4300,7 @@ AVL	equ	VECTBL-*	Available EEPROM space left
 	fdb	SWI3HDL		SWI 3 interrupt vector address
 	fdb	SWI2HDL		SWI 2 interrupt vector address
 	fdb	FIRQHDL		FIRQ interrupt vector address
-	fdb	IRQHDL		IRA interrupt vector address
+	fdb	IRQHDL		IRQ interrupt vector address
 	fdb	SWIHDL		SWI interrupt vector address
 	fdb	NMIHDL		NMI vector address
 	fdb	RSTHDL		RESET vector address

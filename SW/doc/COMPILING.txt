@@ -22,40 +22,20 @@ Tunable Build Time Parameters Description
 Those are defined in src/constants.asm. They are:
 
 Name	Default	Alternative	Description
+HVFIRQ	0	N/A		Enable FIRQ on ACIA RDRF (req. 2.2 schematics)
 VT100	0	NZ		Set to 1 to operate at RS232@9600.
 				This implies an Y1 CXO at 2.45760 MHz.
 				Default is 0 for USB@115200 (7.37280 MHz CXO).
 				This tunable does nothing more than select
 				an ACIA dividing factor of 64 instead of the
 				default 16.
-HVCONV	0	NZ		Include CONVERT in the default dictionary.
-				This defaults to false as it prevents a proper
-				implementation of the ANSI POSTPONE primitive,
-				due to EEPROM capacity limitations.
+HVCONV	1	NZ		Include CONVERT in the default dictionary.
 CSSNTVE	0	NZ		Select 0 for a case insensitive implementation
 				or 1 for a case sensitive one. In case sensitive
 				mode, those digits encoded by a letter _must_
 				be entered as upper case. Be also aware that
 				all the predefined dictionary words are stored
 				in ROM as upper case characters.
-DEBUG	0	NZ		If non-zero, extra validation code will be
-				added to the assembled .hex image. This is
-				most useful when developing but should not be
-				used for producing production ROM images.
-				CAUTION: if SSDFEAT and RELFEAT are enabled
-				(see below), you will not be able to fit a
-				DEBUG image into an 8 KB EEPROM!
-CKOVRUN	0	NZ		Set this to a non-zero to check for overruns
-				in GETCH (see src/console.asm). Experimentally,
-				overruns have never been observed at 115200 bps.
-USEDP	1	0		Use the direct page addressing mode whenever
-				extended addressing mode is requested and
-				the target address is in the appropriate range.
-				By default, that appropriate range is coded as
-				[VARSPC, VARSPC+$FF] where VARSPC is $100.
-				This particular RAM area contains most of the
-				essential global variables. Setting USEDP to
-				0 is not recommended in any way.
 SSDFEAT	1	0		Setting this tunable to 1 enables the 'symbolic
 				stack dump' feature. This will result in
 				priceless symbolic information to be displayed
@@ -88,6 +68,13 @@ RELFEAT	1	0		Setting this tunable to a non-zero value
 				Only if RELFEAT is non-zero will the MONITOR
 				and ICHECK primitives be available in the
 				dictionary.
+DEBUG	0	NZ		If non-zero, extra validation code will be
+				added to the assembled .hex image. This is
+				most useful when developing but should not be
+				used for producing production ROM images.
+				CAUTION: if SSDFEAT and RELFEAT are enabled
+				(see below), you will not be able to fit a
+				DEBUG image into an 8 KB EEPROM!
 MSLCNT	994	794, any	This is a loop count used by the MS primitive.
 				994 is appropriate for a 5 MHz system operating
 				in 6309 native mode. 794 is appropriate for a 4

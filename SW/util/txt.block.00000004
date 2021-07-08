@@ -5,7 +5,7 @@
   >IN @                                                         
   FIND IF                                                       
     DUP >IN ! CR ." WARNING: " BL WORD COUNT TYPE               
-    SPACE ." is being redefined"                                         
+    ."  is being redefined"                                         
   THEN                                                          
   >IN !                                                         
   :                                                             

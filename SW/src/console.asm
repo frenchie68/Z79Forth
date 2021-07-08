@@ -13,13 +13,6 @@ GETCH	lda	#ACIRTS0
 	beq	@again
 	lda	#ACIRTS1
 	sta	ACIACTL		You may shut up now
-	IFNE	CKOVRUN
-	lda	#ACIOVRN
-	bita	ACIACTL		Check for overrun
-	beq	@getdat
-	lda	#'*
-	bsr	PUTCH
-	ENDC
 @getdat	lda	ACIADAT		Get character from the ACIA
 	rts
 

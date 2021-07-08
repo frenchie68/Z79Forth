@@ -1,16 +1,16 @@
 * Begin configuration tunable parameters.
 
+HVFIRQ	equ	0		Enable FIRQ on ACIA RDRF (req. 2.2 schematics)
 VT100	equ	0		Set to 1 to operate at RS232@9600
 *				This implies an Y1 CXO at 2.45760 MHz.
 *				Default is 0 for USB@115200 (7.37280 MHz CXO).
 CSSNTVE	equ	0		Words and HEX numbers are case sensitive if NZ
-DEBUG	equ	0		Enforce assertions and miscellaneous checks
-CKOVRUN	equ	0		Check for overruns in GETCH
-USEDP	equ	1		Set to 1 to use direct page addressing
+HVCONV	equ	1		Include CONVERT in the default dictionary
 SSDFEAT	equ	1		Set to 1 to enable the symbolic stack dump feat.
 RELFEAT	equ	1		Set to 1 to enable the reliability feature
 *				Caution: when this is enabled, you can no
 *				longer fit a DEBUG image into an 8 KB EEPROM
+DEBUG	equ	0		Enforce assertions and miscellaneous checks
 * Loop count for MS. This is busy waiting, so we depend on the CPU clock speed.
 *MSLCNT	equ	496		at 3 MHz emulation mode
 *MSLCNT	equ	662		at 4 MHz emulation mode
@@ -26,10 +26,10 @@ IOSTRT	equ	$C000
 ROMSTRT	equ	$E000
 VECTBL	equ	$FFF0
 
-* Base address for global variables (direct page addressed by default).
+* Base address for global variables (direct page addressed).
 VARSPC	equ	$100
 
-* The 74HCT138 IO address decoder maps one 1KB page per usable device.
+* The 74HCT138 IO address decoder maps one 1 KB page per usable device.
 DEV0	equ	$C000		Compact Flash memory module
 DEV1	equ	$C400
 DEV2	equ	$C800
@@ -58,17 +58,28 @@ ACDVSEL equ     ACD64		Switch to RS232@9600 (2.45760 MHz CXO)
 	ENDC
 
 AC8N1	equ	10100b		ACIA 8N1
-ACRTS0	equ	0000000b	ACIA RTS low
-ACRTS1	equ	1000000b	ACIA RTS high
+ACRTS0	equ	0000000b	ACIA RTS# low
+ACRTS1	equ	1000000b	ACIA RTS# high
+	IFNE	HVFIRQ
+ACRDINT	equ	10000000b	IRQ on RDRF
+POLINTM	MACRO	NOEXPAND	Poll/interrupt mode
+	fcb	'I'
+	ENDM
+	ELSE
+ACRDINT	equ	0		No IRQ on RDRF
+POLINTM	MACRO	NOEXPAND	Poll/interrupt mode
+	fcb	'P'
+	ENDM
+	ENDC
 
 ACIRSET	equ	ACRTS1|ACRST
-ACIRTS1	equ	ACRTS1|AC8N1|ACDVSEL
-ACIRTS0	equ	ACRTS0|AC8N1|ACDVSEL
+ACIRTS1	equ	ACRTS1|ACRDINT|AC8N1|ACDVSEL
+ACIRTS0	equ	ACRTS0|ACRDINT|AC8N1|ACDVSEL
 
 * ACIA status register bits.
 ACIRDRF	equ	1		Receive data register full
-ACITDRE	equ	2		Transmit data register empty
-ACIOVRN	equ	32		Overrun status register bit (req. NZ CKOVRUN)
+ACITDRE	equ	10b		Transmit data register empty
+ACIISVC	equ	10000000b	Interrupt needs servicing
 
 * Compact Flash parameters.
 CFBASE	equ	DEV0
@@ -120,10 +131,12 @@ NUL	equ	0		End of string marker
 ETX	equ	3		Control-C (intr)
 BS	equ	8		Backspace
 HT	equ	9		Horizontal tab
-LF	equ	$0A		aka new line
+LF	equ	$0A		Aka new line
 CR	equ	$0D		Carriage return
 NAK	equ	$15		Control-U (kill)
-SP	equ	$20
+SP	equ	$20		Aka BL in Forth
+XOFF	equ	$13		Aka DC3
+XON	equ	$11		Aka DC1
 
 * Stack sizes.
 NSTKSZ	equ	192		Expressed in bytes. Now only limited by RAM size
@@ -135,6 +148,7 @@ HEXBFSZ	equ	80
 TBUFSZ	equ	72		Used by VLIST to print word name, CVNSTR
 *				And DUMP, at offset 69
 PADBSZ	equ	1+80		79-STANDARD mandates a minimum of 64 bytes
+SERBSZ	equ	64		Serial buffer size. Needs to be a power of 2
 
 * Dictionary flag masks.
 IMDFLM	equ	$80		Immediate flag mask
@@ -161,9 +175,10 @@ BCSOPC	equ	$2503		BCS *+5 (relative)
 BNEOPC	equ	$2603		BNE *+5 (relative)
 ILLOPC	equ	$C7		An illegal operation code. Meant to raise a trap
 
-CFLAG	equ	1		CC bit 0
-ZFLAG	equ	4		CC bit 2
-NFLAG	equ	8		CC bit 3
+CFLAG	equ	1		CC bit 0 (C)
+ZFLAG	equ	4		CC bit 2 (Z)
+NFLAG	equ	8		CC bit 3 (N)
+FFLAG	equ	$40		CC bit 6 (F)
 
 * RAM based execution token for @.
 RAMFTCH	set	WDICSPC+4	Dictionary header overhead is word's length + 3
