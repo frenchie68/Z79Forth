@@ -5,7 +5,7 @@ http://www.lwtools.ca/. The current version, as of this writing, is 4.18.
 The preferred development platform is Linux. The Makefile is the src
 directory assumes that lwasm is reachable somewhere in your PATH. By default
 it builds an Intel ihex ROM image (SW/src/forth.hex using the default tunable
-parameters enumerated blow) and an LST file which can be extremely handy when
+parameters enumerated below) and an LST file which can be extremely handy when
 debugging.
 
 When building a new image, be sure to have defined all the tunable parameters
@@ -29,7 +29,7 @@ VT100	0	NZ		Set to 1 to operate at RS232@9600.
 				This tunable does nothing more than select
 				an ACIA dividing factor of 64 instead of the
 				default 16.
-HVCONV	1	NZ		Include CONVERT in the default dictionary.
+HVCONV	1	0		Include CONVERT in the default dictionary.
 CSSNTVE	0	NZ		Select 0 for a case insensitive implementation
 				or 1 for a case sensitive one. In case sensitive
 				mode, those digits encoded by a letter _must_
