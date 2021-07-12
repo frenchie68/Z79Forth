@@ -430,12 +430,12 @@
                       (        forth.asm):00239         * Book" for a description of interrupt stacks in native 6309 mode.
 E000 113C40           (        forth.asm):00240 (4)     IODZHDL bitmd   #$40            Illegal opcode?
 E003 2705             (        forth.asm):00241 (3)             beq     @iodzh1
-E005 8EFE99           (        forth.asm):00242 (3)             ldx     #IOPERRM
+E005 8EFE92           (        forth.asm):00242 (3)             ldx     #IOPERRM
 E008 2008             (        forth.asm):00243 (3)             bra     @iodxh2
 E00A 113C80           (        forth.asm):00244 (4)     @iodzh1 bitmd   #$80            Division by zero?
 E00D 2725             (        forth.asm):00245 (3)             beq     @iodzh3         And you may ask yourself, well
                       (        forth.asm):00246         *                               How did I get here?
-E00F 8EFEAE           (        forth.asm):00247 (3)             ldx     #DV0ERRM
+E00F 8EFEA7           (        forth.asm):00247 (3)             ldx     #DV0ERRM
 E012 BDE1DA           (        forth.asm):00248 (7)     @iodxh2 jsr     PUTS
 E015 EC6C             (        forth.asm):00249 (5+1)           ldd     12,s            Return code address (PC)
 E017 8E034E           (        forth.asm):00250 (3)             ldx     #HEXBUF
@@ -443,7 +443,7 @@ E01A BDE174           (        forth.asm):00251 (7)             jsr     HDMP4
 E01D 8E034E           (        forth.asm):00252 (3)             ldx     #HEXBUF
 E020 BDE1DA           (        forth.asm):00253 (7)             jsr     PUTS
 E023 BDE1E7           (        forth.asm):00254 (7)             jsr     PUTCR
-E026 8EE643           (        forth.asm):00255 (3)             ldx     #ERRHD1
+E026 8EE645           (        forth.asm):00255 (3)             ldx     #ERRHD1
 E029 AF6C             (        forth.asm):00256 (5+1)           stx     12,s            Resume execution in the error handler
 E02B 8EE000           (        forth.asm):00257 (3)             ldx     #IODZHDL
 E02E AF68             (        forth.asm):00258 (5+1)           stx     8,s             With Y set to IODZHDL
@@ -494,7 +494,7 @@ E06F 313F             (        forth.asm):00302 (4+1)   @ramf2  leay    -1,y
 E071 26FC             (        forth.asm):00303 (3)             bne     @ramf2
 E073 5A               (        forth.asm):00304 (1)             decb
 E074 26F5             (        forth.asm):00305 (3)             bne     @ramf1
-E076 8EFE80           (        forth.asm):00306 (3)             ldx     #RAMFM
+E076 8EFE79           (        forth.asm):00306 (3)             ldx     #RAMFM
 E079 20CC             (        forth.asm):00307 (3)             bra     INIT            Here we go again
                       (        forth.asm):00308         
                       (        forth.asm):00309         * RAM Initialization to all $C7 if DEBUG mode is enabled else zeroes.
@@ -515,7 +515,7 @@ E08D 8601             (        forth.asm):00323 (2)             lda     #VARSPC/
 E08F 1F8B             (        forth.asm):00324 (4)             tfr     a,dp
      01               (        forth.asm):00325                 SETDP   VARSPC/256
                       (        forth.asm):00326         
-E091 8EFE70           (        forth.asm):00327 (3)             ldx     #RAMOKM
+E091 8EFE69           (        forth.asm):00327 (3)             ldx     #RAMOKM
 E094 BDE1DA           (        forth.asm):00328 (7)             jsr     PUTS
 E097 BDE240           (        forth.asm):00329 (7)             jsr     FORTHIN         Global variables initialization
 E09A BDE790           (        forth.asm):00330 (7)             jsr     CFINIT          CompactFlash card initialization
@@ -561,7 +561,7 @@ E0DD 0D35             (        forth.asm):00369 (4)             tst     NBCTFB0 
 E0DF 2601             (        forth.asm):00370 (3)             bne     @more1          Yes
 E0E1 39               (        forth.asm):00371 (4)             rts                     No, we're done here
 E0E2 0F35             (        forth.asm):00372 (5)     @more1  clr     NBCTFB0         The -->/CONTINUED exception only applies once
-E0E4 8EFE93           (        forth.asm):00373 (3)             ldx     #OKFEEDB        Provide OK feedback
+E0E4 8EFE8C           (        forth.asm):00373 (3)             ldx     #OKFEEDB        Provide OK feedback
 E0E7 0D21             (        forth.asm):00374 (4)             tst     USTATE+1        No OK feedback if we're compiling, just CRLF
 E0E9 2702             (        forth.asm):00375 (3)             beq     @more2
 E0EB 3003             (        forth.asm):00376 (4+1)           leax    3,x             Skip the ' OK' string when compiling
@@ -570,7 +570,7 @@ E0F0 39               (        forth.asm):00378 (4)             rts             
 E0F1 9634             (        forth.asm):00379 (3)     @exec   lda     DEFFLG
 E0F3 2705             (        forth.asm):00380 (3)             beq     @introk         Compilation only flag is not set
 E0F5 C606             (        forth.asm):00381 (2)             ldb     #6              Incorrect STATE
-E0F7 BDE640           (        forth.asm):00382 (7)             jsr     ERRHDLR         No return
+E0F7 BDE642           (        forth.asm):00382 (7)             jsr     ERRHDLR         No return
      E0FA             (        forth.asm):00383         INTISRA equ     *               For symbolic stack debugging purposes
 E0FA DC04             (        forth.asm):00384 (4)     @introk ldd     TOKENEP
 E0FC 931C             (        forth.asm):00385 (4)             subd    BSBFADR
@@ -724,7 +724,7 @@ E1E4 3516             (      console.asm):00025 (4+4)   @puts2  puls    d,x
 E1E6 39               (      console.asm):00026 (4)             rts
                       (      console.asm):00027         
 E1E7 3410             (      console.asm):00028 (4+2)   PUTCR   pshs    x
-E1E9 8EFE7D           (      console.asm):00029 (3)             ldx     #CRLFSTR
+E1E9 8EFE76           (      console.asm):00029 (3)             ldx     #CRLFSTR
 E1EC 8DEC             (      console.asm):00030 (6)             bsr     PUTS
 E1EE 3510             (      console.asm):00031 (4+2)           puls    x
 E1F0 39               (      console.asm):00032 (4)             rts
@@ -869,7 +869,7 @@ E29E 39               (        forth.asm):00586 (4)             rts
                       (        forth.asm):00592         * are untouched.
 E29F E684             (        forth.asm):00593 (4+0)   CKNBPFX ldb     ,x              B has a potential base prefix character
 E2A1 3410             (        forth.asm):00594 (4+2)           pshs    x
-E2A3 8EFFDB           (        forth.asm):00595 (3)             ldx     #BASALST        A associative list (A-list) of BASE prefixes
+E2A3 8EFFD4           (        forth.asm):00595 (3)             ldx     #BASALST        A associative list (A-list) of BASE prefixes
 E2A6 A681             (        forth.asm):00596 (4+2)   @pflkup lda     ,x++            Potential BASE prefix character to A
 E2A8 2707             (        forth.asm):00597 (3)             beq     @nopfix         Reached the end of the A-list. No prefix found
 E2AA 103798           (        forth.asm):00598 (4)             cmpr    b,a             Prefix match?
@@ -902,10 +902,10 @@ E2CC 961F             (        forth.asm):00624 (3)     CKBASE  lda     UBASE+1 
 E2CE 8102             (        forth.asm):00625 (2)             cmpa    #2
 E2D0 2505             (        forth.asm):00626 (3)             blo     @ckbser         Must be >= 2
 E2D2 8124             (        forth.asm):00627 (2)             cmpa    #36
-E2D4 2201             (        forth.asm):00628 (3)             bhi     @ckbser         And <= 36 (the ANSi maximum)
+E2D4 2201             (        forth.asm):00628 (3)             bhi     @ckbser         And <= 36 (the ANSI maximum)
 E2D6 39               (        forth.asm):00629 (4)             rts
 E2D7 C60F             (        forth.asm):00630 (2)     @ckbser ldb     #15             Invalid BASE
-E2D9 BDE640           (        forth.asm):00631 (7)             jsr     ERRHDLR         No return
+E2D9 BDE642           (        forth.asm):00631 (7)             jsr     ERRHDLR         No return
      E2DC             (        forth.asm):00632         CKBASRA equ     *
                       (        forth.asm):00633         
                       (        forth.asm):00634         * NUMCVT performs a signed string to number conversion. The input string is
@@ -963,7 +963,7 @@ E32B 39               (        forth.asm):00685 (4)             rts
 E32C 3261             (        forth.asm):00686 (4+1)   @ncoor  leas    1,s             Drop token length from the system stack
 E32E 9E02             (        forth.asm):00687 (4)             ldx     TOKENSP         Current digit is out of range
 E330 C602             (        forth.asm):00688 (2)             ldb     #2              Undefined (X points to the offending word)
-E332 BDE640           (        forth.asm):00689 (7)             jsr     ERRHDLR         No return
+E332 BDE642           (        forth.asm):00689 (7)             jsr     ERRHDLR         No return
      E335             (        forth.asm):00690         NUMCVRA equ     *               For symbolic stack dump purposes
 E335 12               (        forth.asm):00691 (1)             nop
                       (        forth.asm):00692         
@@ -975,7 +975,7 @@ E336 103703           (        forth.asm):00697 (4)     CHKNDPT cmpr    d,u
 E339 2201             (        forth.asm):00698 (3)             bhi     @stkudf
 E33B 39               (        forth.asm):00699 (4)             rts
 E33C C601             (        forth.asm):00700 (2)     @stkudf ldb     #1              Data stack underflow
-E33E BDE640           (        forth.asm):00701 (7)             jsr     ERRHDLR         No return
+E33E BDE642           (        forth.asm):00701 (7)             jsr     ERRHDLR         No return
      E341             (        forth.asm):00702         CKDPTRA equ     *
                       (        forth.asm):00703         
                       (        forth.asm):00704         * Convert number stored in X to a string (depending on BASE value).
@@ -1108,7 +1108,7 @@ E402 BDE70D           (        forth.asm):00830 (7)             jsr     BKIN2PT 
 E405 6D84             (        forth.asm):00831 (5+0)           tst     ,x
 E407 2605             (        forth.asm):00832 (3)             bne     @locwr2
 E409 C605             (        forth.asm):00833 (2)     @locwr1 ldb     #5              Missing word name
-E40B BDE640           (        forth.asm):00834 (7)             jsr     ERRHDLR         No return
+E40B BDE642           (        forth.asm):00834 (7)             jsr     ERRHDLR         No return
      E40E             (        forth.asm):00835         LWMNRA  equ     *               LOCWRT missing word name return address
 E40E BDE27F           (        forth.asm):00836 (7)     @locwr2 jsr     SCNSTOK
 E411 27F6             (        forth.asm):00837 (3)             beq     @locwr1         End of line reached
@@ -1121,7 +1121,7 @@ E420 A661             (        forth.asm):00843 (4+1)           lda     1,s     
 E422 8120             (        forth.asm):00844 (2)             cmpa    #1+WRLNMSK      Max word length is 31, 79-STANDARD compliant
 E424 2505             (        forth.asm):00845 (3)             blo     @lcwr21
 E426 C610             (        forth.asm):00846 (2)             ldb     #16             Word name is too long
-E428 BDE640           (        forth.asm):00847 (7)             jsr     ERRHDLR
+E428 BDE642           (        forth.asm):00847 (7)             jsr     ERRHDLR
      E42B             (        forth.asm):00848         WTOOLNG equ     *
 E42B A780             (        forth.asm):00849 (4+1)   @lcwr21 sta     ,x+             Word length to dictionary
 E42D 10A6E1           (        forth.asm):00850 (6+2)           ldw     ,s++            16-bit word length to W
@@ -1233,9 +1233,9 @@ E4C5 EC81             (        forth.asm):00954 (5+2)           ldd     ,x++    
 E4C7 3001             (        forth.asm):00956 (4+1)           leax    1,x             Skip the checksum
                       (        forth.asm):00957                 ENDC
 E4C9 103712           (        forth.asm):00958 (4)             cmpr    x,y
-E4CC 2530             (        forth.asm):00959 (3)             blo     @fdsnwd
+E4CC 2532             (        forth.asm):00959 (3)             blo     @fdsnwd
 E4CE 103762           (        forth.asm):00960 (4)             cmpr    w,y
-E4D1 222B             (        forth.asm):00961 (3)             bhi     @fdsnwd         An equal address is allowed here, in case
+E4D1 222D             (        forth.asm):00961 (3)             bhi     @fdsnwd         An equal address is allowed here, in case
                       (        forth.asm):00962         * jsr ERRHDLR is the last instruction for the word under consideration.
                       (        forth.asm):00963         * This happens to be the case for FORGET and LPAR.
                       (        forth.asm):00964         * Y matches the code range for the current word.
@@ -1245,163 +1245,163 @@ E4D7 C41F             (        forth.asm):00967 (2)             andb    #WRLNMSK
 E4D9 1F9F             (        forth.asm):00968 (4)             tfr     b,f
 E4DB 114F             (        forth.asm):00969 (2)             clre                    W has the matched word length
 E4DD 10AEE4           (        forth.asm):00970 (6+0)           ldy     ,s              Y points to the target buffer
-E4E0 8627             (        forth.asm):00971 (2)             lda     #''
-E4E2 A7A0             (        forth.asm):00972 (4+1)           sta     ,y+
-E4E4 113812           (        forth.asm):00973 (6+?)           tfm     x+,y+
-E4E7 A7A0             (        forth.asm):00974 (4+1)           sta     ,y+
-                      (        forth.asm):00975         * Offset processing.
-E4E9 862B             (        forth.asm):00976 (2)             lda     #'+
-E4EB A7A0             (        forth.asm):00977 (4+1)           sta     ,y+
-                      (        forth.asm):00978                 IFNE    RELFEAT
-E4ED 3003             (        forth.asm):00979 (4+1)           leax    3,x             Skip backlink and checksum
-                      (        forth.asm):00980                 ELSE
-                      (        forth.asm):00981                 leax    2,x             Skip backlink
-                      (        forth.asm):00982                 ENDC
-E4EF EC62             (        forth.asm):00983 (5+1)           ldd     2,s             Execution token to D
-E4F1 103210           (        forth.asm):00984 (4)             subr    x,d             Offset between XT and word entry point to D
-E4F4 1F21             (        forth.asm):00985 (4)             tfr     y,x
-E4F6 BDE174           (        forth.asm):00986 (7)             jsr     HDMP4           Dump hex incarnation of the offset to X
-E4F9 3530             (        forth.asm):00987 (4+4)           puls    x,y
-E4FB 1CFB             (        forth.asm):00988 (2)             andcc   #^ZFLAG         Clear ZFLAG
-E4FD 39               (        forth.asm):00989 (4)             rts
-                      (        forth.asm):00990         * Point to the next word.
-E4FE 1039             (        forth.asm):00991 (6)     @fdsnwd pulsw                   Retrieve current word header address
-E500 104D             (        forth.asm):00992 (2)             tstd
-E502 27B1             (        forth.asm):00993 (3)             beq     @fdsnom         Just met the last dictionary entry
-E504 1F01             (        forth.asm):00994 (4)             tfr     d,x             Point to previous word header
-E506 10810C10         (        forth.asm):00995 (4)             cmpw    #WDICSPC        Are we transitioning from RAM to ROM?
-E50A 26B2             (        forth.asm):00996 (3)             bne     @fdslop         No singularity
-E50C 1086FDF8         (        forth.asm):00997 (4)             ldw     #THEEND         Won't be able to diagnose the ROM based @...
-E510 20AC             (        forth.asm):00998 (3)             bra     @fdslop
-                      (        forth.asm):00999         
-                      (        forth.asm):01000         * Find the best possible symbolic approximation of Y and store it to the
-                      (        forth.asm):01001         * buffer pointed to by X.
-                      (        forth.asm):01002         * On entry:
-                      (        forth.asm):01003         * - Y has a code address which is to be matched with a symbolic name + offset.
-                      (        forth.asm):01004         * - X points to a buffer where the resolution is to be stored.
-                      (        forth.asm):01005         * On return:
-                      (        forth.asm):01006         * - Y is to be preserved.
-                      (        forth.asm):01007         * - the output buffer will be updated with the best symbolic match (NUL term'd).
-E512 3430             (        forth.asm):01008 (4+4)   FINDSYM pshs    y,x
-E514 8D88             (        forth.asm):01009 (6)             bsr     FDCTSYM         Search the dictionary first (flexible match)
-E516 261B             (        forth.asm):01010 (3)             bne     @dctmfn         Dictionary match found
-E518 8EE538           (        forth.asm):01011 (3)             ldx     #NDCTWKS        Search kernel symbols for an exact match
-E51B EC81             (        forth.asm):01012 (5+2)   @fsmlop ldd     ,x++
-E51D 270B             (        forth.asm):01013 (3)             beq     @fsmfnd         End of well known symbols list?
-E51F 103720           (        forth.asm):01014 (4)             cmpr    y,d
-E522 2706             (        forth.asm):01015 (3)             beq     @fsmfnd
-                      (        forth.asm):01016         * No well known symbol match. Skip string.
-E524 A680             (        forth.asm):01017 (4+1)   @fsmskp lda     ,x+
-E526 26FC             (        forth.asm):01018 (3)             bne     @fsmskp
-E528 20F1             (        forth.asm):01019 (3)             bra     @fsmlop
-E52A 10AEE4           (        forth.asm):01020 (6+0)   @fsmfnd ldy     ,s
-E52D A680             (        forth.asm):01021 (4+1)   @fsmfn2 lda     ,x+
-E52F A7A0             (        forth.asm):01022 (4+1)           sta     ,y+
-E531 26FA             (        forth.asm):01023 (3)             bne     @fsmfn2
-E533 3262             (        forth.asm):01024 (4+1)   @dctmfn leas    2,s
-E535 3520             (        forth.asm):01025 (4+2)           puls    y
-E537 39               (        forth.asm):01026 (4)             rts
-                      (        forth.asm):01027         
-                      (        forth.asm):01028         * Non-dictionary well known symbols.
-E538 E000             (        forth.asm):01029         NDCTWKS fdb     IODZHDL         Illegal opcode/Division by zero trap handler
-E53A 494F445A48444C00 (        forth.asm):01030                 fcn     'IODZHDL'
-E542 E6D5             (        forth.asm):01031                 fdb     DPOPRA          Data stack underflow
-E544 44504F50524100   (        forth.asm):01032                 fcn     'DPOPRA'
-E54B E6C6             (        forth.asm):01033                 fdb     DPSHRA          Data stack overflow
-E54D 44505348524100   (        forth.asm):01034                 fcn     'DPSHRA'
-E554 E70D             (        forth.asm):01035                 fdb     RPOPRA          Return stack underflow
-E556 52504F50524100   (        forth.asm):01036                 fcn     'RPOPRA'
-E55D E6F3             (        forth.asm):01037                 fdb     RPSHRA          Return stack overflow
-E55F 52505348524100   (        forth.asm):01038                 fcn     'RPSHRA'
-E566 E640             (        forth.asm):01039                 fdb     ERRHDLR         Error handler
-E568 45525248444C5200 (        forth.asm):01040                 fcn     'ERRHDLR'
-E570 E2DC             (        forth.asm):01041                 fdb     CKBASRA         Illegal BASE value
-E572 434B424153524100 (        forth.asm):01042                 fcn     'CKBASRA'
-E57A E341             (        forth.asm):01043                 fdb     CKDPTRA         Not enough parameters supplied (transac. behav.)
-E57C 434B445054524100 (        forth.asm):01044                 fcn     'CKDPTRA'
-E584 E336             (        forth.asm):01045                 fdb     CHKNDPT         Check data stack minimum depth (transac. behav.)
-E586 43484B4E44505400 (        forth.asm):01046                 fcn     'CHKNDPT'
-E58E E47C             (        forth.asm):01047                 fdb     CMP2RA          Missing operand in any of U<, U>, <, >
-E590 434D5032524100   (        forth.asm):01048                 fcn     'CMP2RA'
-E597 E493             (        forth.asm):01049                 fdb     ACQVMRA         Three operands missing in any of CMOVE,
-                      (        forth.asm):01050         *                               CMOVE>, MOVE
-E599 414351564D524100 (        forth.asm):01051                 fcn     'ACQVMRA'
-E5A1 E0BD             (        forth.asm):01052                 fdb     MINTLRA         Main interpreter loop return address
-E5A3 4D494E544C524100 (        forth.asm):01053                 fcn     'MINTLRA'
-E5AB E335             (        forth.asm):01054                 fdb     NUMCVRA         ? while converting a string to a number
-E5AD 4E554D4356524100 (        forth.asm):01055                 fcn     'NUMCVRA'
-E5B5 E0D0             (        forth.asm):01056                 fdb     NMCVIRA         Numeric conversion error while interpreting
-E5B7 4E4D435649524100 (        forth.asm):01057                 fcn     'NMCVIRA'
-E5BF E134             (        forth.asm):01058                 fdb     NMCVCRA         Numeric conversion error while compiling
-E5C1 4E4D435643524100 (        forth.asm):01059                 fcn     'NMCVCRA'
-E5C9 E107             (        forth.asm):01060                 fdb     INTRPRA         Interpreter RA (after the execution of a word)
-E5CB 494E545250524100 (        forth.asm):01061                 fcn     'INTRPRA'
-E5D3 E122             (        forth.asm):01062                 fdb     COMPLRA         Compiler RA (after the execution of an IMD word)
-E5D5 434F4D504C524100 (        forth.asm):01063                 fcn     'COMPLRA'
-E5DD E40E             (        forth.asm):01064                 fdb     LWMNRA          Missing word name in LOCWRT
-E5DF 4C574D4E524100   (        forth.asm):01065                 fcn     'LWMNRA'
-E5E6 E7DF             (        forth.asm):01066                 fdb     CFR1SRA         CF read one sector failed
-E5E8 4346523153524100 (        forth.asm):01067                 fcn     'CFR1SRA'
-E5F0 E6B9             (        forth.asm):01068                 fdb     NPUSH           Not an error RA but useful to have as a symbol
-E5F2 4E5055534800     (        forth.asm):01069                 fcn     'NPUSH'
-E5F8 E6D6             (        forth.asm):01070                 fdb     RPUSH           Not an error RA but useful to have as a symbol
-E5FA 525055534800     (        forth.asm):01071                 fcn     'RPUSH'
-E600 E6C7             (        forth.asm):01072                 fdb     NPOP            Not an error RA but useful to have as a symbol
-E602 4E504F5000       (        forth.asm):01073                 fcn     'NPOP'
-E607 E6F4             (        forth.asm):01074                 fdb     RPOP            Not an error RA but useful to have as a symbol
-E609 52504F5000       (        forth.asm):01075                 fcn     'RPOP'
-E60E E1DA             (        forth.asm):01076                 fdb     PUTS            Not an error RA but useful to have as a symbol
-E610 5055545300       (        forth.asm):01077                 fcn     'PUTS'
-                      (        forth.asm):01078                 IFNE    DEBUG
-                      (        forth.asm):01079                 fdb     LWAFRA          Assertion failure in LOCWRT
-                      (        forth.asm):01080                 fcn     'LOCWRTAF'
-                      (        forth.asm):01081                 ENDC
-E615 0000             (        forth.asm):01082                 fdb     0               End of list
-E617 3F3F3F00         (        forth.asm):01083                 fcn     '???'           Admit we have no clue!
-                      (        forth.asm):01084                 ENDC                    SSDFEAT
-                      (        forth.asm):01085         
-                      (        forth.asm):01086         * Print ' (xxxx/yyyy)' where xxxx is the hex representation for BLK @ and
-                      (        forth.asm):01087         * yyyy is the hex representation for >IN @.
-E61B 8E034E           (        forth.asm):01088 (3)     PRBLKIN ldx     #HEXBUF
-E61E 8620             (        forth.asm):01089 (2)             lda     #SP
-E620 A780             (        forth.asm):01090 (4+1)           sta     ,x+
-E622 8628             (        forth.asm):01091 (2)             lda     #'(
-E624 A780             (        forth.asm):01092 (4+1)           sta     ,x+
-E626 DC24             (        forth.asm):01093 (4)             ldd     UBLK
-E628 BDE174           (        forth.asm):01094 (7)             jsr     HDMP4
-E62B 862F             (        forth.asm):01095 (2)             lda     #'/
-E62D A780             (        forth.asm):01096 (4+1)           sta     ,x+
-E62F DC22             (        forth.asm):01097 (4)             ldd     UTOIN
-E631 BDE174           (        forth.asm):01098 (7)             jsr     HDMP4
-E634 8629             (        forth.asm):01099 (2)             lda     #')
-E636 A780             (        forth.asm):01100 (4+1)           sta     ,x+
-E638 6F84             (        forth.asm):01101 (6+0)           clr     ,x
-E63A 8E034E           (        forth.asm):01102 (3)             ldx     #HEXBUF
-E63D 7EE1DA           (        forth.asm):01103 (3)             jmp     PUTS
-                      (        forth.asm):01104         
-                      (        forth.asm):01105         * Handle error condition. Error code is in B.
-                      (        forth.asm):01106         * If B is 2 (undefined) X points to a string of length CURTOKL that has the
-                      (        forth.asm):01107         * offending word.
-E640 10AEE4           (        forth.asm):01108 (6+0)   ERRHDLR ldy     ,s              Invoking return address
-                      (        forth.asm):01109         * In case of a trap return, we enter here with Y set to #IODZHDL
-E643 C102             (        forth.asm):01110 (2)     ERRHD1  cmpb    #2              Undefined symbol?
-E645 261A             (        forth.asm):01111 (3)             bne     @perrm          No
-E647 8627             (        forth.asm):01112 (2)             lda     #''
-E649 BDE1B6           (        forth.asm):01113 (7)             jsr     PUTCH
-E64C A680             (        forth.asm):01114 (4+1)   @prtsym lda     ,x+             Display undefined symbol name
-E64E BDE1B6           (        forth.asm):01115 (7)             jsr     PUTCH
-E651 0A32             (        forth.asm):01116 (5)             dec     CURTOKL
-E653 2702             (        forth.asm):01117 (3)             beq     @endquo
-E655 20F5             (        forth.asm):01118 (3)             bra     @prtsym
-E657 8627             (        forth.asm):01119 (2)     @endquo lda     #''
+E4E0 113812           (        forth.asm):00971 (6+?)           tfm     x+,y+
+E4E3 6FA4             (        forth.asm):00972 (6+0)           clr     ,y              We need this in case the offset is zero
+                      (        forth.asm):00973         * Offset processing.
+                      (        forth.asm):00974                 IFNE    RELFEAT
+E4E5 3003             (        forth.asm):00975 (4+1)           leax    3,x             Skip backlink and checksum
+                      (        forth.asm):00976                 ELSE
+                      (        forth.asm):00977                 leax    2,x             Skip backlink
+                      (        forth.asm):00978                 ENDC
+E4E7 EC62             (        forth.asm):00979 (5+1)           ldd     2,s             Execution token to D
+E4E9 103210           (        forth.asm):00980 (4)             subr    x,d             Offset between XT and word entry point to D
+E4EC 270D             (        forth.asm):00981 (3)             beq     @skoffs         Skip displaying the offset if it is zero
+E4EE 3402             (        forth.asm):00982 (4+1)           pshs    a               Preserve the offset's MSB
+E4F0 862B             (        forth.asm):00983 (2)             lda     #'+
+E4F2 A7A0             (        forth.asm):00984 (4+1)           sta     ,y+
+E4F4 3502             (        forth.asm):00985 (4+1)           puls    a               Restore the offset's MSB
+E4F6 1F21             (        forth.asm):00986 (4)             tfr     y,x
+E4F8 BDE174           (        forth.asm):00987 (7)             jsr     HDMP4           Dump hex incarnation of the offset to X
+E4FB 3530             (        forth.asm):00988 (4+4)   @skoffs puls    x,y
+E4FD 1CFB             (        forth.asm):00989 (2)             andcc   #^ZFLAG         Clear ZFLAG
+E4FF 39               (        forth.asm):00990 (4)             rts
+                      (        forth.asm):00991         * Point to the next word.
+E500 1039             (        forth.asm):00992 (6)     @fdsnwd pulsw                   Retrieve current word header address
+E502 104D             (        forth.asm):00993 (2)             tstd
+E504 27AF             (        forth.asm):00994 (3)             beq     @fdsnom         Just met the last dictionary entry
+E506 1F01             (        forth.asm):00995 (4)             tfr     d,x             Point to previous word header
+E508 10810C10         (        forth.asm):00996 (4)             cmpw    #WDICSPC        Are we transitioning from RAM to ROM?
+E50C 26B0             (        forth.asm):00997 (3)             bne     @fdslop         No singularity
+E50E 1086FDF8         (        forth.asm):00998 (4)             ldw     #THEEND         Won't be able to diagnose the ROM based @...
+E512 20AA             (        forth.asm):00999 (3)             bra     @fdslop
+                      (        forth.asm):01000         
+                      (        forth.asm):01001         * Find the best possible symbolic approximation of Y and store it to the
+                      (        forth.asm):01002         * buffer pointed to by X.
+                      (        forth.asm):01003         * On entry:
+                      (        forth.asm):01004         * - Y has a code address which is to be matched with a symbolic name + offset.
+                      (        forth.asm):01005         * - X points to a buffer where the resolution is to be stored.
+                      (        forth.asm):01006         * On return:
+                      (        forth.asm):01007         * - Y is to be preserved.
+                      (        forth.asm):01008         * - the output buffer will be updated with the best symbolic match (NUL term'd).
+E514 3430             (        forth.asm):01009 (4+4)   FINDSYM pshs    y,x
+E516 8D86             (        forth.asm):01010 (6)             bsr     FDCTSYM         Search the dictionary first (flexible match)
+E518 261B             (        forth.asm):01011 (3)             bne     @dctmfn         Dictionary match found
+E51A 8EE53A           (        forth.asm):01012 (3)             ldx     #NDCTWKS        Search kernel symbols for an exact match
+E51D EC81             (        forth.asm):01013 (5+2)   @fsmlop ldd     ,x++
+E51F 270B             (        forth.asm):01014 (3)             beq     @fsmfnd         End of well known symbols list?
+E521 103720           (        forth.asm):01015 (4)             cmpr    y,d
+E524 2706             (        forth.asm):01016 (3)             beq     @fsmfnd
+                      (        forth.asm):01017         * No well known symbol match. Skip string.
+E526 A680             (        forth.asm):01018 (4+1)   @fsmskp lda     ,x+
+E528 26FC             (        forth.asm):01019 (3)             bne     @fsmskp
+E52A 20F1             (        forth.asm):01020 (3)             bra     @fsmlop
+E52C 10AEE4           (        forth.asm):01021 (6+0)   @fsmfnd ldy     ,s
+E52F A680             (        forth.asm):01022 (4+1)   @fsmfn2 lda     ,x+
+E531 A7A0             (        forth.asm):01023 (4+1)           sta     ,y+
+E533 26FA             (        forth.asm):01024 (3)             bne     @fsmfn2
+E535 3262             (        forth.asm):01025 (4+1)   @dctmfn leas    2,s             Drop X from the system stack
+E537 3520             (        forth.asm):01026 (4+2)           puls    y
+E539 39               (        forth.asm):01027 (4)             rts
+                      (        forth.asm):01028         
+                      (        forth.asm):01029         * Non-dictionary well known symbols.
+E53A E000             (        forth.asm):01030         NDCTWKS fdb     IODZHDL         Illegal opcode/Division by zero trap handler
+E53C 494F445A48444C00 (        forth.asm):01031                 fcn     'IODZHDL'
+E544 E6D5             (        forth.asm):01032                 fdb     DPOPRA          Data stack underflow
+E546 44504F50524100   (        forth.asm):01033                 fcn     'DPOPRA'
+E54D E6C6             (        forth.asm):01034                 fdb     DPSHRA          Data stack overflow
+E54F 44505348524100   (        forth.asm):01035                 fcn     'DPSHRA'
+E556 E70D             (        forth.asm):01036                 fdb     RPOPRA          Return stack underflow
+E558 52504F50524100   (        forth.asm):01037                 fcn     'RPOPRA'
+E55F E6F3             (        forth.asm):01038                 fdb     RPSHRA          Return stack overflow
+E561 52505348524100   (        forth.asm):01039                 fcn     'RPSHRA'
+E568 E642             (        forth.asm):01040                 fdb     ERRHDLR         Error handler
+E56A 45525248444C5200 (        forth.asm):01041                 fcn     'ERRHDLR'
+E572 E2DC             (        forth.asm):01042                 fdb     CKBASRA         Illegal BASE value
+E574 434B424153524100 (        forth.asm):01043                 fcn     'CKBASRA'
+E57C E341             (        forth.asm):01044                 fdb     CKDPTRA         Not enough parameters supplied (transac. behav.)
+E57E 434B445054524100 (        forth.asm):01045                 fcn     'CKDPTRA'
+E586 E336             (        forth.asm):01046                 fdb     CHKNDPT         Check data stack minimum depth (transac. behav.)
+E588 43484B4E44505400 (        forth.asm):01047                 fcn     'CHKNDPT'
+E590 E47C             (        forth.asm):01048                 fdb     CMP2RA          Missing operand in any of U<, U>, <, >
+E592 434D5032524100   (        forth.asm):01049                 fcn     'CMP2RA'
+E599 E493             (        forth.asm):01050                 fdb     ACQVMRA         Three operands missing in any of CMOVE,
+                      (        forth.asm):01051         *                               CMOVE>, MOVE
+E59B 414351564D524100 (        forth.asm):01052                 fcn     'ACQVMRA'
+E5A3 E0BD             (        forth.asm):01053                 fdb     MINTLRA         Main interpreter loop return address
+E5A5 4D494E544C524100 (        forth.asm):01054                 fcn     'MINTLRA'
+E5AD E335             (        forth.asm):01055                 fdb     NUMCVRA         ? while converting a string to a number
+E5AF 4E554D4356524100 (        forth.asm):01056                 fcn     'NUMCVRA'
+E5B7 E0D0             (        forth.asm):01057                 fdb     NMCVIRA         Numeric conversion error while interpreting
+E5B9 4E4D435649524100 (        forth.asm):01058                 fcn     'NMCVIRA'
+E5C1 E134             (        forth.asm):01059                 fdb     NMCVCRA         Numeric conversion error while compiling
+E5C3 4E4D435643524100 (        forth.asm):01060                 fcn     'NMCVCRA'
+E5CB E107             (        forth.asm):01061                 fdb     INTRPRA         Interpreter RA (after the execution of a word)
+E5CD 494E545250524100 (        forth.asm):01062                 fcn     'INTRPRA'
+E5D5 E122             (        forth.asm):01063                 fdb     COMPLRA         Compiler RA (after the execution of an IMD word)
+E5D7 434F4D504C524100 (        forth.asm):01064                 fcn     'COMPLRA'
+E5DF E40E             (        forth.asm):01065                 fdb     LWMNRA          Missing word name in LOCWRT
+E5E1 4C574D4E524100   (        forth.asm):01066                 fcn     'LWMNRA'
+E5E8 E7DF             (        forth.asm):01067                 fdb     CFR1SRA         CF read one sector failed
+E5EA 4346523153524100 (        forth.asm):01068                 fcn     'CFR1SRA'
+E5F2 E6B9             (        forth.asm):01069                 fdb     NPUSH           Not an error RA but useful to have as a symbol
+E5F4 4E5055534800     (        forth.asm):01070                 fcn     'NPUSH'
+E5FA E6D6             (        forth.asm):01071                 fdb     RPUSH           Not an error RA but useful to have as a symbol
+E5FC 525055534800     (        forth.asm):01072                 fcn     'RPUSH'
+E602 E6C7             (        forth.asm):01073                 fdb     NPOP            Not an error RA but useful to have as a symbol
+E604 4E504F5000       (        forth.asm):01074                 fcn     'NPOP'
+E609 E6F4             (        forth.asm):01075                 fdb     RPOP            Not an error RA but useful to have as a symbol
+E60B 52504F5000       (        forth.asm):01076                 fcn     'RPOP'
+E610 E1DA             (        forth.asm):01077                 fdb     PUTS            Not an error RA but useful to have as a symbol
+E612 5055545300       (        forth.asm):01078                 fcn     'PUTS'
+                      (        forth.asm):01079                 IFNE    DEBUG
+                      (        forth.asm):01080                 fdb     LWAFRA          Assertion failure in LOCWRT
+                      (        forth.asm):01081                 fcn     'LOCWRTAF'
+                      (        forth.asm):01082                 ENDC
+E617 0000             (        forth.asm):01083                 fdb     0               End of list
+E619 3F3F3F00         (        forth.asm):01084                 fcn     '???'           Admit we have no clue!
+                      (        forth.asm):01085                 ENDC                    SSDFEAT
+                      (        forth.asm):01086         
+                      (        forth.asm):01087         * Print ' (xxxx/yyyy)' where xxxx is the hex representation for BLK @ and
+                      (        forth.asm):01088         * yyyy is the hex representation for >IN @.
+E61D 8E034E           (        forth.asm):01089 (3)     PRBLKIN ldx     #HEXBUF
+E620 8620             (        forth.asm):01090 (2)             lda     #SP
+E622 A780             (        forth.asm):01091 (4+1)           sta     ,x+
+E624 8628             (        forth.asm):01092 (2)             lda     #'(
+E626 A780             (        forth.asm):01093 (4+1)           sta     ,x+
+E628 DC24             (        forth.asm):01094 (4)             ldd     UBLK
+E62A BDE174           (        forth.asm):01095 (7)             jsr     HDMP4
+E62D 862F             (        forth.asm):01096 (2)             lda     #'/
+E62F A780             (        forth.asm):01097 (4+1)           sta     ,x+
+E631 DC22             (        forth.asm):01098 (4)             ldd     UTOIN
+E633 BDE174           (        forth.asm):01099 (7)             jsr     HDMP4
+E636 8629             (        forth.asm):01100 (2)             lda     #')
+E638 A780             (        forth.asm):01101 (4+1)           sta     ,x+
+E63A 6F84             (        forth.asm):01102 (6+0)           clr     ,x
+E63C 8E034E           (        forth.asm):01103 (3)             ldx     #HEXBUF
+E63F 7EE1DA           (        forth.asm):01104 (3)             jmp     PUTS
+                      (        forth.asm):01105         
+                      (        forth.asm):01106         * Handle error condition. Error code is in B.
+                      (        forth.asm):01107         * If B is 2 (undefined) X points to a string of length CURTOKL that has the
+                      (        forth.asm):01108         * offending word.
+E642 10AEE4           (        forth.asm):01109 (6+0)   ERRHDLR ldy     ,s              Invoking return address
+                      (        forth.asm):01110         * In case of a trap return, we enter here with Y set to #IODZHDL
+E645 C102             (        forth.asm):01111 (2)     ERRHD1  cmpb    #2              Undefined symbol?
+E647 2618             (        forth.asm):01112 (3)             bne     @perrm          No
+E649 8627             (        forth.asm):01113 (2)             lda     #''             Begin quote
+E64B BDE1B6           (        forth.asm):01114 (7)             jsr     PUTCH
+E64E A680             (        forth.asm):01115 (4+1)   @prtsym lda     ,x+             Display undefined symbol name
+E650 BDE1B6           (        forth.asm):01116 (7)             jsr     PUTCH
+E653 0A32             (        forth.asm):01117 (5)             dec     CURTOKL
+E655 26F7             (        forth.asm):01118 (3)             bne     @prtsym
+E657 8627             (        forth.asm):01119 (2)             lda     #''             End quote
 E659 BDE1B6           (        forth.asm):01120 (7)             jsr     PUTCH
-E65C 8620             (        forth.asm):01121 (2)             lda     #SP
+E65C 8620             (        forth.asm):01121 (2)             lda     #SP             BL EMIT
 E65E BDE1B6           (        forth.asm):01122 (7)             jsr     PUTCH
-E661 8EFEC2           (        forth.asm):01123 (3)     @perrm  ldx     #ERRMTBL        Regular error handling
+E661 8EFEBB           (        forth.asm):01123 (3)     @perrm  ldx     #ERRMTBL        Regular error handling
 E664 5D               (        forth.asm):01124 (1)     @nxterr tstb
 E665 2633             (        forth.asm):01125 (3)             bne     @skerrm
 E667 BDE1DA           (        forth.asm):01126 (7)             jsr     PUTS            Print error message
-E66A 8DAF             (        forth.asm):01127 (6)             bsr     PRBLKIN         Print BLK and >IN values (in hex)
+E66A 8DB1             (        forth.asm):01127 (6)             bsr     PRBLKIN         Print BLK and >IN values (in hex)
 E66C BDE1E7           (        forth.asm):01128 (7)             jsr     PUTCR
 E66F 1F20             (        forth.asm):01129 (4)     @dmptos tfr     y,d             Dump top of the system stack contents
 E671 8E034E           (        forth.asm):01130 (3)             ldx     #HEXBUF
@@ -1411,7 +1411,7 @@ E679 A780             (        forth.asm):01133 (4+1)           sta     ,x+
                       (        forth.asm):01134         * Symbolic stack dumps are configurable. In situations where the dictionary is
                       (        forth.asm):01135         * trashed, they may not be considered desirable. See SSDFEAT in constants.asm.
                       (        forth.asm):01136                 IFNE    SSDFEAT
-E67B BDE512           (        forth.asm):01137 (7)             jsr     FINDSYM
+E67B BDE514           (        forth.asm):01137 (7)             jsr     FINDSYM
                       (        forth.asm):01138                 ENDC
 E67E 8E034E           (        forth.asm):01139 (3)             ldx     #HEXBUF
 E681 BDE1DA           (        forth.asm):01140 (7)             jsr     PUTS
@@ -1445,7 +1445,7 @@ E6BD 2303             (        forth.asm):01167 (3)             bls     @npush1 
 E6BF 3610             (        forth.asm):01168 (4+2)           pshu    x               Aka UCNPUSH
 E6C1 39               (        forth.asm):01169 (4)             rts
 E6C2 5F               (        forth.asm):01170 (1)     @npush1 clrb                    Data stack overflow
-E6C3 BDE640           (        forth.asm):01171 (7)             jsr     ERRHDLR         No return
+E6C3 BDE642           (        forth.asm):01171 (7)             jsr     ERRHDLR         No return
      E6C6             (        forth.asm):01172         DPSHRA  equ     *
 E6C6 12               (        forth.asm):01173 (1)             nop
                       (        forth.asm):01174         
@@ -1456,7 +1456,7 @@ E6CB 2403             (        forth.asm):01178 (3)             bhs     @npop1  
 E6CD 3710             (        forth.asm):01179 (4+2)           pulu    x
 E6CF 39               (        forth.asm):01180 (4)             rts
 E6D0 C601             (        forth.asm):01181 (2)     @npop1  ldb     #1              Data stack underflow
-E6D2 BDE640           (        forth.asm):01182 (7)             jsr     ERRHDLR         No return
+E6D2 BDE642           (        forth.asm):01182 (7)             jsr     ERRHDLR         No return
      E6D5             (        forth.asm):01183         DPOPRA  equ     *
 E6D5 12               (        forth.asm):01184 (1)             nop
                       (        forth.asm):01185         
@@ -1474,7 +1474,7 @@ E6E8 109F00           (        forth.asm):01196 (5)             sty     RSP
 E6EB 1F72             (        forth.asm):01197 (4)             tfr     v,y
 E6ED 39               (        forth.asm):01198 (4)             rts
 E6EE C607             (        forth.asm):01199 (2)     @rpush1 ldb     #7              Return stack overflow
-E6F0 BDE640           (        forth.asm):01200 (7)             jsr     ERRHDLR         No return
+E6F0 BDE642           (        forth.asm):01200 (7)             jsr     ERRHDLR         No return
      E6F3             (        forth.asm):01201         RPSHRA  equ     *
 E6F3 12               (        forth.asm):01202 (1)             nop                     Meant to insulate RPUSH errors from RPOP EP
                       (        forth.asm):01203         
@@ -1490,7 +1490,7 @@ E702 109F00           (        forth.asm):01212 (5)             sty     RSP
 E705 1F72             (        forth.asm):01213 (4)             tfr     v,y
 E707 39               (        forth.asm):01214 (4)             rts
 E708 C608             (        forth.asm):01215 (2)     @rpop1  ldb     #8              Return stack underflow
-E70A BDE640           (        forth.asm):01216 (7)             jsr     ERRHDLR         No return
+E70A BDE642           (        forth.asm):01216 (7)             jsr     ERRHDLR         No return
      E70D             (        forth.asm):01217         RPOPRA  equ     *
                       (        forth.asm):01218         
                       (        forth.asm):01219         * Derive the current input stream pointer from BLK and >IN.
@@ -1663,7 +1663,7 @@ E7D2 108EC000         (      storage.asm):00147 (4)             ldy     #CFDATAR
 E7D6 113B21           (      storage.asm):00148 (6+?)           tfm     y,x+            Note: tfm is interruptible!
 E7D9 39               (      storage.asm):00149 (4)             rts
 E7DA C611             (      storage.asm):00150 (2)     IOERR   ldb     #17
-E7DC BDE640           (      storage.asm):00151 (7)             jsr     ERRHDLR         No return
+E7DC BDE642           (      storage.asm):00151 (7)             jsr     ERRHDLR         No return
 E7DF 12               (      storage.asm):00152 (1)     CFR1SRA nop                     For symbolic stack dump debugging purposes
                       (      storage.asm):00153         
                       (      storage.asm):00154         * Write one sector. The LBA parameters are assumed to have been set previously.
@@ -1933,7 +1933,7 @@ E9BC C7               (        forth.asm):01432                 RFCS
 E9BD 0D36             (        forth.asm):01433 (4)             tst     CFCARDP
 E9BF 2605             (        forth.asm):01434 (3)             bne     @lstpro
 E9C1 C611             (        forth.asm):01435 (2)             ldb     #17             IO error
-E9C3 BDE640           (        forth.asm):01436 (7)             jsr     ERRHDLR         No return
+E9C3 BDE642           (        forth.asm):01436 (7)             jsr     ERRHDLR         No return
 E9C6 BDFBEE           (        forth.asm):01437         @lstpro RFXT    jsr,DUP+6       XT for DUP
 E9C9 BDE919           (        forth.asm):01438                 RFXT    jsr,BLOCK+8     XT for BLOCK
                       (        forth.asm):01439         * TOS now has the base buffer address.
@@ -2035,7 +2035,7 @@ EA82 A684             (        forth.asm):01534 (4+0)           lda     ,x
 EA84 8139             (        forth.asm):01535 (2)             cmpa    #RTSOPC         RTS inherent
 EA86 2705             (        forth.asm):01536 (3)             beq     @dosex1
 EA88 C60E             (        forth.asm):01537 (2)             ldb     #14             No matching CREATE
-EA8A BDE640           (        forth.asm):01538 (7)             jsr     ERRHDLR         No return
+EA8A BDE642           (        forth.asm):01538 (7)             jsr     ERRHDLR         No return
 EA8D 867E             (        forth.asm):01539 (2)     @dosex1 lda     #JMPOPC         JMP extended
 EA8F A780             (        forth.asm):01540 (4+1)           sta     ,x+             Overwrite RTS opcode
 EA91 3520             (        forth.asm):01541 (4+2)           puls    y
@@ -2710,7 +2710,7 @@ EF81 3A               (        forth.asm):02206 (1)             abx
 EF82 AE84             (        forth.asm):02207 (5+0)           ldx     ,x
 EF84 7EE6B9           (        forth.asm):02208 (3)             jmp     NPUSH
 EF87 C608             (        forth.asm):02209 (2)     @rpick1 ldb     #8              Return stack underflow
-EF89 BDE640           (        forth.asm):02210 (7)             jsr     ERRHDLR         No return
+EF89 BDE642           (        forth.asm):02210 (7)             jsr     ERRHDLR         No return
                       (        forth.asm):02211         
 EF8C 42               (        forth.asm):02212         RFETCH  fcb     $42             79-STANDARD (REQ228)
 EF8D 5240             (        forth.asm):02213                 fcc     'R@'
@@ -2763,7 +2763,7 @@ EFD9 C7               (        forth.asm):02259                 RFCS
 EFDA BDEA16           (        forth.asm):02260                 RFXT    jsr,NCLR+7      XT for NCLR
 EFDD BDEA22           (        forth.asm):02261                 RFXT    jsr,RCLR+7      XT for RCLR
 EFE0 C603             (        forth.asm):02262 (2)             ldb     #3
-EFE2 BDE640           (        forth.asm):02263 (7)             jsr     ERRHDLR         No return
+EFE2 BDE642           (        forth.asm):02263 (7)             jsr     ERRHDLR         No return
                       (        forth.asm):02264         
 EFE5 04               (        forth.asm):02265         FIND    fcb     4               79-STANDARD (REQ203)
 EFE6 46494E44         (        forth.asm):02266                 fcc     'FIND'          ( -- XT )
@@ -2818,14 +2818,14 @@ F037 BDE70D           (        forth.asm):02314 (7)             jsr     BKIN2PT 
 F03A 6D84             (        forth.asm):02315 (5+0)           tst     ,x
 F03C 2605             (        forth.asm):02316 (3)             bne     @postp2
 F03E C605             (        forth.asm):02317 (2)     @postp1 ldb     #5              Missing word name
-F040 BDE640           (        forth.asm):02318 (7)             jsr     ERRHDLR         No return
+F040 BDE642           (        forth.asm):02318 (7)             jsr     ERRHDLR         No return
 F043 BDE27F           (        forth.asm):02319 (7)     @postp2 jsr     SCNSTOK
 F046 27F6             (        forth.asm):02320 (3)             beq     @postp1
 F048 BDE38A           (        forth.asm):02321 (7)             jsr     SWDIC
 F04B 2607             (        forth.asm):02322 (3)             bne     @postp3         Word found. Code address returned in Y
 F04D 9E02             (        forth.asm):02323 (4)             ldx     TOKENSP
 F04F C602             (        forth.asm):02324 (2)             ldb     #2              Undefined (X points to the offending word)
-F051 BDE640           (        forth.asm):02325 (7)             jsr     ERRHDLR         No return
+F051 BDE642           (        forth.asm):02325 (7)             jsr     ERRHDLR         No return
 F054 1F21             (        forth.asm):02326 (4)     @postp3 tfr     y,x             X has the actual execution token
 F056 0D33             (        forth.asm):02327 (4)             tst     IMDFLG
 F058 270A             (        forth.asm):02328 (3)             beq     @postp5         Target word is not immediate
@@ -2873,7 +2873,7 @@ F09B 962A             (        forth.asm):02369 (3)             lda     RDEPTH  
 F09D 912B             (        forth.asm):02370 (3)             cmpa    IRDPTH          Same as when : was entered?
 F09F 2705             (        forth.asm):02371 (3)             beq     @compr1
 F0A1 C609             (        forth.asm):02372 (2)             ldb     #9              Illegal construct if not
-F0A3 BDE640           (        forth.asm):02373 (7)             jsr     ERRHDLR         No return
+F0A3 BDE642           (        forth.asm):02373 (7)             jsr     ERRHDLR         No return
 F0A6 0F21             (        forth.asm):02374 (5)     @compr1 clr     USTATE+1        Back to interpretation mode
 F0A8 9E0C             (        forth.asm):02375 (4)             ldx     BDICEND
 F0AA 9F06             (        forth.asm):02376 (4)             stx     LSTWAD          Update LAST
@@ -2920,14 +2920,14 @@ F0E8 BDE70D           (        forth.asm):02416 (7)             jsr     BKIN2PT 
 F0EB 6D84             (        forth.asm):02417 (5+0)           tst     ,x              EOL?
 F0ED 2605             (        forth.asm):02418 (3)             bne     @frgt2          No
 F0EF C605             (        forth.asm):02419 (2)     @frgt1  ldb     #5              Missing word name
-F0F1 BDE640           (        forth.asm):02420 (7)             jsr     ERRHDLR         No return
+F0F1 BDE642           (        forth.asm):02420 (7)             jsr     ERRHDLR         No return
 F0F4 BDE27F           (        forth.asm):02421 (7)     @frgt2  jsr     SCNSTOK
 F0F7 27F6             (        forth.asm):02422 (3)             beq     @frgt1          EOL before a non-SP character could be acquired
 F0F9 BDE38A           (        forth.asm):02423 (7)             jsr     SWDIC           SWDIC uses TOKENSP as input--not X!!
 F0FC 2607             (        forth.asm):02424 (3)             bne     @frgt3          Word found. XT returned in Y
 F0FE 9E02             (        forth.asm):02425 (4)             ldx     TOKENSP
 F100 C602             (        forth.asm):02426 (2)             ldb     #2              Undefined (X points to the offending word)
-F102 BDE640           (        forth.asm):02427 (7)             jsr     ERRHDLR         No return
+F102 BDE642           (        forth.asm):02427 (7)             jsr     ERRHDLR         No return
 F105 1F21             (        forth.asm):02428 (4)     @frgt3  tfr     y,x             Y and X have the word's XT
 F107 108C0C15         (        forth.asm):02429 (4)             cmpy    #RAMFTCH
 F10B 271B             (        forth.asm):02430 (3)             beq     @frgt4
@@ -2951,7 +2951,7 @@ F123 931C             (        forth.asm):02447 (4)             subd    BSBFADR
 F125 DD22             (        forth.asm):02448 (4)             std     UTOIN           Derive >IN from TOKENSP
 F127 39               (        forth.asm):02449 (4)             rts
 F128 C60B             (        forth.asm):02450 (2)     @frgt4  ldb     #11             Word is unforgettable
-F12A BDE640           (        forth.asm):02451 (7)             jsr     ERRHDLR         No return
+F12A BDE642           (        forth.asm):02451 (7)             jsr     ERRHDLR         No return
                       (        forth.asm):02452         
 F12D 07               (        forth.asm):02453         EXCT    fcb     7               79-STANDARD (REQ163)
 F12E 45584543555445   (        forth.asm):02454                 fcc     'EXECUTE'
@@ -2962,7 +2962,7 @@ F13B 1037C1           (        forth.asm):02458 (4)             cmpr    0,x     
 F13E 2702             (        forth.asm):02459 (3)             beq     @exct1          a NUL address should trigger an error, I do
 F140 1F15             (        forth.asm):02460 (4)             tfr     x,pc
 F142 C60D             (        forth.asm):02461 (2)     @exct1  ldb     #13             Illegal argument
-F144 BDE640           (        forth.asm):02462 (7)             jsr     ERRHDLR         No return
+F144 BDE642           (        forth.asm):02462 (7)             jsr     ERRHDLR         No return
                       (        forth.asm):02463         
 F147 03               (        forth.asm):02464         BYE     fcb     3               Non-standard
 F148 425945           (        forth.asm):02465                 fcc     'BYE'
@@ -2995,7 +2995,7 @@ F17F 931C             (        forth.asm):02491 (4)             subd    BSBFADR
 F181 DD22             (        forth.asm):02492 (4)             std     UTOIN           Derive >IN from TOKENEP
 F183 39               (        forth.asm):02493 (4)             rts
 F184 C60D             (        forth.asm):02494 (2)     @chrerr ldb     #13             Illegal argument
-F186 BDE640           (        forth.asm):02495 (7)             jsr     ERRHDLR
+F186 BDE642           (        forth.asm):02495 (7)             jsr     ERRHDLR
                       (        forth.asm):02496         * No return.
                       (        forth.asm):02497         
                       (        forth.asm):02498         * Hairy code but working.
@@ -3046,7 +3046,7 @@ F1DF 931C             (        forth.asm):02542 (4)             subd    BSBFADR
 F1E1 DD22             (        forth.asm):02543 (4)             std     UTOIN           Update >IN
 F1E3 39               (        forth.asm):02544 (4)             rts
 F1E4 C60C             (        forth.asm):02545 (2)     @lparx  ldb     #12             Missing delimiter
-F1E6 BDE640           (        forth.asm):02546 (7)             jsr     ERRHDLR         No return
+F1E6 BDE642           (        forth.asm):02546 (7)             jsr     ERRHDLR         No return
                       (        forth.asm):02547         
 F1E9 06               (        forth.asm):02548         SOURCE  fcb     6               ANSI (Core)
 F1EA 534F55524345     (        forth.asm):02549                 fcc     'SOURCE'        ( -- baseaddr charcount )
@@ -3654,7 +3654,7 @@ F644 1F61             (        forth.asm):03149 (4)             tfr     w,x
 F646 3610             (        forth.asm):03150                 UCNPUSH                 Updated character count
 F648 39               (        forth.asm):03151 (4)             rts
 F649 C60D             (        forth.asm):03152 (2)     @invpar ldb     #13             Invalid parameter
-F64B BDE640           (        forth.asm):03153 (7)             jsr     ERRHDLR         No return
+F64B BDE642           (        forth.asm):03153 (7)             jsr     ERRHDLR         No return
                       (        forth.asm):03154         
 F64E 06               (        forth.asm):03155         EXPECT  fcb     6               79-STANDARD (REQ189)
 F64F 455850454354     (        forth.asm):03156                 fcc     'EXPECT'        ( addr count -- )
@@ -3768,7 +3768,7 @@ F71F BDE6C7           (        forth.asm):03261 (7)             jsr     NPOP    
 F722 1037C1           (        forth.asm):03262 (4)             cmpr    0,x             Cannot interpret from block 0!
 F725 26DB             (        forth.asm):03263 (3)             bne     NXTBLK1
 F727 C60D             (        forth.asm):03264 (2)             ldb     #13             Illegal argument
-F729 BDE640           (        forth.asm):03265 (7)             jsr     ERRHDLR         No return
+F729 BDE642           (        forth.asm):03265 (7)             jsr     ERRHDLR         No return
                       (        forth.asm):03266         
 F72C 02               (        forth.asm):03267         MILLIS  fcb     2               79-STANDARD (REF)
 F72D 4D53             (        forth.asm):03268                 fcc     'MS'            ( mscount -- )
@@ -4245,7 +4245,7 @@ FA6B 2601             (        forth.asm):03738 (3)             bne     @dmproc 
 FA6D 39               (        forth.asm):03739 (4)             rts                     A zero byte count is not flagged as an error
 FA6E 2E05             (        forth.asm):03740 (3)     @dmproc bgt     @dmpini
 FA70 C60D             (        forth.asm):03741 (2)             ldb     #13             Illegal argument (negative)
-FA72 BDE640           (        forth.asm):03742 (7)             jsr     ERRHDLR         No return
+FA72 BDE642           (        forth.asm):03742 (7)             jsr     ERRHDLR         No return
                       (        forth.asm):03743         * Initialization and header processing.
 FA75 3420             (        forth.asm):03744 (4+2)   @dmpini pshs    y               NBYTES
 FA77 3410             (        forth.asm):03745 (4+2)           pshs    x               START
@@ -4377,7 +4377,7 @@ FB55 C7               (        forth.asm):03870                 RFCS
 FB56 BDE6C7           (        forth.asm):03871 (7)             jsr     NPOP
 FB59 1F12             (        forth.asm):03872 (4)             tfr     x,y
 FB5B 8E034E           (        forth.asm):03873 (3)             ldx     #HEXBUF
-FB5E BDE512           (        forth.asm):03874 (7)             jsr     FINDSYM
+FB5E BDE514           (        forth.asm):03874 (7)             jsr     FINDSYM
 FB61 8E034E           (        forth.asm):03875 (3)             ldx     #HEXBUF
 FB64 7EE1DA           (        forth.asm):03876 (3)             jmp     PUTS
                       (        forth.asm):03877                 ENDC
@@ -4485,7 +4485,7 @@ FC2C 1044             (        forth.asm):03978 (2)             lsrd            
 FC2E 103710           (        forth.asm):03979 (4)             cmpr    x,d
 FC31 2405             (        forth.asm):03980 (3)             bcc     @pick1
 FC33 C60D             (        forth.asm):03981 (2)     ERRPCK  ldb     #13             Argument is greater than DEPTH
-FC35 BDE640           (        forth.asm):03982 (7)             jsr     ERRHDLR         No return
+FC35 BDE642           (        forth.asm):03982 (7)             jsr     ERRHDLR         No return
 FC38 1F10             (        forth.asm):03983 (4)     @pick1  tfr     x,d
 FC3A 104D             (        forth.asm):03984 (2)             tstd
 FC3C 27F5             (        forth.asm):03985 (3)             beq     ERRPCK
@@ -4742,119 +4742,118 @@ FE07 39               (        forth.asm):04227 (4)             rts
                       (        forth.asm):04236         * Clear the screen, VT100 style.
 FE08 1B5B481B5B4A0D00 (        forth.asm):04237         CSVT100 fcb     $1B,'[','H',$1B,'[','J',CR,NUL
                       (        forth.asm):04238         
-FE10 1B5B481B5B4A0D   (        forth.asm):04239         BOOTMSG fcb     $1B,'[','H',$1B,'[','J',CR
-FE17 5A3739466F727468 (        forth.asm):04240                 fcc     'Z79Forth 6309/'
+FE10 5A3739466F727468 (        forth.asm):04239         BOOTMSG fcc     'Z79Forth 6309/'
      20363330392F
-                      (        forth.asm):04241                 POLINTM                 Polling/interrupt flag mode
-FE25 50               (          POLINTM):00001                 fcb     'P'
-FE26 20464F5254482D37 (        forth.asm):04242                 fcc     ' FORTH-79 Standard Sub-set'
+                      (        forth.asm):04240                 POLINTM                 Polling/interrupt flag mode
+FE1E 50               (          POLINTM):00001                 fcb     'P'
+FE1F 20464F5254482D37 (        forth.asm):04241                 fcc     ' FORTH-79 Standard Sub-set'
      39205374616E6461
      7264205375622D73
      6574
-FE40 0D0A             (        forth.asm):04243                 fcb     CR,LF
-FE42 3230323130373036 (        forth.asm):04244                 fcc     '20210706 Copyright Francois Laagel (2019)'
+FE39 0D0A             (        forth.asm):04242                 fcb     CR,LF
+FE3B 3230323130373131 (        forth.asm):04243                 fcc     '20210711 Copyright Francois Laagel (2019)'
      20436F7079726967
      6874204672616E63
      6F6973204C616167
      656C202832303139
      29
-FE6B 0D0A0D0A00       (        forth.asm):04245                 fcb     CR,LF,CR,LF,NUL
-                      (        forth.asm):04246         
-FE70 52414D204F4B3A20 (        forth.asm):04247         RAMOKM  fcc     'RAM OK: 32 KB'
+FE64 0D0A0D0A00       (        forth.asm):04244                 fcb     CR,LF,CR,LF,NUL
+                      (        forth.asm):04245         
+FE69 52414D204F4B3A20 (        forth.asm):04246         RAMOKM  fcc     'RAM OK: 32 KB'
      3332204B42
-FE7D 0D0A00           (        forth.asm):04248         CRLFSTR fcb     CR,LF,NUL
-                      (        forth.asm):04249         
-FE80 52414D2063686563 (        forth.asm):04250         RAMFM   fcc     'RAM check failed'
+FE76 0D0A00           (        forth.asm):04247         CRLFSTR fcb     CR,LF,NUL
+                      (        forth.asm):04248         
+FE79 52414D2063686563 (        forth.asm):04249         RAMFM   fcc     'RAM check failed'
      6B206661696C6564
-FE90 0D0A00           (        forth.asm):04251                 fcb     CR,LF,NUL
-                      (        forth.asm):04252         
-FE93 204F4B           (        forth.asm):04253         OKFEEDB fcc     ' OK'
-FE96 0D0A00           (        forth.asm):04254                 fcb     CR,LF,NUL
-                      (        forth.asm):04255         
-                      (        forth.asm):04256         * Error messages for IODZHDL.
-FE99 496C6C6567616C20 (        forth.asm):04257         IOPERRM fcn     'Illegal opcode near '
+FE89 0D0A00           (        forth.asm):04250                 fcb     CR,LF,NUL
+                      (        forth.asm):04251         
+FE8C 204F4B           (        forth.asm):04252         OKFEEDB fcc     ' OK'
+FE8F 0D0A00           (        forth.asm):04253                 fcb     CR,LF,NUL
+                      (        forth.asm):04254         
+                      (        forth.asm):04255         * Error messages for IODZHDL.
+FE92 496C6C6567616C20 (        forth.asm):04256         IOPERRM fcn     'Illegal opcode near '
      6F70636F6465206E
      6561722000
-FEAE 4469766973696F6E (        forth.asm):04258         DV0ERRM fcn     'Division by 0 near '
+FEA7 4469766973696F6E (        forth.asm):04257         DV0ERRM fcn     'Division by 0 near '
      2062792030206E65
      61722000
-                      (        forth.asm):04259         
-FEC2 4461746120737461 (        forth.asm):04260         ERRMTBL fcn     'Data stack overflow'   Error 0
+                      (        forth.asm):04258         
+FEBB 4461746120737461 (        forth.asm):04259         ERRMTBL fcn     'Data stack overflow'   Error 0
      636B206F76657266
      6C6F7700
-FED6 4461746120737461 (        forth.asm):04261                 fcn     'Data stack underflow'  Error 1
+FECF 4461746120737461 (        forth.asm):04260                 fcn     'Data stack underflow'  Error 1
      636B20756E646572
      666C6F7700
-FEEB 556E646566696E65 (        forth.asm):04262                 fcn     'Undefined'             Error 2
+FEE4 556E646566696E65 (        forth.asm):04261                 fcn     'Undefined'             Error 2
      6400
-FEF5 557365722041424F (        forth.asm):04263                 fcn     'User ABORT'            Error 3
+FEEE 557365722041424F (        forth.asm):04262                 fcn     'User ABORT'            Error 3
      525400
-FF00 00               (        forth.asm):04264                 fcn     ''                      Error 4 (formerly "Division by zero")
-FF01 4D697373696E6720 (        forth.asm):04265                 fcn     'Missing word name'     Error 5
+FEF9 00               (        forth.asm):04263                 fcn     ''                      Error 4 (formerly "Division by zero")
+FEFA 4D697373696E6720 (        forth.asm):04264                 fcn     'Missing word name'     Error 5
      776F7264206E616D
      6500
-FF13 496E636F72726563 (        forth.asm):04266                 fcn     'Incorrect STATE'       Error 6
+FF0C 496E636F72726563 (        forth.asm):04265                 fcn     'Incorrect STATE'       Error 6
      7420535441544500
-FF23 52657475726E2073 (        forth.asm):04267                 fcn     'Return stack overflow' Error 7
+FF1C 52657475726E2073 (        forth.asm):04266                 fcn     'Return stack overflow' Error 7
      7461636B206F7665
      72666C6F7700
-FF39 52657475726E2073 (        forth.asm):04268                 fcn     'Return stack underflow' Error 8
+FF32 52657475726E2073 (        forth.asm):04267                 fcn     'Return stack underflow' Error 8
      7461636B20756E64
      6572666C6F7700
-FF50 496C6C6567616C20 (        forth.asm):04269                 fcn     'Illegal construct'     Error 9
+FF49 496C6C6567616C20 (        forth.asm):04268                 fcn     'Illegal construct'     Error 9
      636F6E7374727563
      7400
-FF62 417373657274696F (        forth.asm):04270                 fcn     'Assertion failed'      Error 10
+FF5B 417373657274696F (        forth.asm):04269                 fcn     'Assertion failed'      Error 10
      6E206661696C6564
      00
-FF73 522F4F20776F7264 (        forth.asm):04271                 fcn     'R/O word'              Error 11
+FF6C 522F4F20776F7264 (        forth.asm):04270                 fcn     'R/O word'              Error 11
      00
-FF7C 4D697373696E6720 (        forth.asm):04272                 fcn     'Missing delimiter'     Error 12
+FF75 4D697373696E6720 (        forth.asm):04271                 fcn     'Missing delimiter'     Error 12
      64656C696D697465
      7200
-FF8E 496C6C6567616C20 (        forth.asm):04273                 fcn     'Illegal argument'      Error 13
+FF87 496C6C6567616C20 (        forth.asm):04272                 fcn     'Illegal argument'      Error 13
      617267756D656E74
      00
-FF9F 4E6F206D61746368 (        forth.asm):04274                 fcn     'No matching CREATE'    Error 14
+FF98 4E6F206D61746368 (        forth.asm):04273                 fcn     'No matching CREATE'    Error 14
      696E672043524541
      544500
-FFB2 496E76616C696420 (        forth.asm):04275                 fcn     'Invalid BASE'          Error 15
+FFAB 496E76616C696420 (        forth.asm):04274                 fcn     'Invalid BASE'          Error 15
      4241534500
-FFBF 576F7264206E616D (        forth.asm):04276                 fcn     'Word name too long'    Error 16
+FFB8 576F7264206E616D (        forth.asm):04275                 fcn     'Word name too long'    Error 16
      6520746F6F206C6F
      6E6700
-FFD2 494F206572726F72 (        forth.asm):04277                 fcn     'IO error'              Error 17
+FFCB 494F206572726F72 (        forth.asm):04276                 fcn     'IO error'              Error 17
      00
-                      (        forth.asm):04278         
-                      (        forth.asm):04279         * A-list used for numeric literal base prefixes.
-FFDB 24               (        forth.asm):04280         BASALST fcc     '$'             Hexadecimal prefix
-FFDC 10               (        forth.asm):04281                 fcb     16
-FFDD 26               (        forth.asm):04282                 fcc     '&'             Decimal prefix
-FFDE 0A               (        forth.asm):04283                 fcb     10
-FFDF 23               (        forth.asm):04284                 fcc     '#'             Decimal prefix (an ANSI concession)
-FFE0 0A               (        forth.asm):04285                 fcb     10
-FFE1 25               (        forth.asm):04286                 fcc     '%'             Binary prefix
-FFE2 02               (        forth.asm):04287                 fcb     2
-FFE3 40               (        forth.asm):04288                 fcc     '@'             Octal prefix
-FFE4 08               (        forth.asm):04289                 fcb     8
-FFE5 00               (        forth.asm):04290                 fcb     0               End of list marker
-                      (        forth.asm):04291         
-                      (        forth.asm):04292         * Under no circumstance should the following symbol be negative!
-     000A             (        forth.asm):04293         AVL     equ     VECTBL-*        Available EEPROM space left
-                      (        forth.asm):04294         
-                      (        forth.asm):04295         *******************************************************************************
-                      (        forth.asm):04296         * Interrupt vector table
-                      (        forth.asm):04297                 org     VECTBL
-                      (        forth.asm):04298         
-FFF0 E000             (        forth.asm):04299                 fdb     IODZHDL         Illegal opcode/Division by zero trap
-FFF2 E035             (        forth.asm):04300                 fdb     SWI3HDL         SWI 3 interrupt vector address
-FFF4 E035             (        forth.asm):04301                 fdb     SWI2HDL         SWI 2 interrupt vector address
-FFF6 E035             (        forth.asm):04302                 fdb     FIRQHDL         FIRQ interrupt vector address
-FFF8 E035             (        forth.asm):04303                 fdb     IRQHDL          IRQ interrupt vector address
-FFFA E035             (        forth.asm):04304                 fdb     SWIHDL          SWI interrupt vector address
-FFFC E035             (        forth.asm):04305                 fdb     NMIHDL          NMI vector address
-FFFE E037             (        forth.asm):04306                 fdb     RSTHDL          RESET vector address
-                      (        forth.asm):04307         
+                      (        forth.asm):04277         
+                      (        forth.asm):04278         * A-list used for numeric literal base prefixes.
+FFD4 24               (        forth.asm):04279         BASALST fcc     '$'             Hexadecimal prefix
+FFD5 10               (        forth.asm):04280                 fcb     16
+FFD6 26               (        forth.asm):04281                 fcc     '&'             Decimal prefix
+FFD7 0A               (        forth.asm):04282                 fcb     10
+FFD8 23               (        forth.asm):04283                 fcc     '#'             Decimal prefix (an ANSI concession)
+FFD9 0A               (        forth.asm):04284                 fcb     10
+FFDA 25               (        forth.asm):04285                 fcc     '%'             Binary prefix
+FFDB 02               (        forth.asm):04286                 fcb     2
+FFDC 40               (        forth.asm):04287                 fcc     '@'             Octal prefix
+FFDD 08               (        forth.asm):04288                 fcb     8
+FFDE 00               (        forth.asm):04289                 fcb     0               End of list marker
+                      (        forth.asm):04290         
+                      (        forth.asm):04291         * Under no circumstance should the following symbol be negative!
+     0011             (        forth.asm):04292         AVL     equ     VECTBL-*        Available EEPROM space left
+                      (        forth.asm):04293         
+                      (        forth.asm):04294         *******************************************************************************
+                      (        forth.asm):04295         * Interrupt vector table
+                      (        forth.asm):04296                 org     VECTBL
+                      (        forth.asm):04297         
+FFF0 E000             (        forth.asm):04298                 fdb     IODZHDL         Illegal opcode/Division by zero trap
+FFF2 E035             (        forth.asm):04299                 fdb     SWI3HDL         SWI 3 interrupt vector address
+FFF4 E035             (        forth.asm):04300                 fdb     SWI2HDL         SWI 2 interrupt vector address
+FFF6 E035             (        forth.asm):04301                 fdb     FIRQHDL         FIRQ interrupt vector address
+FFF8 E035             (        forth.asm):04302                 fdb     IRQHDL          IRQ interrupt vector address
+FFFA E035             (        forth.asm):04303                 fdb     SWIHDL          SWI interrupt vector address
+FFFC E035             (        forth.asm):04304                 fdb     NMIHDL          NMI vector address
+FFFE E037             (        forth.asm):04305                 fdb     RSTHDL          RESET vector address
+                      (        forth.asm):04306         
 
 Symbol Table:
 [ G] _BS                              E1F1
@@ -4887,8 +4886,8 @@ Symbol Table:
 [ G] AGAIN                            EEA1
 [ G] ALLOT                            FCB5
 [ G] AND                              ED4F
-[ G] AVL                              000A
-[ G] BASALST                          FFDB
+[ G] AVL                              0011
+[ G] BASALST                          FFD4
 [ G] BASBKUP                          0128
 [ G] BASE                             FA10
 [ G] BCSOPC                           2503
@@ -4994,7 +4993,7 @@ Symbol Table:
 [ G] CREAT1                           EA62
 [ G] CREATE                           EA40
 [ G] CRLF                             F5C9
-[ G] CRLFSTR                          FE7D
+[ G] CRLFSTR                          FE76
 [ G] CSSNTVE                          0000
 [ G] CSTORE                           FDB6
 [ G] CSUMFLM                          EBA8
@@ -5044,7 +5043,7 @@ Symbol Table:
 [ G] DROP                             FBF9
 [ G] DUMP                             FA58
 [ G] DUP                              FBE7
-[ G] DV0ERRM                          FEAE
+[ G] DV0ERRM                          FEA7
 [ G] DZEQ                             F2D4
 [ G] EBUFS                            E848
 [ G] ELSE                             EC94
@@ -5054,9 +5053,9 @@ Symbol Table:
 [ G] EMXASXT                          E14D
 [ G] END                              EF0A
 [ G] EQ                               ECC7
-[ G] ERRHD1                           E643
-[ G] ERRHDLR                          E640
-[ G] ERRMTBL                          FEC2
+[ G] ERRHD1                           E645
+[ G] ERRHDLR                          E642
+[ G] ERRMTBL                          FEBB
 [ G] ERRPCK                           FC33
 [ G] ETX                              0003
 [ G] EXCT                             F12D
@@ -5069,7 +5068,7 @@ Symbol Table:
 [ G] FILL                             FCCB
 [ G] FILL1                            FCD8
 [ G] FIND                             EFE5
-[ G] FINDSYM                          E512
+[ G] FINDSYM                          E514
 [ G] FIRQHDL                          E035
 [ G] FLUSH                            E89D
 [ G] FNDPLD                           0110
@@ -5113,7 +5112,7 @@ Symbol Table:
 [ G] INVERT                           ED79
 [ G] IODZHDL                          E000
 [ G] IOERR                            E7DA
-[ G] IOPERRM                          FE99
+[ G] IOPERRM                          FE92
 [ G] IOSTRT                           C000
 [ G] IRDPTH                           012B
 [ G] IRQHDL                           E035
@@ -5161,7 +5160,7 @@ Symbol Table:
 [ G] NAK                              0015
 [ G] NBCTFB0                          0135
 [ G] NCLR                             EA0E
-[ G] NDCTWKS                          E538
+[ G] NDCTWKS                          E53A
 [ G] NEGATE                           EE7C
 [ G] NFLAG                            0008
 [ G] NIP                              FBD3
@@ -5181,7 +5180,7 @@ Symbol Table:
 [ G] NXTBLK                           F6F7
 [ G] NXTBLK1                          F702
 [ G] OCTAL                            FA2B
-[ G] OKFEEDB                          FE93
+[ G] OKFEEDB                          FE8C
 [ G] ONEL                             F810
 [ G] ONEM                             F7DF
 [ G] ONEP                             F7A4
@@ -5204,7 +5203,7 @@ Symbol Table:
 [ G] PLUSST1                          FD85
 [ G] POSTPON                          F02B
 [ G] pragma                           0000
-[ G] PRBLKIN                          E61B
+[ G] PRBLKIN                          E61D
 [ G] PSTR                             F225
 [ G] ptop0                            F51C
 [ G] PUTCH                            E1B6
@@ -5215,11 +5214,11 @@ Symbol Table:
 [ G] QUIT                             EFBA
 [ G] RAMCHK                           E057
 [ G] RAMFAIL                          E069
-[ G] RAMFM                            FE80
+[ G] RAMFM                            FE79
 [SG] RAMFTCH                          0C15
 [SG] RAMFTCH                          0C14
 [ G] RAMOK                            E07B
-[ G] RAMOKM                           FE70
+[ G] RAMOKM                           FE69
 [ G] RAMSIZE                          8000
 [ G] RAMSTRT                          0000
 [ G] RBRACK                           F00D

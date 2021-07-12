@@ -16,10 +16,6 @@
 -h '\ Palindrome numbers filtering [10..50000]. FLA Dec 10, 2020'
 # : palfltload 110 LOAD ;
 
-./txt2blk -i ../examples/palgen.4th -d /dev/sdb -s 112 \
--h '\ Palindrome numbers generation. FLA Dec 10, 2020'
-# : palgenload 112 LOAD ;
-
 ./txt2blk -i ../examples/hanoi.4th -d /dev/sdb -s 120 \
 -h '( Towers of Hanoi. Original code by Peter Midnight.           )'
 # : hanload 120 127 THRU ;

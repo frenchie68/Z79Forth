@@ -625,7 +625,7 @@ CKBASE	lda	UBASE+1		BASE
 	cmpa	#2
 	blo	@ckbser		Must be >= 2
 	cmpa	#36
-	bhi	@ckbser		And <= 36 (the ANSi maximum)
+	bhi	@ckbser		And <= 36 (the ANSI maximum)
 	rts
 @ckbser	ldb	#15		Invalid BASE
 	jsr	ERRHDLR		No return
@@ -968,13 +968,9 @@ FDCTSYM	pshs	y,x
 	tfr	b,f
 	clre			W has the matched word length
 	ldy	,s		Y points to the target buffer
-	lda	#''
-	sta	,y+
 	tfm	x+,y+
-	sta	,y+
+	clr	,y		We need this in case the offset is zero
 * Offset processing.
-	lda	#'+
-	sta	,y+
 	IFNE	RELFEAT
 	leax	3,x		Skip backlink and checksum
 	ELSE
@@ -982,9 +978,14 @@ FDCTSYM	pshs	y,x
 	ENDC
 	ldd	2,s		Execution token to D
 	subr	x,d		Offset between XT and word entry point to D
+	beq	@skoffs		Skip displaying the offset if it is zero
+	pshs	a		Preserve the offset's MSB
+	lda	#'+
+	sta	,y+
+	puls	a		Restore the offset's MSB
 	tfr	y,x
 	jsr	HDMP4		Dump hex incarnation of the offset to X
-	puls	x,y
+@skoffs	puls	x,y
 	andcc	#^ZFLAG		Clear ZFLAG
 	rts
 * Point to the next word.
@@ -1021,7 +1022,7 @@ FINDSYM	pshs	y,x
 @fsmfn2	lda	,x+
 	sta	,y+
 	bne	@fsmfn2
-@dctmfn	leas	2,s
+@dctmfn	leas	2,s		Drop X from the system stack
 	puls	y
 	rts
 
@@ -1109,16 +1110,15 @@ ERRHDLR ldy	,s		Invoking return address
 * In case of a trap return, we enter here with Y set to #IODZHDL
 ERRHD1	cmpb	#2		Undefined symbol?
 	bne	@perrm		No
-	lda	#''
+	lda	#''		Begin quote
 	jsr	PUTCH
 @prtsym	lda	,x+		Display undefined symbol name
 	jsr	PUTCH
 	dec	CURTOKL
-	beq	@endquo
-	bra	@prtsym
-@endquo	lda	#''
+	bne	@prtsym
+	lda	#''		End quote
 	jsr	PUTCH
-	lda	#SP
+	lda	#SP		BL EMIT
 	jsr	PUTCH
 @perrm	ldx	#ERRMTBL	Regular error handling
 @nxterr	tstb
@@ -4236,12 +4236,11 @@ REALEND	equ	*
 * Clear the screen, VT100 style.
 CSVT100	fcb	$1B,'[','H',$1B,'[','J',CR,NUL
 
-BOOTMSG	fcb	$1B,'[','H',$1B,'[','J',CR
-	fcc	'Z79Forth 6309/'
+BOOTMSG	fcc	'Z79Forth 6309/'
 	POLINTM			Polling/interrupt flag mode
 	fcc	' FORTH-79 Standard Sub-set'
 	fcb	CR,LF
-	fcc	'20210706 Copyright Francois Laagel (2019)'
+	fcc	'20210711 Copyright Francois Laagel (2019)'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
