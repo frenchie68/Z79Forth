@@ -134,6 +134,30 @@ to the other is left as an exercise to the reader.
 >NUMBER cannot be emulated based on CONVERT.
 
 ###############################################################################
+FORTH-83/ANSI Floored division support
+
+Historically, the polled Z79Forth reference board (version 2.1 schematics)'s
+firmware implemented division on the top of the hardware supported features of
+the HD6309 and little else. Which meant that division semantics were biased
+toward symmetric division.
+
+Later on, starting with interrupt driven serial data input (version 2.2
+schematics), floored division has been made the default so as to comply with
+FORTH-83 and ANSI requirements. 79-STANDARD made no such requirement whatsoever
+but, it is felt, that compatibility with more recent specifications than
+79-STANDARD could be useful to potential end users others than the author
+himself.
+
+In practice, division semantics can be checked very simply:
+
+-4 26 MOD .
+
+This will yield: 22 if the division semantics is floored. Otherwise it will
+yield -4, indicating a symmetric division.
+
+Long term support will feature floored division exclusively.
+
+###############################################################################
 In general, it is a bad idea to redefine standard primitives and, by default,
 Z79Forth will provide no warning when a primitive is redefined. However, if
 such a feature is considered desirable, : can be redefined as:
@@ -142,7 +166,7 @@ such a feature is considered desirable, : can be redefined as:
   >IN @
   FIND IF
     DUP >IN ! CR ." WARNING: " BL WORD COUNT TYPE
-    SPACE ." redefined"
+    ."  is being redefined"
   THEN  
   >IN !
   :

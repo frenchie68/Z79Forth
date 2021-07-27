@@ -44,7 +44,7 @@ _BS	lda	#BS
 * contain the number of characters entered (excluding
 * the trailing NUL). A and X are preserved. B will
 * have the actual number of characters entered.
-* Implementation of $05D9 in TRS-80 Level II ROM.
+* Implementation of $05D9 in the TRS-80 Level II ROM.
 GETS	cmpb	#2
 	bhs	@gets0		B must be 2 or more
 	rts
@@ -81,6 +81,6 @@ GETS	cmpb	#2
 	tfr	x,d
 	subd	2,s		Actual number of characters entered
 	stb	1,s		Stored to B (through the system stack).		
-	puls	x,d
+	puls	d,x
 	rts
 

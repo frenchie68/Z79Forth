@@ -115,7 +115,7 @@ UCNPOP	MACRO	NOEXPAND
 * \1 specifies the required number of cells.
 MINDREQ	MACRO	NOEXPAND
 	ldd	#NSTBOT-(\1*2)	Cell count one expects to be stacked up
-	jsr	CHKNDPT		No return if the condition is not met
+	bra	CHKNDPT		No return if the condition is not met
 	ENDM
 
 * Reliability feature support: execution tokens.
@@ -181,6 +181,7 @@ RDEPTH	rmb	1		Return stack depth in cells
 IRDPTH	rmb	1		Return stack depth when : was last invoked
 RTSREMV	rmb	1		If > 1, omit the final RTS when compiling
 DIVFCN	rmb	1		Flag used by /, MOD and /MOD
+F83DIVF	rmb	1		FORTH-83 adjusment flag for floored division
 STSLFCN	rmb	1		Flag used by */, */MOD
 CVTFCN	rmb	1		CVT: 0 => # semantics, 1 => #S semantics
 ISNEGF	rmb	1		Number being scanned is negative
@@ -690,17 +691,6 @@ NUMCVT	bsr	CKBASE		No return if BASE isn't in the [2..36] range
 NUMCVRA	equ	*		For symbolic stack dump purposes
 	nop
 
-* Check for minimal data stack depth. On input D has the lowest possible stack
-* address that satisfies the needs of the caller. This routine is meant
-* to support "transactional" behaviour, which is intended to improve
-* debugging support.
-CHKNDPT	cmpr	d,u
-	bhi	@stkudf
-	rts
-@stkudf	ldb	#1		Data stack underflow
-	jsr	ERRHDLR		No return
-CKDPTRA	equ	*
-
 * Convert number stored in X to a string (depending on BASE value).
 * Output is stored in the global TBUFF buffer. X is preserved.
 CVNSTR	bsr	CKBASE
@@ -739,6 +729,26 @@ CVNSTR	bsr	CKBASE
 	rts
 @cvnst6	stb	,-y
 	bra	@cvnst5
+
+* Check for minimal data stack depth. On input D has the lowest possible stack
+* address that satisfies the needs of the caller. This routine is meant
+* to support "transactional" behaviour, which is intended to improve
+* debugging support.
+CHKNDPT	cmpr	d,u
+	bhi	@stkudf
+	rts
+@stkudf	ldb	#1		Data stack underflow
+	jsr	ERRHDLR		No return
+CKDPTRA	equ	*
+
+* Paramater stack's depth checking primitves (transactional behavior support).
+MIN1PST	MINDREQ	1
+
+MIN2PST	MINDREQ	2
+
+MIN3PST	MINDREQ	3
+
+MIN4PST	MINDREQ	4
 
 * Search word beginning at address TOKENSP in the dictionary.
 * Upon return Z will be set if the word was not found.
@@ -896,7 +906,7 @@ VARCON2	sta	,y+
 	rts
 
 * Used by U<, U>, <, >.
-CMP2	MINDREQ	2		At least 2 cells must be stacked up
+CMP2	jsr	MIN2PST		At least 2 cells must be stacked up
 CMP2RA	ldy	,u
 	ldx	2,u
 	cmpr	y,x
@@ -911,7 +921,7 @@ CMP2RA	ldy	,u
 	rts
 
 * Used by CMOVE, CMOVE>, MOVE.
-ACQMOVP	MINDREQ	3		At least 3 cells must be stacked up
+ACQMOVP	jsr	MIN3PST		At least 3 cells must be stacked up
 ACQVMRA	ldw	,u		Byte count
 	ldy	2,u		Destination address
 	ldx	4,u		Source address
@@ -1160,7 +1170,8 @@ ERRHD1	cmpb	#2		Undefined symbol?
 	stx	DICEND		Restore HERE
 	ldx	BLSTWAD
 	stx	LSTWAD		Restore LAST
-@erdon2	jmp	INTERP
+@erdon2	RFXT	jsr,DECIMAL+10	Back to decimal BASE, for one's sanity's sake!
+	jmp	INTERP
 
 * Push X to the data stack (boundary is checked).
 NPUSH	cmpu	#NSTTOP
@@ -1831,7 +1842,7 @@ EQ	fcb	1		79-STANDARD (REQ173)
 	fcc	'='		( N1 N2 -- FLAG )
 	fdb	THEN
 	RFCS
-	MINDREQ	2
+	jsr	MIN2PST		At least two cells need to be stacked up
 	ldq	,u		D:W has N2:N1
 	leau	2,u		Drop one cell from the user stack
 	tfr	0,x
@@ -1845,7 +1856,7 @@ DIFF	fcb	2		79-STANDARD (REF)
 	fcc	'<>'		( N1 N2 -- FLAG )
 	fdb	EQ
 	RFCS
-	MINDREQ	2
+	jsr	MIN2PST		At least two cells need to be stacked up
 	ldq	,u		D:W has N2:N1
 	leau	2,u		Drop one cell from the user stack
 	tfr	0,x
@@ -1859,7 +1870,7 @@ SINFEQ	fcb	2		Non-standard (Not even ANSI!)
 	fcc	'<='		Required for the ORNL fixed sieve benchmark
 	fdb	DIFF
 	RFCS
-	MINDREQ	2		At least two cells need to be stacked up
+	jsr	MIN2PST		At least two cells need to be stacked up
 	ldy	,u
 	ldx	2,u
 	clrd
@@ -1887,7 +1898,7 @@ XOR	fcb	3		79-STANDARD (REQ179)
 	fdb	SINFEQ
 	ENDC
 	RFCS
-	MINDREQ	2
+	jsr	MIN2PST		At least two cells need to be stacked up
 	ldd	,u
 	ldw	2,u
 	eorr	w,d
@@ -1899,7 +1910,7 @@ OR	fcb	2		79-STANDARD (REQ223)
 	fcc	'OR'
 	fdb	XOR
 	RFCS
-	MINDREQ	2
+	jsr	MIN2PST		At least two cells need to be stacked up
 	ldd	,u
 	ldw	2,u
 	orr	w,d
@@ -1909,7 +1920,7 @@ AND	fcb	3		79-STANDARD (REQ183)
 	fcc	'AND'
 	fdb	OR
 	RFCS
-	MINDREQ	2
+	jsr	MIN2PST		At least two cells need to be stacked up
 	ldd	,u
 	ldw	2,u
 	andr	w,d
@@ -2077,7 +2088,7 @@ NEGATE	fcb	6		79-STANDARD (REQ177)
 	fcc	'NEGATE'
 	fdb	ABS
 	RFCS
-	MINDREQ	1		One cell needs to be stacked up
+	jsr	MIN1PST		At least one cell needs to be stacked up
 	ldd	,u
 	negd
 	std	,u
@@ -2642,7 +2653,7 @@ DPLUS	fcb	2		79-STANDARD (REQ241)
 	fcc	'D+'		( d2 d1 -- d1+d2--signed )
 	fdb	SQUOTE		Initially ( L2 H2 L1 H1)
 	RFCS
-	MINDREQ	4		Make sure we have at least 4 cells stacked up
+	jsr	MIN4PST		Make sure we have at least 4 cells stacked up
 * At this point sufficient stack depth has been assessed. Let's rock and roll!
 @stkok	RFXT	jsr,ROT+6	XT for ROT ( L2 L1 H1 H2 )
 	ldd	4,u		L1
@@ -2659,7 +2670,7 @@ DNEG	fcb	7		79-STANDARD (REQ245)
 	fcc	'DNEGATE'
 	fdb	DPLUS
 	RFCS
-	MINDREQ	2		We need at least 2 cells stacked up
+	jsr	MIN2PST		We need at least 2 cells stacked up
 	ldw	2,u		Least significant cell
 	comw
 	ldd	,u		Most significant cell
@@ -2698,7 +2709,7 @@ TWOOVER	fcb	5		79-STANDARD (double number extension)
 	fcc	'2OVER'		( d1 d2 -- d1 d2 d1 )
 	fdb	DLESS
 	RFCS
-	MINDREQ	4
+	jsr	MIN4PST		At least four cells need to be stacked up
 	ldq	4,u		D:W has MSC:LSC of D1
 	tfr	w,x
 	jsr	NPUSH
@@ -2709,7 +2720,7 @@ TWOSWAP	fcb	5		79-STANDARD (double number extension)
 	fcc	'2SWAP'		( d1 d2 -- d2 d1 )
 	fdb	TWOOVER
 	RFCS
-	MINDREQ	4		At least four cells must be stacked up
+	jsr	MIN4PST		At least four cells must be stacked up
 	ldx	4,u		D1 most significant cell
 	ldy	6,u		D1 least significant cell
 	ldq	,u		D:W has MSC:LSC of D2
@@ -2722,7 +2733,7 @@ TWODROP	fcb	5		79-STANDARD (double number extension)
 	fcc	'2DROP'		( d -- )
 	fdb	TWOSWAP
 	RFCS
-	MINDREQ	2		At least two cells must be stacked up
+	jsr	MIN2PST		At least two cells must be stacked up
 	leau	4,u
 	rts
 
@@ -2730,7 +2741,7 @@ TWODUP	fcb	4		79-STANDARD (double number extension)
 	fcc	'2DUP'		( double -- double double )
 	fdb	TWODROP
 	RFCS
-	MINDREQ	2
+	jsr	MIN2PST		At least two cells need to be stacked up
 	ldq	,u		D:W has MSC:LSC of DOUBLE
 	tfr	w,x
 	jsr	NPUSH
@@ -2741,7 +2752,7 @@ TWOSTOR	fcb	2		79-STANDARD (double number extension)
 	fcc	'2!'		( double addr -- )
 	fdb	TWODUP
 	RFCS
-	MINDREQ	3
+	jsr	MIN3PST		At least three cells need to be stacked up
 	ldq	2,u		DOUBLE to D:W
 	stq	[,u]		Store DOUBLE to ADDR
 	leau	6,u		Drop three cells from the user stack
@@ -2751,7 +2762,7 @@ TWOFTCH	fcb	2		79-STANDARD (double number extension)
 	fcc	'2@'		( dbladdr -- double )
 	fdb	TWOSTOR
 	RFCS
-	MINDREQ	1
+	jsr	MIN1PST		At least cell needs to be stacked up
 	ldq	[,u]		D:W has MSC:LSC of DBLADDR @
 	stw	,u		Least significant cell stacked in place
 	tfr	d,x		Most significant cell goes through standard push
@@ -2762,7 +2773,7 @@ CONVERT	fcb	7		79-STANDARD (REQ195)
 	fcc	'CONVERT'	( d1 addr1 -- d2 addr2 )
 	fdb	TWOFTCH
 	RFCS
-	MINDREQ	3		At least 3 cells need to be stacked up on entry
+	jsr	MIN3PST		At least 3 cells need to be stacked up
 	jsr	CKBASE		Check for supported BASE. No return if not
 	ldx	,u		ADDR1 to X
 @cvloop	leax	1,x
@@ -3320,7 +3331,7 @@ PLUS	fcb	1		79-STANDARD (REQ121)
 	fcc	'+'		( n1 n2 -- sum )
 	fdb	EMIT
 	RFCS
-	MINDREQ 2		We need at least two cells stacked up
+	jsr	MIN2PST		We need at least two cells stacked up
 	ldd	2,u		N1
 	addd	,u		N2
 	std	2,u		SUM
@@ -3331,7 +3342,7 @@ ONEP	fcb	2		79-STANDARD (REQ107)
 	fcc	'1+'
 	fdb	PLUS
 	RFCS
-	MINDREQ	1		We need at least one cell stacked up
+	jsr	MIN1PST		We need at least one cell stacked up
 	ldd	,u
 	incd
 	std	,u
@@ -3341,7 +3352,7 @@ TWOP	fcb	2		79-STANDARD (REQ135)
 	fcc	'2+'		( n -- n+2 )
 	fdb	ONEP
 	RFCS
-	MINDREQ	1
+	jsr	MIN1PST		We need at least one cell stacked up
 	ldd	,u
 	addd	#2
 	std	,u
@@ -3351,7 +3362,7 @@ MINUS	fcb	1		79-STANDARD (REQ134)
 	fcc	'-'		( n1 n2 -- dif )
 	fdb	TWOP
 	RFCS
-	MINDREQ	2		We need at least two cells stacked up
+	jsr	MIN2PST		We need at least two cells stacked up
 	ldd	2,u		N1
 	subd	,u		N2
 	std	2,u		DIF
@@ -3362,7 +3373,7 @@ ONEM	fcb	2		79-STANDARD (REQ105)
 	fcc	'1-'
 	fdb	MINUS
 	RFCS
-	MINDREQ	1		We need at least one cell stacked up
+	jsr	MIN1PST		We need at least one cell stacked up
 	ldd	,u
 	decd
 	std	,u
@@ -3372,7 +3383,7 @@ TWOM	fcb	2		79-STANDARD (REQ129)
 	fcc	'2-'
 	fdb	ONEM
 	RFCS
-	MINDREQ	1		We need at least one cell stacked up
+	jsr	MIN1PST		We need at least one cell stacked up
 	ldd	,u
 	subd	#2
 	std	,u
@@ -3403,7 +3414,7 @@ SHIFT	fcb	5		79-STANDARD (Ref)
 	fcc	'SHIFT'
 	fdb	TWOL
 	RFCS
-	MINDREQ	2		Two cells need to be stacked up
+	jsr	MIN2PST		Two cells need to be stacked up
 	ldw	,u		Shift bitcount
 	ldd	2,u		The data itself
 @shftlp	tstw
@@ -3424,7 +3435,7 @@ MULT	fcb	1		79-STANDARD (REQ138)
 	fcc	'*'
 	fdb	SHIFT
 	RFCS
-	MINDREQ	2		Two cells need to be stacked up
+	jsr	MIN2PST		Two cells need to be stacked up
 	ldd	2,u
 	muld	,u
 	stw	2,u		Return only the lower 16 bits
@@ -3435,7 +3446,7 @@ TWOTIM	fcb	2		79-STANDARD (REF)
 	fcc	'2*'
 	fdb	MULT
 	RFCS
-	MINDREQ	1		One cell needs to be stacked up
+	jsr	MIN1PST		One cell needs to be stacked up
 	ldd	,u
 	asld
 	std	,u
@@ -3445,7 +3456,7 @@ TWODIV	fcb	2
 	fcc	'2/'
 	fdb	TWOTIM
 	RFCS
-	MINDREQ	1		One cell needs to be stacked up
+	jsr	MIN1PST		One cell needs to be stacked up
 	ldd	,u
 	asrd
 	std	,u
@@ -3458,63 +3469,84 @@ TWODIV	fcb	2
 * 0: return the modulo and the quotient (/MOD).
 * 1: return the modulo only (MOD).
 * 2: return the quotient only (/).
-DIV	fcb	1
-	fcc	'/'
+DIV	fcb	1		79-STANDARD (REQ178)
+	fcc	'/'		( N1 N2 -- N3 [N4] )
 	fdb	TWODIV
 	RFCS
 	lda	#2
-	sta	DIVFCN
-DIV1	MINDREQ	2
+	sta	DIVFCN		Function 2: return only the quotient
+DIV1	jsr	MIN2PST		At least two cells need to be stacked up
+	clr	F83DIVF		Assume no adjustment required for floored div.
+	lda	2,u		Numerator's MSB
+	eora	,u		Different sign from the denominator's MSB?
+	bpl	@divprc		No, proceed to the division code
+	inc	F83DIVF		Numerator and denominator have different signs
 * Division by zero conditions are dealt with through the trap handler.
-	clrd
-	ldw	2,u		Numerator
-* We need a sign extention from W to Q. SEX and SEXW do not cut it.
-	tste
-	bpl	@div2
-	comd
-@div2	divq	,u		Quotient is returned in W, modulo in D
-	tst	DIVFCN
-	bne	@div3
+@divprc	clrd			Clear the numerator's MSC
+	ldw	2,u		Numerator's LSC
+	bpl	@dvnsex		Branch if no sign extention is needed
+* Sign extention from W to Q.
+	comd			-1 to D (numerator's MSC)
+@dvnsex	divq	,u		,u has the denominator
+	bsr	FDIVADJ		Perform floored division adjustment, if needed
+@no83ad	tst	DIVFCN
+	bne	@div4
 	std	2,u		Function 0: return the modulo and the quotient
-	stw	,u
+@div3	stw	,u		Function 2: return only the quotient
 	rts
-@div3	leau	2,u		Drop one cell from the data stack
+@div4	leau	2,u		Drop one cell from the data stack
 	tfr	d,v		Backup the modulo
 	lda	DIVFCN
 	cmpa	#1
-	bne	@div4
+	bne	@div3
 	tfr	v,d		Restore the modulo
 	std	,u		Function 1: return only the modulo
 	rts
-@div4	stw	,u		Function 2: return only the quotient
-	rts
 
-MOD	fcb	3
-	fcc	'MOD'
+* Quotient is returned in W, modulo in D but this is symmetric division :-(
+* Need to return a floored division result for compat. with F83 and ANSI impls.
+FDIVADJ	tstd			Is the remainder zero?
+	beq	@no83ad		Yes. No adjusment required for floored division
+	tst	F83DIVF		Different signs for numerator and denominator?
+	beq	@no83ad		No. Adjusment not needed for floored division
+* Adjusment for F83 floored division.
+	decw			Decrement the quotient
+	addd	,u		Add the denominator to the modulo
+@no83ad	rts
+
+MOD	fcb	3		79-STANDARD (REQ104)
+	fcc	'MOD'		( N1 N2 -- N3 )
 	fdb	DIV
 	RFCS
 	lda	#1
 	sta	DIVFCN
 	bra	DIV1
 
-MDIV	fcb	4
-	fcc	'/MOD'
+MDIV	fcb	4		79-STANDARD (REQ198)
+	fcc	'/MOD'		( N1 N2 -- N3 N4 )
 	fdb	MOD
 	RFCS
 	clr	DIVFCN
 	bra	DIV1
 
-STRSLSH	fcb	2
-	fcc	'*/'		( n1 n2 n3 -- n4 [n5] )
+STRSLSH	fcb	2		79-STANDARD (REQ220)
+	fcc	'*/'		( N1 N2 N3 -- N4 [N5] )
 	fdb	MDIV
 	RFCS
 	lda	#1
 	sta	STSLFCN
-STRSL1	MINDREQ	3
+STRSL1	jsr	MIN3PST		Three cells need to be stacked up
+	clr	F83DIVF		Assume no adjustment required for floored div.
 * Division by zero conditions are dealt with through the trap handler.
 	ldd	4,u		N1
-	muld	2,u		N2
+	muld	2,u		N2 (N1 * N2 -> D:W)
+	pshs	a		Product's MSC's MSB
+	eora	,u		Different sign from the denominator's?
+	bpl	@stslpr		No. Floored division adjustment not needed
+	inc	F83DIVF
+@stslpr	puls	a
 	divq	,u		N3
+	bsr	FDIVADJ		Perform floored division adjustment, if needed
 	leau	2,u
 	tst	STSLFCN
 	bne	@strsl2		Just the quotient, Ma'am!
@@ -3525,8 +3557,8 @@ STRSL1	MINDREQ	3
 	stw	,u		N4
 	rts
 
-STRSLMD	fcb	5
-	fcc	'*/MOD'
+STRSLMD	fcb	5		79-STANDARD (REQ192)
+	fcc	'*/MOD'		( N1 N2 N3 -- N4 N5 )
 	fdb	STRSLSH
 	RFCS
 	clr	STSLFCN
@@ -3927,7 +3959,7 @@ TUCK	fcb	4		ANSI (Core ext)
 	fcc	'TUCK'		( x1 x2 -- x2 x1 x2 ) i.e. SWAP OVER
 	fdb	QRYDUP
 	RFCS
-	MINDREQ	2
+	jsr	MIN2PST		At least two cells need to be stacked up
 	ldq	,u		D:W is X2:X1
 	exg	d,w
 	stq	,u
@@ -3938,7 +3970,7 @@ NIP	fcb	3		ANSI (Core ext)
 	fcc	'NIP'		( x1 x2 -- x2 ) i.e. SWAP DROP
 	fdb	TUCK
 	RFCS
-	MINDREQ	2
+	jsr	MIN2PST		At least two cells need to be stacked up
 	ldd	,u
 	leau	2,u
 	std	,u
@@ -3948,7 +3980,7 @@ DUP	fcb	3		79-STANDARD (REQ205)
 	fcc	'DUP'
 	fdb	NIP
 	RFCS
-	MINDREQ	1
+	jsr	MIN1PST		At least one cell needs to be stacked up
 	ldx	,u
 	jmp	NPUSH
 
@@ -3962,7 +3994,7 @@ SWAP	fcb	4		79-STANDARD (REQ230)
 	fcc	'SWAP'
 	fdb	DROP
 	RFCS
-	MINDREQ	2		We need at least two cells stacked up
+	jsr	MIN2PST		We need at least two cells stacked up
 	ldq	,u		In place SWAP
 	exg	d,w
 	stq	,u
@@ -4144,7 +4176,7 @@ PLUSST	fcb	2		79-STANDARD (REQ157)
 	fcc	'+!'		( incr addr -- )
 	fdb	HERE
 	RFCS
-	MINDREQ	2		We need at least two cells stacked up
+	jsr	MIN2PST		We need at least two cells stacked up
 	ldx	,u		ADDR to X
 	ldd	,x		@ADDR to D
 	addd	2,u		Add INCR to D
@@ -4156,7 +4188,7 @@ ONEPST	fcb	3		79-STANDARD (REF)
 	fcc	'1+!'
 	fdb	PLUSST
 	RFCS
-	MINDREQ	1
+	jsr	MIN1PST		At least one cell needs to be stacked up
 	ldx	,u
 	ldd	,x
 	incd
@@ -4168,7 +4200,7 @@ MINUSST	fcb	2		79-STANDARD (REQ157)
 	fcc	'-!'		( incr addr -- )
 	fdb	ONEPST
 	RFCS
-	MINDREQ	2		We need at least two cells stacked up
+	jsr	MIN2PST		We need at least two cells stacked up
 	ldx	,u		ADDR to X
 	ldd	,x		@ADDR to D
 	subd	2,u		Substract INCR from D
@@ -4178,7 +4210,7 @@ CSTORE	fcb	2		79-STANDARD (REQ219)
 	fcc	'C!'		( val8 addr -- )
 	fdb	MINUSST
 	RFCS
-	MINDREQ	2		We need at least two cells stacked up
+	jsr	MIN2PST		We need at least two cells stacked up
 	lda	3,u		VAL8 to A
 	sta	[,u]		Actual store to ADDR
 	leau	4,u		Drop two cells from the data stack
@@ -4188,7 +4220,7 @@ STORE	fcb	1		79-STANDARD (REQ112)
 	fcc	'!'		( data addr -- )
 	fdb	CSTORE
 	RFCS
-	MINDREQ	2		At least two cells need to be stacked up
+	jsr	MIN2PST		At least two cells need to be stacked up
 	ldd	2,u		DATA to D
 	std	[,u]		Actual store to ADDR
 	leau	4,u		Drop two cells from the user stack
@@ -4198,7 +4230,7 @@ CFETCH	fcb	2		79-STANDARD (REQ156)
 	fcc	'C@'		( addr -- val8 )
 	fdb	STORE
 	RFCS
-	MINDREQ	1		We need at least one cell stacked up
+	jsr	MIN1PST		We need at least one cell stacked up
 	clra
 	ldb	[,u]
 	std	,u
@@ -4221,7 +4253,7 @@ FETCH	fcb	1		79-STANDARD (REQ199)
 	fcc	'@'		( addr -- data )
 	fdb	QMARK
 	RFCS
-	MINDREQ	1		At least one cell needs to be stacked up
+	jsr	MIN1PST		At least one cell needs to be stacked up
 	ldd	[,u]
 	std	,u		Returned through the data stack
 	rts
@@ -4240,7 +4272,7 @@ BOOTMSG	fcc	'Z79Forth 6309/'
 	POLINTM			Polling/interrupt flag mode
 	fcc	' FORTH-79 Standard Sub-set'
 	fcb	CR,LF
-	fcc	'20210711 Copyright Francois Laagel (2019)'
+	fcc	'20210720 Copyright Francois Laagel (2019)'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
@@ -4249,7 +4281,11 @@ CRLFSTR	fcb     CR,LF,NUL
 RAMFM	fcc	'RAM check failed'
 	fcb     CR,LF,NUL
 
+	IFEQ	CSSNTVE
+OKFEEDB	fcc	' ok'		As per GNU Forth's implementation...
+	ELSE
 OKFEEDB	fcc	' OK'
+	ENDC
 	fcb	CR,LF,NUL
 
 * Error messages for IODZHDL.
