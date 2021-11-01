@@ -41,6 +41,9 @@ This can be useful when dealing with code that has "environmental
 dependencies."
 
 ###############################################################################
+POSTPONE is supported natively.
+
+###############################################################################
 ANSI VALUE objects are constants whose value can be redefined by resorting to
 TO. For instance:
 
@@ -51,14 +54,27 @@ TO. For instance:
 This can be achieved (in a very implementation specific way) in Z79Forth with:
 
 : VALUE CONSTANT ;
-: TO FIND ?DUP IF 1+ ! THEN ;
+: TO ( inputstream: <symbol> -- ) ( execution: nn -- )
+  >IN @                       \ symSrcStartAddress
+  FIND  ?DUP  IF              \ symSrcStartAddress\xt
+    NIP  STATE @  IF          \ We are compiling
+      POSTPONE LITERAL  POSTPONE 1+  POSTPONE !
+    ELSE                      \ We are interpreting
+      1+ !
+    THEN
+  ELSE                        \ symSrcStartAddress
+    >IN !                     \ Symbol not found
+  THEN ; IMMEDIATE
 
 However, if the reliability feature is configured, ICHECK will report a code
 integrity check failure, should the original value of the constant ever be
 altered.
 
-###############################################################################
-POSTPONE is supported natively.
+See https://forth-standard.org/standard/testsuite#test:core:VALUE for test
+patterns. This particular implementation passes the test patterns but the
+fact remains that "an ambiguous condition exists if <symbol> is not defined".
+In cleartext, under Z79Forth, you will get an 'Undefined' error but <nn>, if
+present on the stack, will not be dropped.
 
 ###############################################################################
 In Z79Forth FIND is a straight equivalent of the ANSI/FORTH-83 '. However,
@@ -75,9 +91,9 @@ RSHIFT/LSHIFT can be implemented on the top of the 79-STANDARD SHIFT word as:
 ###############################################################################
 2R@/2R>/2>R can be implemented in Z79Forth as:
 
-: 2R@ I' I ;
-: 2R> R> R> SWAP ;
-: 2>R SWAP >R >R ;
+: 2R@ I' I ;        RESTRICT
+: 2R> R> R> SWAP ;  RESTRICT
+: 2>R SWAP >R >R ;  RESTRICT
 
 These words can be invoked in compilation mode only.
 

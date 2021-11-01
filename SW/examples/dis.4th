@@ -12,7 +12,7 @@ CREATE opc-table
 \ 1 byte: operand size
 \ counted string: source code
 $BD C,  2 C,  " jsr"
-$8E C,  2 C,  " ldx"
+$8E C,  2 C,  " lxi"
 $7E C,  2 C,  " jmp"
 $39 C,  0 C,  " rts"
 $25 C,  1 C,  " bcs"

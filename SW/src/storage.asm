@@ -145,7 +145,9 @@ CF1SRD	lda	CFSTATR
 	beq	IOERR
 	ldw	#CFSCSZ		Sector size is 512 bytes
 	ldy	#CFDATAR	The data source address
-	tfm	y,x+		Note: tfm is interruptible!
+	orcc	#FFLAG		Disable FIRQ
+	tfm	y,x+
+	andcc	#^FFLAG		Enable FIRQ
 	rts
 IOERR	ldb	#17
 	jsr	ERRHDLR		No return

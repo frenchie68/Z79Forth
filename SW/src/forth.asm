@@ -195,6 +195,15 @@ CFCARDP	rmb	1		NZ if CF card present
 CFCMMIR	rmb	1		Last CF command issued
 CFERRCD	rmb	1		and the corresponding error code
 
+* Serial buffer parameters. Queing happens on FIRQ.
+* Dequeing occurs when GETC is invoked.
+SERBENQ	rmb	1		Enqueue offset
+SERBDEQ	rmb	1		Dequeue offset
+SERBCNT	rmb	1		Buffer byte count
+SERBUF	rmb	SERBSZ		The actual buffer
+
+XMITOK	rmb	1		Software flow control on output flag
+
 PADBUF	rmb	PADBSZ		PAD lives here. Used by <#, #, #S, #> and DUMP
 
 * The normal (data) stack.
@@ -263,7 +272,6 @@ IODZHDL	bitmd	#$40		Illegal opcode?
 
 SWI3HDL	equ	*
 SWI2HDL	equ	*
-FIRQHDL	equ	*
 IRQHDL	equ	*
 SWIHDL	equ	*
 NMIHDL	bra	*		These should never happen
@@ -324,6 +332,19 @@ RAMOK	ldx	#RAMSTRT
 	lda	#VARSPC/256
 	tfr	a,dp
 	SETDP	VARSPC/256
+
+* Serial buffer parameters initialization.
+	clrd
+	std	SERBENQ		Two birds with one stone
+	sta	SERBCNT
+	inca			Initialize software flow control on output
+	sta	XMITOK
+
+* Lower RTS and enable FIRQ. This is only necessary if GETCH never gets called,
+* for instance if block #1 does not relinquish control back to the interpreter.
+	lda	#ACIRTS0
+	sta	ACIACTL
+	andcc	#^FFLAG
 
 	ldx	#RAMOKM
 	jsr	PUTS
@@ -1074,6 +1095,8 @@ NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
 	fcn	'COMPLRA'
 	fdb	LWMNRA		Missing word name in LOCWRT
 	fcn	'LWMNRA'
+	fdb	SYNCRA		SYNC return address in GETCH
+	fcn	'SYNCRA'
 	fdb	CFR1SRA		CF read one sector failed
 	fcn	'CFR1SRA'
 	fdb	NPUSH		Not an error RA but useful to have as a symbol
@@ -1118,7 +1141,8 @@ PRBLKIN	ldx	#HEXBUF
 * offending word.
 ERRHDLR ldy	,s		Invoking return address
 * In case of a trap return, we enter here with Y set to #IODZHDL
-ERRHD1	cmpb	#2		Undefined symbol?
+ERRHD1	jsr	PUTCR		GNU Forth does this in its exception handler
+	cmpb	#2		Undefined symbol?
 	bne	@perrm		No
 	lda	#''		Begin quote
 	jsr	PUTCH
@@ -3295,18 +3319,10 @@ KEYP	fcb	4		ANSI (Facility)
 	fdb	MILLIS
 	RFCS
 	tfr	0,x
-	lda	#ACIRTS0
-	sta	ACIACTL		Assert RTS#
-	ldx	#40
-	bsr	MILLIS1		Wait for 40 milliseconds
-* X is guaranteed to be 0 upon return from MILLIS1.
-	lda	#ACIRDRF
-	bita	ACIACTL
-	beq	@keyp1
+	tst	SERBCNT
+	beq	@done
 	leax	1,x		Return the 79-STANDARD true flag
-@keyp1	lda	#ACIRTS1
-	sta	ACIACTL		Negate RTS#
-	jmp	NPUSH
+@done	jmp	NPUSH
 
 KEY	fcb	3		79-STANDARD (REQ100)
 	fcc	'KEY'
@@ -3959,22 +3975,15 @@ TUCK	fcb	4		ANSI (Core ext)
 	fcc	'TUCK'		( x1 x2 -- x2 x1 x2 ) i.e. SWAP OVER
 	fdb	QRYDUP
 	RFCS
-	jsr	MIN2PST		At least two cells need to be stacked up
-	ldq	,u		D:W is X2:X1
-	exg	d,w
-	stq	,u
-	tfr	w,x		X has X2
-	jmp	NPUSH
+	RFXT	bsr,SWAP+7
+	RFXT	bra,OVER+7
 
 NIP	fcb	3		ANSI (Core ext)
 	fcc	'NIP'		( x1 x2 -- x2 ) i.e. SWAP DROP
 	fdb	TUCK
 	RFCS
-	jsr	MIN2PST		At least two cells need to be stacked up
-	ldd	,u
-	leau	2,u
-	std	,u
-	rts
+	RFXT	bsr,SWAP+7
+	RFXT	bra,DROP+7
 
 DUP	fcb	3		79-STANDARD (REQ205)
 	fcc	'DUP'
@@ -4268,11 +4277,10 @@ REALEND	equ	*
 * Clear the screen, VT100 style.
 CSVT100	fcb	$1B,'[','H',$1B,'[','J',CR,NUL
 
-BOOTMSG	fcc	'Z79Forth 6309/'
-	POLINTM			Polling/interrupt flag mode
-	fcc	' FORTH-79 Standard Sub-set'
+BOOTMSG	fcb	CR,LF
+	fcc	'Z79Forth 6309/I FORTH-79 Standard Sub-set'
 	fcb	CR,LF
-	fcc	'20210720 Copyright Francois Laagel (2019)'
+	fcc	'20211101 Copyright Francois Laagel (2019)'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'

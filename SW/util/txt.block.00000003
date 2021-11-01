@@ -1,7 +1,0 @@
-\ Block/Buffer debugging support.                               
-                                                                
-: bsa CR BUF0 BS                                                
-  CR BUF1 BS ;
-
-: H. BASE @ SWAP HEX U. BASE ! ;
-

@@ -22,14 +22,14 @@ Tunable Build Time Parameters Description
 Those are defined in src/constants.asm. They are:
 
 Name	Default	Alternative	Description
-HVFIRQ	0	N/A		Enable FIRQ on ACIA RDRF (req. 2.2 schematics)
+HVFIRQ	1	N/A		Enable FIRQ on ACIA RDRF (req. 2.2 schematics)
 VT100	0	NZ		Set to 1 to operate at RS232@9600.
 				This implies an Y1 CXO at 2.45760 MHz.
 				Default is 0 for USB@115200 (7.37280 MHz CXO).
 				This tunable does nothing more than select
 				an ACIA dividing factor of 64 instead of the
 				default 16.
-HVCONV	1	0		Include CONVERT in the default dictionary.
+HVCONV	0	NZ		Include CONVERT in the default dictionary.
 CSSNTVE	0	NZ		Select 0 for a case insensitive implementation
 				or 1 for a case sensitive one. In case sensitive
 				mode, those digits encoded by a letter _must_

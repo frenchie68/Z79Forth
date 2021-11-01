@@ -111,7 +111,7 @@ FOO            ( XXXX Incorrect STATE )
 DECIMAL
 : MACHIN 12 -7 DO
     I .
-  LOOP CR ;		( 12 should _NOT_ appear)
+  LOOP CR ;    ( 12 should _NOT_ appear)
 
 \ -------------------------------------------------------------
 \ Leave validation
@@ -195,8 +195,8 @@ DECIMAL
 32 CONSTANT BUFLEN
 VARIABLE BUFF BUFLEN ALLOT
 BUFF BUFLEN 1+ 32 FILL
-BUFF BUFLEN -TRAILING TYPE		( emtpy string is printed )
-BUFF BUFLEN EXPECT			( Abracadabra )
+BUFF BUFLEN -TRAILING TYPE  ( emtpy string is printed )
+BUFF BUFLEN EXPECT          ( Abracadabra )
 BUFF BUFLEN 1+ -TRAILING TYPE CHAR . EMIT
 
 \ -------------------------------------------------------------
@@ -231,7 +231,7 @@ CHAR " WORD Schnaps das war sein letztes Wort
 
 \ This cannot be tested from blocks.
 1 WORD
-." #4 " .COUNTEDSTRING		( only . should be printed )
+." #4 " .COUNTEDSTRING    ( only . should be printed )
 
 \ -------------------------------------------------------------
 \ KEY?, MS
@@ -257,12 +257,12 @@ DECIMAL
 \ -------------------------------------------------------------
 \ Verifying CHAR, [CHAR]
 
-CHAR Arghh EMIT SPACE	( A is output )
+CHAR Arghh EMIT SPACE    ( A is output )
 : TOTO CHAR EMIT SPACE ;
-TOTO Arghh 		( A is output )
+TOTO Arghh               ( A is output )
 : TRUC [CHAR] Arghh EMIT SPACE ;
-TRUC			( A is output )
-[CHAR]			( Error 6: incorrect STATE )
+TRUC                     ( A is output )
+[CHAR]                   ( Error 6: incorrect STATE )
 
 \ -------------------------------------------------------------
 \ Exercising ?DUP
@@ -274,7 +274,7 @@ TRUC			( A is output )
     DUP .
     1-
   REPEAT ;
-8 QDUP-TRY		( Prints 8 down to 1 sequence )
+8 QDUP-TRY               ( Prints 8 down to 1 sequence )
 0 QDUP-TRY
 .S
 

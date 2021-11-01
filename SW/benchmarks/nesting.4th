@@ -21,7 +21,7 @@ DECIMAL
 : 25TH 24TH 24TH ;
 : 32MILLION   25TH ;
 :  1MILLION   20TH ;
-DECIMAL
+
 FIND 1MILLION 10 BENCHME
 \ @ 3 MHz native: 0m49s for 10 rounds--4.9s per round
 \ @ 4 MHz native: 0m37s for 10 rounds--3.7s per round

@@ -1,19 +1,84 @@
-PUTCH	pshs	b
-	ldb	#ACITDRE
-@ptch1	bitb	ACIACTL         Wait for TDRE bit to be set
-	beq	@ptch1
-	sta	ACIADAT         Transmit data
-	puls	b
+* FIRQ interrupt handler. This is entered on RDRF (input available).
+FIRQHDL	pshs	x,d
+	lda	ACIACTL
+	anda	#ACIISVC	Does the ACIA need input service?
+	beq	@nsint		No. This is not the IRQ source we're looking for
+	ldb	ACIADAT		Incoming data byte to B (INTACK)
+	cmpb	#ETX		Control-C?
+	beq	@sigint		Yes
+	cmpb	#XOFF
+	beq	@outngo		Output is a no go
+	cmpb	#XON
+	beq	@outok		Output is re-enabled
+	lda	SERBCNT
+	cmpa	#SERBSZ
+	beq	@nsint		Serial input buffer is full. So it goes...
+	ldx	#SERBUF
+	lda	SERBENQ		Enqueue offset to A
+	stb	a,x		Enqueue incoming character
+	inca
+	anda	#SERBSZ-1	Modulo arithmetic
+	sta	SERBENQ
+	lda	SERBCNT
+	inca
+	cmpa	#SERBSZ-32	Serial input buffer considered full?
+	bne	@upsbcn		No
+	ldb	#ACIRTS1
+	stb	ACIACTL		Set RTS# to high
+@upsbcn	sta	SERBCNT		Update serial buffer byte count
+@nsint	puls	d,x
+	rti
+* Control-C was recognized.
+@sigint	leas	4,s		Drop D and X
+	lda	SERBENQ
+	sta	SERBDEQ
+	clr	SERBCNT		Serial input buffer has been emptied
+	RFXT	jsr,NCLR+7	Clear the data stack
+	RFXT	jsr,RCLR+7	and the return stack
+	ldy	1,s		Saved PC from the FIRQ stack
+	ldx	#ERRHD1
+	stx	1,s		Execution continues in the error handler
+	ldb	#3		with ABORT error code passed through B
+	rti
+@outngo	clra
+	bra	@sxmsta
+@outok	lda	#1
+@sxmsta	sta	XMITOK		Update XMIT status flag
+	bra	@nsint
+
+* We do not have to talk to the ACIA directly, unless SERBCNT is zero,
+* in which case we have to lower RTS#, so as to accept incoming characters.
+GETCH	pshs	x,d
+	orcc	#FFLAG		Disable FIRQ
+	tst	SERBCNT
+	bne	@sbdind		Some data is available
+	lda	#ACIRTS0
+	sta	ACIACTL		Clear RTS#
+	andcc	#^FFLAG		Enable FIRQ
+@again	sync			Go to sleep and resume on interrupt
+SYNCRA	tst	SERBCNT
+	beq	@again
+* Serial buffer data indication.
+@sbdind	andcc	#^FFLAG		Re-enable FIRQ
+	ldx	#SERBUF
+	lda	SERBDEQ		Dequeue offset to A
+	ldb	a,x		Buffered input character to B
+	stb	,s		Incoming character to A in the caller's stack
+	inca
+	anda	#SERBSZ-1	Modulo arithmetic
+	sta	SERBDEQ
+	dec	SERBCNT
+	puls	d,x
 	rts
 
-GETCH	lda	#ACIRTS0
-	sta	ACIACTL		You may talk to me now
-	lda	#ACIRDRF
-@again	bita	ACIACTL
-	beq	@again
-	lda	#ACIRTS1
-	sta	ACIACTL		You may shut up now
-@getdat	lda	ACIADAT		Get character from the ACIA
+PUTCH	pshs	b
+	ldb	#ACITDRE
+@tdrdrn	bitb	ACIACTL
+	beq	@tdrdrn		Drain transmit data register
+@wfxon	tst	XMITOK		Software flow control on output
+	beq	@wfxon		Wait for XON
+	sta	ACIADAT         Transmit data
+	puls	b
 	rts
 
 * Send NUL terminated string pointed to by X to the ACIA.

@@ -1,23 +1,17 @@
-* Begin configuration tunable parameters.
+* Begin tunable parameters section.
 
-HVFIRQ	equ	0		Enable FIRQ on ACIA RDRF (req. 2.2 schematics)
-VT100	equ	0		Set to 1 to operate at RS232@9600
-*				This implies an Y1 CXO at 2.45760 MHz.
-*				Default is 0 for USB@115200 (7.37280 MHz CXO).
 CSSNTVE	equ	0		Words and HEX numbers are case sensitive if NZ
-HVCONV	equ	1		Include CONVERT in the default dictionary
 SSDFEAT	equ	1		Set to 1 to enable the symbolic stack dump feat.
 RELFEAT	equ	1		Set to 1 to enable the reliability feature
 *				Caution: when this is enabled, you can no
 *				longer fit a DEBUG image into an 8 KB EEPROM
 DEBUG	equ	0		Enforce assertions and miscellaneous checks
+HVCONV	equ	0		Include CONVERT in the default dictionary
 * Loop count for MS. This is busy waiting, so we depend on the CPU clock speed.
-*MSLCNT	equ	496		at 3 MHz emulation mode
-*MSLCNT	equ	662		at 4 MHz emulation mode
-*MSLCNT	equ	794		at 4 MHz native mode
-MSLCNT	equ	994		at 5 MHz native mode
+MSLCNT	equ	794		at 4 MHz native mode
+*MSLCNT	equ	994		at 5 MHz native mode
 
-* End configuration tunable parameters.
+* End tunable parameters section.
 
 * Memory map.
 RAMSTRT	equ	$0000
@@ -29,7 +23,7 @@ VECTBL	equ	$FFF0
 * Base address for global variables (direct page addressed).
 VARSPC	equ	$100
 
-* The 74HCT138 IO address decoder maps one 1 KB page per usable device.
+* The 74HCT138 (U7) IO address decoder maps one 1 KB area per usable device.
 DEV0	equ	$C000		Compact Flash memory module
 DEV1	equ	$C400
 DEV2	equ	$C800
@@ -43,43 +37,24 @@ ACIACTL	equ	DEV6
 ACIADAT	equ	DEV6+1
 
 * ACIA control register bits.
-ACRST	equ	11b		ACIA master reset
+ACRST	equ	%00000011	ACIA master reset
 
-* 115200 bps w. 7.37280 MHz oscillator, 38400 bps w. 2.45760 MHz oscillator.
-ACD16	equ	01b		ACIA div 16
-* 28800 bps w. 7.37280 MHz oscillator, bps 9600 w. 2.45760 MHz oscillator.
-ACD64	equ	10b		ACIA div 64
+* 1.84320 MHz Y1: 115200 bps in the DIRect path, 38400 bps in the DIV3 path
+ACDIV16	equ	%00000001	ACIA div 16
 
-* ACIA divider tuning. USB@115200 or RS232@9600 for a real DEC terminal.
-	IFEQ	VT100
-ACDVSEL	equ	ACD16		Selected divider value (7.37280 MHz CXO)
-	ELSE
-ACDVSEL equ     ACD64		Switch to RS232@9600 (2.45760 MHz CXO)
-	ENDC
-
-AC8N1	equ	10100b		ACIA 8N1
-ACRTS0	equ	0000000b	ACIA RTS# low
-ACRTS1	equ	1000000b	ACIA RTS# high
-	IFNE	HVFIRQ
-ACRDINT	equ	10000000b	IRQ on RDRF
-POLINTM	MACRO	NOEXPAND	Poll/interrupt mode
-	fcb	'I'
-	ENDM
-	ELSE
-ACRDINT	equ	0		No IRQ on RDRF
-POLINTM	MACRO	NOEXPAND	Poll/interrupt mode
-	fcb	'P'
-	ENDM
-	ENDC
+AC8N1	equ	%00010100	ACIA 8N1
+ACRTS0	equ	%00000000	ACIA RTS# low
+ACRTS1	equ	%01000000	ACIA RTS# high
+ACRDINT	equ	%10000000	IRQ on RDRF
 
 ACIRSET	equ	ACRTS1|ACRST
-ACIRTS1	equ	ACRTS1|ACRDINT|AC8N1|ACDVSEL
-ACIRTS0	equ	ACRTS0|ACRDINT|AC8N1|ACDVSEL
+ACIRTS1	equ	ACRTS1|ACRDINT|AC8N1|ACDIV16
+ACIRTS0	equ	ACRTS0|ACRDINT|AC8N1|ACDIV16
 
 * ACIA status register bits.
-ACIRDRF	equ	1		Receive data register full
-ACITDRE	equ	10b		Transmit data register empty
-ACIISVC	equ	10000000b	Interrupt needs servicing
+ACIRDRF	equ	%00000001	Receive data register full
+ACITDRE	equ	%00000010	Transmit data register empty
+ACIISVC	equ	%10000000	Interrupt needs servicing
 
 * Compact Flash parameters.
 CFBASE	equ	DEV0
@@ -95,12 +70,12 @@ CFSTATR	equ	CFBASE+7	RO status register
 CFCOMDR	equ	CFBASE+7	WO command register
 
 * CF status bits.
-CFBSYB	equ	10000000b	BSY status bit
-CFRDYB	equ	01000000b	RDY status bit
-CFDWFB	equ	00100000b	DWF status bit (not used)
-CFDSCB	equ	00010000b	DSC status bit (not used)
-CFDRQB	equ	00001000b	DRQ status bit
-CFERRB	equ	00000001b	ERR status bit
+CFBSYB	equ	%10000000	BSY status bit
+CFRDYB	equ	%01000000	RDY status bit
+CFDWFB	equ	%00100000	DWF status bit (not used)
+CFDSCB	equ	%00010000	DSC status bit (not used)
+CFDRQB	equ	%00001000	DRQ status bit
+CFERRB	equ	%00000001	ERR status bit
 
 CFSCSZ	equ	$200		Compact Flash (IDE) sector size
 

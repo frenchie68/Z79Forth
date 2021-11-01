@@ -1,0 +1,29 @@
+Most primitives implemented in Z79Forth conform to the relevant standard
+specification. A few primitives are non standard at all. Please check
+doc/79-STANDARD-subset.txt for a description of those non-standard words.
+Also check doc/COMPILING.txt if the doc subdirectory, as the CONVERT primitive
+may or may not be available--it is not included in the interrupt enabled
+implementation, due to resource constraints.
+
+If a CompactFlash card is detected at system bootup time, block #1 will be
+automatically loaded. If the code loaded from there never relinquishes control
+back to the interpreter (endless loop through the use of BYE), interrupt
+support should be enabled.
+
+In case of an error (or trap/interrupt), the error handler will display the
+context in which the error occurred. Error particulars will be as follows:
+
+<Error message> (xxxx/yyyy)
+<optional system stack dump> if SSDFEAT was enabled at compilation time.
+
+Where:
+
+xxxx is the HEX represention of BLK @
+yyyy is the HEX representation in >IN @
+
+at the time the expection was triggered.
+
+Important notice:
+-----------------
+On error BASE is reset to the default (10).
+

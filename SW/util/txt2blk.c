@@ -164,6 +164,7 @@ processInputFile(FILE *inFile) {
   int	lineCountInBlock, inputLineCount = 0, len, i, outFd;
   char	*continued;
 
+  printf("Input file name: %s\n", inputFilename);
   currentBlockNo = startingBlockNo;
 
   if(headerLine) {
@@ -226,9 +227,9 @@ processInputFile(FILE *inFile) {
 
   printf("You may invoke this program with:\n");
   if(startingBlockNo == lastWrittenBlockNo)
-    printf("%d LOAD\n", startingBlockNo);
+    printf("%d LOAD\n\n", startingBlockNo);
   else
-    printf("%d %d THRU\n", startingBlockNo, lastWrittenBlockNo);
+    printf("%d %d THRU\n\n", startingBlockNo, lastWrittenBlockNo);
 }
 
 int

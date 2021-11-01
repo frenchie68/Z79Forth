@@ -1,0 +1,21 @@
+IntSig		Cpin#	Cname	Cname	Cpin#	IntSig
+CFRST# (U3/8)	1	RESET#	GND 	2	by adapter
+D7 (RN1/2)	3	D7	D8	4	NC
+D6 (RN1/3)	5	D6	D9	6	NC
+D5 (RN1/4)	7	D5	D10	8	NC
+D4 (RN1/5)	9	D4	D11	10	NC
+D3 (RN1/6)	11	D3	D12	12	NC
+D2 (RN1/7)	13	D2	D13	14	NC
+D1 (RN1/8)	15	D1	D14	16	NC
+D0 (RN1/9)	17	D0	D15	18	NC
+GND (PWGND)	19	GND	KEY	20	Vcc (bypasses diode protection)
+NC		21	DREQ#	GND	22	by adapter
+WR# (U11/27)	23	IOW#	GND	24	by adapter
+RD# (U10/22)	25	IOR#	GND	26	by adapter
+NC		27	IORDY	CSEL	28	by adapter
+NC		29	DACK#	GND	30	by adapter
+NC		31	IRQ	IOCS16#	32	NC
+A1 (U10/9)	33	A1	DIAG#	34	NC
+A0 (U10/10)	35	A0	A2	36	A2 (U10/8)
+DEV0# (U7/15)	37	CS0#	CS1#	38	Vcc
+NC		39	ASP#	GND	40	by adapter
