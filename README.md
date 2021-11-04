@@ -19,3 +19,9 @@ Known shortcomings of the current repository are as follows:
 - unfinished editor (see SW/examples/lwvi.4th). Some extra work still is needed
   on the delete primitives.
   
+November 4, 2021 notice: master is currently not entirely consistent. The
+software delivered is ahead of the hardware documentation in that the software
+assumes 2.2 schematics (interrupt based serial communications) and the hardware
+documentation remains to be updated to reflect that basic fact. This is work
+in progress. I will update master with the relevant hardware documentation as
+soon as possible.
