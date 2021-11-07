@@ -1,0 +1,213 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP 27256
+D UV Erasable EPROM 256 KiBit, [Obsolete 2000-11]
+K Erasable EPROM 256 KiBit
+F http://datasheet.octopart.com/D27256-2-Intel-datasheet-17852618.pdf
+$ENDCMP
+#
+$CMP 2764
+D EPROM 64 KiBit, [Obsolete 2000-11]
+K EPROM 64KiBit
+F https://downloads.reactivemicro.com/Electronics/ROM/2764%20EPROM.pdf
+$ENDCMP
+#
+$CMP 7400
+D quad 2-input NAND gate
+K TTL nand 2-input
+F http://www.ti.com/lit/gpn/sn7400
+$ENDCMP
+#
+$CMP 7402
+D quad 2-input NOR gate
+K TTL Nor2
+F http://www.ti.com/lit/gpn/sn7402
+$ENDCMP
+#
+$CMP 74HC00
+D quad 2-input NAND gate
+K HCMOS nand 2-input
+F http://www.ti.com/lit/gpn/sn74hc00
+$ENDCMP
+#
+$CMP 74HC02
+D quad 2-input NOR gate
+K HCMOS Nor2
+F http://www.ti.com/lit/gpn/sn74hc02
+$ENDCMP
+#
+$CMP 74HC245
+D Octal BUS Transceivers, 3-State outputs
+K HCMOS BUS 3State
+F http://www.ti.com/lit/gpn/sn74HC245
+$ENDCMP
+#
+$CMP 74HC74
+D Dual D Flip-flop, Set & Reset
+K TTL DFF
+F 74xx/74hc_hct74.pdf
+$ENDCMP
+#
+$CMP 74HCT00
+D quad 2-input NAND gate
+K HCTMOS nand 2-input
+F http://www.ti.com/lit/gpn/sn74hct00
+$ENDCMP
+#
+$CMP 74HCT02
+D quad 2-input NOR gate
+K HCTMOS Nor2
+F http://www.ti.com/lit/gpn/sn74hct02
+$ENDCMP
+#
+$CMP 74HCT138
+D Decoder 3 to 8 active low outputs
+K TTL DECOD DECOD8
+F http://www.ti.com/lit/gpn/sn74LS138
+$ENDCMP
+#
+$CMP 74HCT14
+D Hex inverter schmitt trigger
+K HCMOS not inverter
+F http://www.ti.com/lit/gpn/sn74HC14
+$ENDCMP
+#
+$CMP 74HCT245
+D Octal BUS Transceivers, 3-State outputs
+K TTL BUS 3State
+F http://www.ti.com/lit/gpn/sn74LS245
+$ENDCMP
+#
+$CMP 74HCT74
+D Dual D Flip-flop, Set & Reset
+K TTL DFF
+F 74xx/74hc_hct74.pdf
+$ENDCMP
+#
+$CMP 74LS02
+D quad 2-input NOR gate
+K TTL Nor2
+F http://www.ti.com/lit/gpn/sn74ls02
+$ENDCMP
+#
+$CMP 74LS14
+D Hex inverter schmitt trigger
+K TTL not inverter
+F http://www.ti.com/lit/gpn/sn74LS14
+$ENDCMP
+#
+$CMP 74LS28
+D quad 2-input NOR buffer NRND
+K TTL Nor2 Buffer
+F http://eeshop.unl.edu/pdf/74ls28.pdf
+$ENDCMP
+#
+$CMP 74LS37
+D quad 2-input NAND buffer
+K TTL nand 2-input buffer
+F http://www.ti.com/lit/gpn/sn74ls37
+$ENDCMP
+#
+$CMP AT28C64B-15PU
+D OTP EPROM 64 KB
+K OTP EPROM 64KiBit
+F http://ww1.microchip.com/downloads/en/DeviceDoc/11107M.pdf
+$ENDCMP
+#
+$CMP BS170
+D N-MOSFET transistor, drain/gate/source
+K transistor NMOS N-MOS N-MOSFET
+F ~
+$ENDCMP
+#
+$CMP CD74HCT112E
+D dual JK Flip-Flop, Set & Reset
+K TTL JK
+F http://www.ti.com/lit/gpn/sn74LS112
+$ENDCMP
+#
+$CMP CXO_DIP8
+D Crystal Clock Oscillator, DIP8-style metal package
+K Crystal Clock Oscillator
+F http://cdn-reichelt.de/documents/datenblatt/B400/OSZI.pdf
+$ENDCMP
+#
+$CMP Conn_2Rows-50Pins
+D Generic connector, double row, 51 pins, odd/even pin numbering scheme (row 1 odd numbers, row 2 even numbers), script generated (kicad-library-utils/schlib/autogen/connector/)
+K connector
+F ~
+$ENDCMP
+#
+$CMP Conn_2rows-40pins
+D Generic connector, double row, 41 pins, odd/even pin numbering scheme (row 1 odd numbers, row 2 even numbers), script generated (kicad-library-utils/schlib/autogen/connector/)
+K connector
+F ~
+$ENDCMP
+#
+$CMP F84256-10LL
+D OTS SRAM 256 kbit
+K OTS SRAM 256kbit
+F http://ww1.microchip.com/downloads/en/DeviceDoc/doc0014.pdf
+$ENDCMP
+#
+$CMP HD63B50
+D Asynchronous Communications Interface Adapter 1MHz, DIP-40
+K ACIA
+F http://pdf.datasheetcatalog.com/datasheet/motorola/MC6850.pdf
+$ENDCMP
+#
+$CMP HD63C09E
+D 8-Bit Microprocessing unit 1.0MHz, DIP-40
+K MCU
+F http://pdf.datasheetcatalog.com/datasheet/motorola/MC68B09S.pdf
+$ENDCMP
+#
+$CMP IDC10-Male
+D Generic connector, double row, 11 pins, odd/even pin numbering scheme (row 1 odd numbers, row 2 even numbers), script generated (kicad-library-utils/schlib/autogen/connector/)
+K connector
+F ~
+$ENDCMP
+#
+$CMP MC68A09E
+D 8-Bit Microprocessing unit 1.5MHz, DIP-40
+K MCU
+F http://pdf.datasheetcatalog.com/datasheet/motorola/MC68B09S.pdf
+$ENDCMP
+#
+$CMP MC68A50
+D Asynchronous Communications Interface Adapter 1.5MHz, DIP-40
+K ACIA
+F http://pdf.datasheetcatalog.com/datasheet/motorola/MC6850.pdf
+$ENDCMP
+#
+$CMP MC68B09E
+D 8-Bit Microprocessing unit 2.0MHz, DIP-40
+K MCU
+F http://pdf.datasheetcatalog.com/datasheet/motorola/MC68B09S.pdf
+$ENDCMP
+#
+$CMP MC68B50
+D Asynchronous Communications Interface Adapter 2MHz, DIP-40
+K ACIA
+F http://pdf.datasheetcatalog.com/datasheet/motorola/MC6850.pdf
+$ENDCMP
+#
+$CMP R_Network05
+D 5 resistor network, star topology, bussed resistors, small symbol
+K R network star-topology
+F http://www.vishay.com/docs/31509/csc.pdf
+$ENDCMP
+#
+$CMP R_Network08
+D 8 resistor network, star topology, bussed resistors, small symbol
+K R network star-topology
+F http://www.vishay.com/docs/31509/csc.pdf
+$ENDCMP
+#
+$CMP TFT660
+D Crystal Clock Oscillator, DIP8-style metal package
+K Crystal Clock Oscillator
+F http://cdn-reichelt.de/documents/datenblatt/B400/OSZI.pdf
+$ENDCMP
+#
+#End Doc Library
