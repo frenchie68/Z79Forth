@@ -1,37 +1,55 @@
 * FIRQ interrupt handler. This is entered on RDRF (input available).
 FIRQHDL	pshs	x,d
+	IFNE	RTCFEAT
+	jsr	RTCIHDL		Check for RTC periodic interrupt
+	ENDC			RTCFEAT
 	lda	ACIACTL
-	anda	#ACIISVC	Does the ACIA need input service?
-	beq	@nsint		No. This is not the IRQ source we're looking for
-	ldb	ACIADAT		Incoming data byte to B (INTACK)
+	bita	#ACIISVC	Does the ACIA need input service?
+	beq	@nsintr		No. This is not the IRQ source we're looking for
+	IFNE	DEBUG
+	bita	#ACIRDRF
+	beq	@nsintr		ACIA RDRF status bit should be set in all cases
+	bita	#ACIOVRN	ACIA data overrun on read?
+	beq	@datval		No, incoming data is valid
+	ldb	ACIADAT		Clear overrun bit and INTACK
+	ldb	#'%		Error indicating character is %
+	bra	@chkovf
+	ENDC			DEBUG
+* Out of band characters processing.
+@datval	ldb	ACIADAT		Incoming data byte to B and INTACK
 	cmpb	#ETX		Control-C?
 	beq	@sigint		Yes
 	cmpb	#XOFF
-	beq	@outngo		Output is a no go
+	beq	@outngo		Output is being suspended
 	cmpb	#XON
-	beq	@outok		Output is re-enabled
-	lda	SERBCNT
-	cmpa	#SERBSZ
-	beq	@nsint		Serial input buffer is full. So it goes...
+	beq	@outok		Output is being re-enabled
+@chkovf	lda	SERBCNT
+	cmpa	#15		At high water level mark?
+	bne	@sbenq		No, proceed without negating RTS#
+	pshs	b
+	ldb	#ACIRTS1
+	stb	ACIACTL		Negate RTS#
+	puls	b
+@sbenq	cmpa	#SERBSZ
+	IFNE	HVNMI
+	beq	@nsdrop		Serial input buffer physically full
+	ELSE
+	beq	@nsintr		Serial input buffer physically full
+	ENDC			HVNMI
+	inca
+	sta	SERBCNT		Update incoming FIFO byte count
 	ldx	#SERBUF
 	lda	SERBENQ		Enqueue offset to A
 	stb	a,x		Enqueue incoming character
 	inca
 	anda	#SERBSZ-1	Modulo arithmetic
 	sta	SERBENQ
-	lda	SERBCNT
-	inca
-	cmpa	#SERBSZ-32	Serial input buffer considered full?
-	bne	@upsbcn		No
-	ldb	#ACIRTS1
-	stb	ACIACTL		Set RTS# to high
-@upsbcn	sta	SERBCNT		Update serial buffer byte count
-@nsint	puls	d,x
+@nsintr	puls	d,x
 	rti
 * Control-C was recognized.
 @sigint	leas	4,s		Drop D and X
-	lda	SERBENQ
-	sta	SERBDEQ
+	lda	SERBDEQ
+	sta	SERBENQ
 	clr	SERBCNT		Serial input buffer has been emptied
 	RFXT	jsr,NCLR+7	Clear the data stack
 	RFXT	jsr,RCLR+7	and the return stack
@@ -44,22 +62,31 @@ FIRQHDL	pshs	x,d
 	bra	@sxmsta
 @outok	lda	#1
 @sxmsta	sta	XMITOK		Update XMIT status flag
-	bra	@nsint
+	bra	@nsintr
+	IFNE	HVNMI
+* Increment character drop count (displayed by NMIHDL).
+@nsdrop	ldd	SBDROPC
+	incd
+	std	SBDROPC
+	bra	@nsintr
+	ENDC			HVNMI
 
 * We do not have to talk to the ACIA directly, unless SERBCNT is zero,
 * in which case we have to lower RTS#, so as to accept incoming characters.
+* This can only be called from base level!
 GETCH	pshs	x,d
-	orcc	#FFLAG		Disable FIRQ
-	tst	SERBCNT
-	bne	@sbdind		Some data is available
-	lda	#ACIRTS0
-	sta	ACIACTL		Clear RTS#
-	andcc	#^FFLAG		Enable FIRQ
-@again	sync			Go to sleep and resume on interrupt
-SYNCRA	tst	SERBCNT
-	beq	@again
+@again	tst	SERBCNT
+	bne	@sbdind		We have incoming material
+	ldb	#ACIRTS0
+	stb	ACIACTL		Assert RTS#
+	andcc	#^FFLAG		Unmask FIRQ
+	ldx	#1
+	jsr	MILLIS1		Busy waiting for one millisecond
+	bra	@again		Try again
 * Serial buffer data indication.
-@sbdind	andcc	#^FFLAG		Re-enable FIRQ
+@sbdind	orcc	#FFLAG		Mask FIRQ
+	dec	SERBCNT
+	andcc	#^FFLAG		Unmask FIRQ
 	ldx	#SERBUF
 	lda	SERBDEQ		Dequeue offset to A
 	ldb	a,x		Buffered input character to B
@@ -67,14 +94,13 @@ SYNCRA	tst	SERBCNT
 	inca
 	anda	#SERBSZ-1	Modulo arithmetic
 	sta	SERBDEQ
-	dec	SERBCNT
-	puls	d,x
+	puls	d,x		Same as it ever was
 	rts
 
 PUTCH	pshs	b
 	ldb	#ACITDRE
 @tdrdrn	bitb	ACIACTL
-	beq	@tdrdrn		Drain transmit data register
+	beq	@tdrdrn		Drain the transmit data register
 @wfxon	tst	XMITOK		Software flow control on output
 	beq	@wfxon		Wait for XON
 	sta	ACIADAT         Transmit data

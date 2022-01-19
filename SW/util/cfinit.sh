@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # This script remains not entirely comprehensive in that it does not blank the
-# target device or initialize block #1-4 at all.
+# target device or initialize block #1-5 at all.
 
 CFDEV=/dev/sdb
 
@@ -27,7 +27,7 @@ fi
 # : palfltload 110 111 THRU ;
 
 ./txt2blk -i ../examples/phrpal.4th -d $CFDEV -s 112 \
--h "\ Pablo Hugo Reda's code for palindrome numbers. May 29, 2021"
+-h '\ Pablo Hugo Reda's code for palindrome numbers. May 29, 2021'
 # : phrpalload 112 113 THRU ;
 
 ./txt2blk -i ../examples/hanoi.4th -d $CFDEV -s 120 \
@@ -35,6 +35,14 @@ fi
 # : hanload 120 127 THRU ;
 
 # [130..140[ used by the Forth2012 block word set test suite
+
+./txt2blk -i ../examples/dump.4th -d $CFDEV -s 150 \
+-h '\ ASCII dump. FLA and PEB. Jan 4, 2022'
+# : dumpload 150 154 THRU ;
+
+./txt2blk -i ../examples/rtc.4th -d $CFDEV -s 200 \
+-h '\ MC146818 RTC Support primitives. FLA. Nov 26,2021'
+# : rtcload 200 205 THRU ;
 
 ./txt2blk -i ../examples/sapin.4th -d $CFDEV -s 300 \
 -h '\ Xmas ASCII art (Michel Jean).'

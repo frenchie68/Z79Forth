@@ -145,9 +145,10 @@ CF1SRD	lda	CFSTATR
 	beq	IOERR
 	ldw	#CFSCSZ		Sector size is 512 bytes
 	ldy	#CFDATAR	The data source address
-	orcc	#FFLAG		Disable FIRQ
+	pshs	cc
+	orcc	#(FFLAG|IFLAG)	Disable maskable interrupts
 	tfm	y,x+
-	andcc	#^FFLAG		Enable FIRQ
+	puls	cc		Restore previous interrupt handling mode
 	rts
 IOERR	ldb	#17
 	jsr	ERRHDLR		No return

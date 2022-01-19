@@ -22,14 +22,6 @@ Tunable Build Time Parameters Description
 Those are defined in src/constants.asm. They are:
 
 Name	Default	Alternative	Description
-HVFIRQ	1	N/A		Enable FIRQ on ACIA RDRF (req. 2.2 schematics)
-VT100	0	NZ		Set to 1 to operate at RS232@9600.
-				This implies an Y1 CXO at 2.45760 MHz.
-				Default is 0 for USB@115200 (7.37280 MHz CXO).
-				This tunable does nothing more than select
-				an ACIA dividing factor of 64 instead of the
-				default 16.
-HVCONV	0	NZ		Include CONVERT in the default dictionary.
 CSSNTVE	0	NZ		Select 0 for a case insensitive implementation
 				or 1 for a case sensitive one. In case sensitive
 				mode, those digits encoded by a letter _must_
@@ -46,8 +38,6 @@ SSDFEAT	1	0		Setting this tunable to 1 enables the 'symbolic
 				Z79Forth are stored in the system stack, as
 				opposed to the return stack in more traditional
 				implementations.
-				Only if SSDFEAT is non-zero will SwiftForth's .'
-				primitive be available in the dictionary.
 RELFEAT	1	0		Setting this tunable to a non-zero value
 				enables the 'reliability' feature. When the
 				feature is on, an extra byte is added to
@@ -65,9 +55,13 @@ RELFEAT	1	0		Setting this tunable to a non-zero value
 				expected to change. An integrity check of the
 				monitored words can be triggered by resorting
 				to the ICHECK word.
-				Only if RELFEAT is non-zero will the MONITOR
-				and ICHECK primitives be available in the
-				dictionary.
+RTCFEAT	0	NZ		Include MC146818 RTC support. This is disabled
+				because the required hardware support is not
+				an integraL part of the Z79Forth reference
+				board. Regardless of whether or not this
+				feature is enabled, 3 extra words will be added
+				to the dictionary. They are RTC@ RTC! and TICKS
+				They can be safely ignored.
 DEBUG	0	NZ		If non-zero, extra validation code will be
 				added to the assembled .hex image. This is
 				most useful when developing but should not be
@@ -75,9 +69,15 @@ DEBUG	0	NZ		If non-zero, extra validation code will be
 				CAUTION: if SSDFEAT and RELFEAT are enabled
 				(see below), you will not be able to fit a
 				DEBUG image into an 8 KB EEPROM!
-MSLCNT	994	794, any	This is a loop count used by the MS primitive.
-				994 is appropriate for a 5 MHz system operating
-				in 6309 native mode. 794 is appropriate for a 4
+HVNMI	1	0		Include an interrupt handler for NMI#. This
+				adds 177 bytes to the EEPROM image but it is
+				extremely useful for debugging a locked up
+				system. The required hardware schmematics are
+				unpublished at the time of this writing.
+HVCONV	0	NZ		Include CONVERT in the default dictionary.
+MSLCNT	794	994, any	This is a loop count used by the MS primitive.
+				794 is appropriate for a 4 MHz system operating
+				in 6309 native mode. 994 is appropriate for a 5
 				MHz system operating in 6309 native mode. Any
 				other value might be used as a result of a
 				calibration process.

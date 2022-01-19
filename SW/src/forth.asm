@@ -7,8 +7,13 @@
 * and the sdiff utility also were on my side all the time.
 *
 * Also credited for their help: Justin Poirier (seminal HW design), Daniel
-* Tufvesson (CompactFlash interface), Peter Forth (FB alias), Paul E. Bennett
-* and Michel Jean.
+* Tufvesson (original CompactFlash interface), Peter Minuth (general Forth
+* guruness), Paul E. Bennett (ANSI compatibility advice); Michel Jean, Bill
+* Ragsdale and Pablo Hugo Reda for contributed application level code;
+* Carsten Strotmann for most of the benchmarking code (see
+* https://theultimatebenchmark.org/); Gerry Jackson and Steve R. Palmer
+* (see https://github.com/gerryjackson/forth2012-test-suite) for selected
+* bits and pieces of the Forth2012 test suite (see https://forth-standard.org/).
 *
 * This is a native Forth. Not a threaded interpretive implementation.
 * Worth noticing is the fact that the return stack does not hold return
@@ -40,6 +45,10 @@
 * Additionally, this implementation provides a few FORTH-83 words. Those
 * words are CMOVE> and RECURSE. See
 * http://forth.sourceforge.net/standard/fst83/FORTH-83.PRN
+* Floored division has been implemented on the top of the processor's native
+* symmetric operation (credits to David Frech). This results in a slight
+* performance loss but helps a lot with compatibility with FORTH-83 and ANSI
+* code.
 *
 * \ ['] [CHAR] .S ACCEPT CELLS CHAR COMPILE, INVERT KEY? NIP POSTPONE S>D S"
 * SOURCE TUCK U> * UNLOOP and WITHIN have been borrowed from the ANSI draft 6
@@ -50,7 +59,12 @@
 * yet valuable input.
 *
 * .' (dot-tick) is non-standard. It comes from SwiftForth. It will be supported
-* if symbolic stack dump has not been disabled (see SSDFEAT in constants.asm).
+* whether or not the symbolic stack dump has been configured (see SSDFEAT in
+* constants.asm). However, please note that effective symbolic references will
+* be resolved only if the feature was enabled at compilation time. Otherwise
+* a simple HEX print of the cell at the top of the data stack will be
+* performed. This is meant to support Forth source code that does not depend
+* on the feature vector (see examples/dis.4th).
 *
 * MONITOR and ICHECK are also non-standard. They are intended to maintain and
 * verify the integrity of a checksum of the code section of RAM resident
@@ -58,8 +72,19 @@
 * if subject to the MONITOR treatment will also carry a code section
 * checksum, although this is not the default behaviour. The checksum will
 * consist in an extra byte added to every word's header. MONITOR and ICHECK
-* will only be available if the reliability feature has not been disabled
-* (see RELFEAT in constants.asm).
+* will be available whether or not the reliability feature has been configured
+* (see RELFEAT in constants.asm). They will only carry effective semantics
+* if the feature was actually enabled at compilation time. This is meant to
+* support Forth source code that does not depend on the feature vector.
+*
+* Experimental MC146818 RTC support: the feature is disabled by default
+* (see RTCFEAT in constants.asm) because it relies on undocumented schematics.
+* Also, the required underlying circuitry is not intended to ever become an
+* integral part of the Z79Forth reference board itself. Some better designed
+* form of it might eventually surface in the form of an extension specification.
+* At the time of this writing this is just a proof of concept, but whether or
+* not the feature is enabled, three extra words will be added to the dictionary.
+* They are RTC@ RTC! and TICKS They can be safely ignored.
 *
 * Forth source code portability note:
 * Because Z79Forth does not use the return stack to store return addresses,
@@ -88,7 +113,7 @@
 *
 * Obligatory literary reference:
 * "The paper is very heavy going, and I should never have read it, had I not
-* written it myself." J. E. Littlewood (1885-1977).
+* written it myself." John E. Littlewood (1885-1977).
 *
 * The original soundtrack for this work is available at:
 * https://youtu.be/YqXZtGyFyDo?t=4023 (J.S. Bach BWV 1080, contrapunctus 14).
@@ -127,7 +152,7 @@ RFXT	MACRO	NOEXPAND
 	\1	\2+1
 	ELSE
 	\1	\2
-	ENDC
+	ENDC			RELFEAT
 	ENDM
 
 * Reliability feature support: variable word header contents.
@@ -136,7 +161,7 @@ RFXT	MACRO	NOEXPAND
 RFCS	MACRO	NOEXPAND
 	IFNE	RELFEAT
 	fcb	ILLOPC		Illegal opcode
-	ENDC
+	ENDC			RELFEAT
 	ENDM
 
 *******************************************************************************
@@ -172,9 +197,14 @@ USTATE	rmb	2		0 if interpreting, 1 if compiling--STATE
 UTOIN	rmb	2		User variable for >IN
 UBLK	rmb	2		User variable for BLK
 USCR	rmb	2		User variable for SCR (output for LIST)
+TIKSHI	rmb	2		RTC clock ticks updated on FIRQ
+TIKSLOW	rmb	2		RTC clock ticks updated on FIRQ
 	IFNE	DEBUG
 CCREG	rmb	2		A DEBUG variable for predicates (see CMP2)
-	ENDC
+	ENDC			DEBUG
+	IFNE	HVNMI
+SBDROPC	rmb	2		Char. drop count for serial input (see FIRQHDL)
+	ENDC			HVNMI
 BASBKUP	rmb	1		BASE backup when a base prefix is in use
 CMDLNSZ	rmb	1		Entered character count in GETS (INTERP)
 RDEPTH	rmb	1		Return stack depth in cells
@@ -190,21 +220,20 @@ CURTOKL	rmb	1		Current token length. Set by SWDIC
 IMDFLG	rmb	1		Immediate flag
 DEFFLG	rmb	1		Define flag
 NBCTFB0	rmb	1		NZ if -->/CONTINUED invoked from the console
-
+RTCAVL	rmb	1		NZ if real time clock is present
 CFCARDP	rmb	1		NZ if CF card present
 CFCMMIR	rmb	1		Last CF command issued
 CFERRCD	rmb	1		and the corresponding error code
 
 * Serial buffer parameters. Queing happens on FIRQ.
-* Dequeing occurs when GETC is invoked.
+* Dequeing occurs when GETCH is invoked.
 SERBENQ	rmb	1		Enqueue offset
 SERBDEQ	rmb	1		Dequeue offset
 SERBCNT	rmb	1		Buffer byte count
+XMITOK	rmb	1		Software flow control on output flag
 SERBUF	rmb	SERBSZ		The actual buffer
 
-XMITOK	rmb	1		Software flow control on output flag
-
-PADBUF	rmb	PADBSZ		PAD lives here. Used by <#, #, #S, #> and DUMP
+PADBUF	rmb	PADBSZ		PAD lives here. Used by <#, #, #S, #>
 
 * The normal (data) stack.
 	align	2
@@ -220,7 +249,7 @@ RSTBOT	equ	*
 CMDBUF	rmb	CMDBFSZ
 HEXBUF	rmb	HEXBFSZ
 
-TBUFF	rmb	TBUFSZ		Output for CVNSTR. Also used by DUMP
+TBUFF	rmb	TBUFSZ		Output for CVNSTR
 
 	align	16
 BUF0	rmb	BLKSIZ+4
@@ -257,7 +286,7 @@ IODZHDL	bitmd	#$40		Illegal opcode?
 	ldx	#DV0ERRM
 @iodxh2 jsr	PUTS
 	ldd	12,s		Return code address (PC)
-	ldx	#HEXBUF
+	ldy	#HEXBUF
 	jsr	HDMP4	
 	ldx	#HEXBUF
 	jsr	PUTS
@@ -274,9 +303,13 @@ SWI3HDL	equ	*
 SWI2HDL	equ	*
 IRQHDL	equ	*
 SWIHDL	equ	*
-NMIHDL	bra	*		These should never happen
+	IFEQ	HVNMI
+NMIHDL				These should never happen
+	ENDC
+	rti
 
 * Interrupts are disabled by default upon reset.
+* NMI# will not be "armed" until S is initiliazed.
 RSTHDL	ldmd	#1		Establish 6309 native mode
 
 	lda	#ACIRSET
@@ -287,7 +320,7 @@ RSTHDL	ldmd	#1		Establish 6309 native mode
 	ldx	#BOOTMSG	Identity statement
 
 * Send the NUL terminated string pointed to by X to the ACIA.
-* The RAM is not assumed to be working.
+* The RAM is not yet assumed to be working.
 INIT	ldb	#ACITDRE
 @init0	lda	,x+
 	beq	RAMCHK		NUL marks the end of the string
@@ -324,7 +357,7 @@ RAMOK	ldx	#RAMSTRT
 	sta	,x
 	ELSE
 	clr	,x
-	ENDC
+	ENDC			DEBUG
 	tfm	x+,y+
 
 * Initialize the system stack pointer and the direct page base address register.
@@ -333,23 +366,32 @@ RAMOK	ldx	#RAMSTRT
 	tfr	a,dp
 	SETDP	VARSPC/256
 
-* Serial buffer parameters initialization.
+* Serial buffer parameters initialization. We are doing this here because
+* PUTS requires prior software flow control initialization.
+	IFNE	DEBUG
 	clrd
 	std	SERBENQ		Two birds with one stone
 	sta	SERBCNT
-	inca			Initialize software flow control on output
+	IFNE	HVNMI
+	std	SBDROPC		Initialize chararacter drop count
+	ENDC			HVNMI
+	ENDC			DEBUG
+	lda	#1		Initialize software flow control on output
 	sta	XMITOK
-
-* Lower RTS and enable FIRQ. This is only necessary if GETCH never gets called,
-* for instance if block #1 does not relinquish control back to the interpreter.
-	lda	#ACIRTS0
-	sta	ACIACTL
-	andcc	#^FFLAG
 
 	ldx	#RAMOKM
 	jsr	PUTS
 	jsr	FORTHIN		Global variables initialization
 	jsr	CFINIT		CompactFlash card initialization
+	IFNE	RTCFEAT
+	jsr	RTCINIT		Real time clock initialization
+	ENDC			RTCFEAT
+
+* Lower RTS and enable FIRQ.
+	lda	#ACIRTS0
+	sta	ACIACTL
+	andcc	#^FFLAG
+
 	tst	CFCARDP
 	beq	INTERP
 
@@ -375,6 +417,8 @@ MINTLRA	bra	INTERP
 * The interpreter itself.
 _INTERP	jsr	SCNSTOK		Scan for the beginning of a word at address X
 	beq	@more0		This is the end
+	tfr	x,d		Start to token address to D
+	jsr	U2INFRD		Derive >IN from D
 	tst	USTATE+1	We do ignore the upper byte
 	bne	COMP		We are compiling
 	jsr	SWDIC		Updates TOKENEP, CURTOKL, IMDFLG/DEFFLG
@@ -396,16 +440,14 @@ MORE	tst	,x
 	tst	USTATE+1	No OK feedback if we're compiling, just CRLF
 	beq	@more2
 	leax	3,x		Skip the ' OK' string when compiling
-@more2	jsr	PUTS
-	rts			Back to whoever invoked us
+@more2	jmp	PUTS		Back to whoever invoked us
 @exec	lda	DEFFLG
 	beq	@introk		Compilation only flag is not set
 	ldb	#6		Incorrect STATE
 	jsr	ERRHDLR		No return
 INTISRA	equ	*		For symbolic stack debugging purposes
 @introk	ldd	TOKENEP
-	subd	BSBFADR
-	std	UTOIN		Derive >IN from TOKENEP
+	bsr	U2INFRD		Derive >IN from D
 	ldx	#INTRPRA	The return address
 	pshs	x
 	tfr	y,pc		An indirect call to Y
@@ -418,9 +460,8 @@ COMP	jsr	SWDIC		Updates TOKENEP, CURTOKL, IMDFLG/DEFFLG
 	beq	@cmpnum		Word @ TOKENSP is not in the dictionary
 	tst	IMDFLG
 	beq	@notimd
-	ldd	TOKENEP		Derive >IN from TOKENEP
-	subd	BSBFADR
-	std	UTOIN
+	ldd	TOKENEP
+	bsr	U2INFRD		Derive >IN from D
 	ldx	#COMPLRA	Word is immediate. Execute it.
 	pshs	x		Return to COMPLRA
 	tfr	y,pc		An indirect call to Y
@@ -461,11 +502,16 @@ CHKRTS	pshs	a
 EMXASXT	ldy     DICEND
 	bsr	CHKRTS		Check if the final RTS can be omitted
 	lda	#JSROPC		JSR extended
-	jsr	VARCON2		Compile a JSR to the action component
+	jsr	VARCON2		Compile a JSR to the execution token
 	sty	DICEND
 	rts
 
-* Store the HEX representation of the lower nibble of A to X+.
+* Derive UTOIN from D's current value. D is altered.
+U2INFRD	subd	BSBFADR
+	std	UTOIN
+	rts
+
+* Store the HEX representation of the lower nibble of A to Y+.
 HEX1D	pshs	b
 	ldb	#'0
 	anda	#$0f
@@ -473,7 +519,7 @@ HEX1D	pshs	b
 	bcs	@hex1d1
 	ldb	#'A-10
 @hex1d1	addr	b,a
-	sta	,x+
+	sta	,y+
 	puls	b
 	rts
 
@@ -483,7 +529,7 @@ ADIV16	lsra
 	lsra
 	rts
 
-* Hexdump D to 4 bytes starting at X.  Upon return, X will point 1 byte
+* Hexdump D to 4 bytes starting at Y.  Upon return, Y will point 1 byte
 * after the last character emitted. D is preserved.
 HDMP4	pshs	d
 	bsr	ADIV16
@@ -496,7 +542,7 @@ HDMP4	pshs	d
 	lda	1,s
 	bsr	HEX1D
 	puls	d
-	clr	,x
+	clr	,y
 	rts
 
 HDMP2	pshs	d
@@ -505,16 +551,130 @@ HDMP2	pshs	d
 	lda	,s
 	bsr	HEX1D
 	puls	d
-	clr	,x
+	clr	,y
 	rts
 
-* Add string pointed to by Y starting at the address stored in X.
+	IFNE	HVNMI
+* Add string pointed to by X starting at the address stored in Y.
 ADDS	pshs	a
-@adds1	lda	,y+
-	sta	,x+
+@adds1	lda	,x+
+	sta	,y+
 	bne	@adds1
 	puls	a
 	rts
+
+NMI2DM	bsr	ADDS
+	leay	-1,y		Backward over NUL
+	bra	HDMP2
+
+NMI4DM	bsr	ADDS
+	leay	-1,y		Backward over NUL
+	bra	HDMP4
+
+NMIDML	ldx	#TBUFF
+	jsr	PUTS
+	jmp	PUTCR
+
+* All registers are stacked in native mode.
+NMIHDL	lda	ACIACTL
+	pshs	a
+	lda	XMITOK
+	pshs	a
+	lda	#1
+	sta	XMITOK
+* Stack structure at this point
+* 0	saved XMITOK: 1 byte
+* 1	saved ACIA status register: 1 byte
+* 2	CC
+* 3	D
+* 5	W
+* 7	DP
+* 8	X
+* 10	Y
+* 12	U
+* 14	PC
+	jsr	PUTCR
+
+* First line: CC, D, W, DP, X, Y, U, PC, S
+	ldy	#TBUFF
+	ldx	#CCREGM
+	lda	2,s		CC in the system stack
+	bsr	NMI2DM
+
+	ldd	3,s		D in the system stack
+	bsr	NMI4DM
+
+	ldd	5,s		X in the system stack
+	bsr	NMI4DM
+
+	lda	7,s		DP in the system stack
+	bsr	NMI2DM
+
+	ldd	8,s		X in the system stack
+	bsr	NMI4DM
+
+	ldd	10,s		Y in the system stack
+	bsr	NMI4DM
+
+	ldd	12,s		U in the system stack
+	bsr	NMI4DM
+
+	ldd	14,s		PC in the system stack
+	bsr	NMI4DM
+
+	leau	16,s		S in the system stack
+	tfr	u,d
+	bsr	NMI4DM
+
+	bsr	NMIDML
+
+* Second line: ACIST, XMTOK, SBASE, SBENQ, SBDEQ, SBCNT, SBDROPC
+	ldy	#TBUFF
+	ldx	#ACISTM
+	lda	1,s		ACIA status register in the system stack
+	bsr	NMI2DM
+
+	lda	,s		XMITOK in the system stack
+	bsr	NMI2DM
+
+	ldd	#SERBUF		SERBUF address
+	bsr	NMI4DM
+
+	lda	SERBENQ		SERBENQ 8 bit offset
+	bsr	NMI2DM
+
+	lda	SERBDEQ		SERBDEQ 8 bit offset
+	bsr	NMI2DM
+
+	lda	SERBCNT
+	bsr	NMI2DM
+
+	ldd	SBDROPC		Number of bytes dropped because SERBUF was full
+	bsr	NMI4DM
+
+	bsr	NMIDML
+
+	leas	2,s		System stack cleanup
+	rti
+
+CCREGM	fcn	'CC '
+DREGM	fcn	' D '
+WREGM	fcn	' W '
+DPREGM	fcn	' DP '
+XREGM	fcn	' X '
+YREGM	fcn	' Y '
+UREGM	fcn	' U '
+PCREGM	fcn	' PC '
+SREGM	fcn	' S '
+ACISTM	fcn	'AS '
+XMTOKM	fcn	' XO '
+SBASEM	fcn	' SB '
+SBENQM	fcn	' EN '
+SBSEQM	fcn	' DE '
+SBCNTM	fcn	' CN '
+SBDRPM	fcn	' DR '
+
+	ENDC			HVNMI
 
 * Returns the length of the string pointed to by X (terminator excluded) in W.
 SLEN	pshs	x
@@ -528,23 +688,8 @@ SLEN	pshs	x
 
 	include	console.asm
 
-	IFNE	DEBUG
-PAGE0IN pshs	x		Fill up page 0 with all C7 (an illegal opcode)
-	ldx	#RAMSTRT
-	lda	#ILLOPC
-	sta	,x
-	leay	1,x
-	ldw	#255
-	tfm	x+,y+
-	puls	x
-	rts
-	ENDC
-
 FORTHIN	RFXT	jsr,NCLR+7	XT for NCLR. Set up the normal stack
 	RFXT	jsr,RCLR+7	XT for RCLR. Set up the return stack
-	IFNE	DEBUG
-	bsr	PAGE0IN
-	ENDC
 * Relocate '@' code to RAM and set it up as the last dictionary entry (RO).
 	ldx	#THEEND		Source address for tfm
 	ldw	#(REALEND-THEEND) Byte count for tfm
@@ -554,13 +699,15 @@ FORTHIN	RFXT	jsr,NCLR+7	XT for NCLR. Set up the normal stack
 	sty	DICEND
 	IFNE	RELFEAT
 	RFXT	jsr,MONITOR+10	XT for MONITOR (monitor @ in RAM)
-	ENDC
-	bsr	EMPTYB		Buffer related initializations.
+	ENDC			RELFEAT
+	bsr	EMPTYB		Buffer related initializations
+	IFNE	DEBUG
 	clrd
 	std	USTATE		Initial mode is interpretation
 	std	USCR		Clear SCR
 	std	UBLK		Clear BLK
 	std	UTOIN		Clear >IN
+	ENDC			DEBUG
 	RFXT	jmp,DECIMAL+10	XT for DECIMAL. Default base is decimal
 
 EMPTYB	ldx	#BUF0
@@ -574,7 +721,7 @@ EMPT1B	stx	MRUBUFA		Update most recently used buffer address
 	IFNE	DEBUG
 	ldd	#$C7C7
 	std	2,x		Dummy block number
-	ENDC
+	ENDC			DEBUG
 	rts
 
 * Scan for the next non-space character pointed to by X.
@@ -689,7 +836,7 @@ NUMCVT	bsr	CKBASE		No return if BASE isn't in the [2..36] range
 	cmpb	#'z-'0
 	bhi	@ncoor		Definitely out of range
 	subb	#'a-'A		To upper case
-	ENDC
+	ENDC			CSSNTVE
 @ncisuc	subb	#'A-':		A-Z to number
 @ncnolt	cmpb	UBASE+1		B has a digit. Make sure it's less than BASE
 	bhs	@ncoor
@@ -703,8 +850,7 @@ NUMCVT	bsr	CKBASE		No return if BASE isn't in the [2..36] range
 	negd			Acknowledge the negativity
 @ncdone	leas	1,s		Drop token length from the system stack
 	tfr	d,x		Return the result in X
-	bsr	RSBSPFX		Restore BASE if needed
-	rts
+	bra	RSBSPFX		Restore BASE if needed--the end
 @ncoor	leas	1,s		Drop token length from the system stack
 	ldx	TOKENSP		Current digit is out of range
 	ldb	#2		Undefined (X points to the offending word)
@@ -762,7 +908,7 @@ CHKNDPT	cmpr	d,u
 	jsr	ERRHDLR		No return
 CKDPTRA	equ	*
 
-* Paramater stack's depth checking primitves (transactional behavior support).
+* Parameter stack's depth checking primitives (transactional behavior support).
 MIN1PST	MINDREQ	1
 
 MIN2PST	MINDREQ	2
@@ -806,7 +952,7 @@ SWDIC	ldx	TOKENSP
 	subb	#'a-'A
 @nochg	cmpr	b,a
 	tfr	e,b
-	ENDC
+	ENDC			CSSNTVE
 	bne	@swrdc3
 	decb
 	bne	@swrdc2
@@ -827,7 +973,7 @@ SWDIC	ldx	TOKENSP
 	leay	3,y		Skip back pointer and checksum. Return XT
 	ELSE
 	leay	2,y		Skip back pointer. Return XT
-	ENDC
+	ENDC			RELFEAT
 	ldd	VLPRVEP
 	subr	y,d
 	std	PLOAD
@@ -854,7 +1000,7 @@ LOCWRT	pshsw
 	ldb	#10		Assertion failure (trying to write to ROM!)
 	jsr	ERRHDLR		No return
 LWAFRA	equ	*
-	ENDC
+	ENDC			DEBUG
 @locwr0	stx	BDICEND		Back pointer up
 	ldx	LSTWAD
 	stx	BLSTWAD		Back pointer up
@@ -875,7 +1021,7 @@ LWMNRA	equ	*		LOCWRT missing word name return address
 	cmpa	#1+WRLNMSK	Max word length is 31, 79-STANDARD compliant
 	blo	@lcwr21
 	ldb	#16		Word name is too long
-	jsr	ERRHDLR
+	jsr	ERRHDLR		No return
 WTOOLNG	equ	*
 @lcwr21	sta	,x+		Word length to dictionary
 	ldw	,s++		16-bit word length to W
@@ -893,15 +1039,14 @@ WTOOLNG	equ	*
 @locwr4	sta	,y+
 	decb
 	bne	@locwr3
-	ENDC
+	ENDC			CSSNTVE
 	tfr	x,d
-	subd	BSBFADR
-	std	UTOIN		Skip word name in the input stream
+	jsr	U2INFRD		Derive >IN from D
 	ldx	LSTWAD
 	stx	,y++		Back pointer to dictionary
 	IFNE	RELFEAT
 	clr	,y+		Initialize the checksum header field
-	ENDC
+	ENDC			RELFEAT
 	sty	DICEND
 	sty	RECADDR		Should we resort to recursion later on
 	pulsw
@@ -935,7 +1080,7 @@ CMP2RA	ldy	,u
 	IFNE	DEBUG
 	clra
 	std	CCREG
-	ENDC
+	ENDC			DEBUG
 	tfr	0,x
 	leau	4,u
 	tfr	b,cc
@@ -985,7 +1130,7 @@ FDCTSYM	pshs	y,x
 	ldd	,x++		Backlink to D
 	IFNE	RELFEAT
 	leax	1,x		Skip the checksum
-	ENDC
+	ENDC			RELFEAT
 	cmpr	x,y
 	blo	@fdsnwd
 	cmpr	w,y
@@ -1006,7 +1151,7 @@ FDCTSYM	pshs	y,x
 	leax	3,x		Skip backlink and checksum
 	ELSE
 	leax	2,x		Skip backlink
-	ENDC
+	ENDC			RELFEAT
 	ldd	2,s		Execution token to D
 	subr	x,d		Offset between XT and word entry point to D
 	beq	@skoffs		Skip displaying the offset if it is zero
@@ -1014,8 +1159,7 @@ FDCTSYM	pshs	y,x
 	lda	#'+
 	sta	,y+
 	puls	a		Restore the offset's MSB
-	tfr	y,x
-	jsr	HDMP4		Dump hex incarnation of the offset to X
+	jsr	HDMP4		Dump hex incarnation of the offset to Y
 @skoffs	puls	x,y
 	andcc	#^ZFLAG		Clear ZFLAG
 	rts
@@ -1095,8 +1239,6 @@ NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
 	fcn	'COMPLRA'
 	fdb	LWMNRA		Missing word name in LOCWRT
 	fcn	'LWMNRA'
-	fdb	SYNCRA		SYNC return address in GETCH
-	fcn	'SYNCRA'
 	fdb	CFR1SRA		CF read one sector failed
 	fcn	'CFR1SRA'
 	fdb	NPUSH		Not an error RA but useful to have as a symbol
@@ -1118,23 +1260,26 @@ NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
 	ENDC			SSDFEAT
 
 * Print ' (xxxx/yyyy)' where xxxx is the hex representation for BLK @ and
-* yyyy is the hex representation for >IN @.
-PRBLKIN	ldx	#HEXBUF
+* yyyy is the hex representation for >IN @. Y is preserved, X and D are not.
+PRBLKIN	pshs	y
+	ldy	#HEXBUF
 	lda	#SP
-	sta	,x+
+	sta	,y+
 	lda	#'(
-	sta	,x+
+	sta	,y+
 	ldd	UBLK
 	jsr	HDMP4
 	lda	#'/
-	sta	,x+
+	sta	,y+
 	ldd	UTOIN
 	jsr	HDMP4
 	lda	#')
-	sta	,x+
-	clr	,x
+	sta	,y+
+	clr	,y
 	ldx	#HEXBUF
-	jmp	PUTS
+	jsr	PUTS
+	puls	y
+	jmp	PUTCR
 
 * Handle error condition. Error code is in B.
 * If B is 2 (undefined) X points to a string of length CURTOKL that has the
@@ -1159,17 +1304,23 @@ ERRHD1	jsr	PUTCR		GNU Forth does this in its exception handler
 	bne	@skerrm
 	jsr	PUTS		Print error message
 	bsr	PRBLKIN		Print BLK and >IN values (in hex)
-	jsr	PUTCR
 @dmptos	tfr	y,d		Dump top of the system stack contents
-	ldx	#HEXBUF
+	IFNE	SSDFEAT
+	pshs	d
+	ENDC			SSDFEAT
+	ldy	#HEXBUF
 	jsr	HDMP4
 	lda	#SP
-	sta	,x+
+	sta	,y+
 * Symbolic stack dumps are configurable. In situations where the dictionary is
 * trashed, they may not be considered desirable. See SSDFEAT in constants.asm.
 	IFNE	SSDFEAT
+	tfr	y,x		X has the buffer pointer
+	puls	y		Restore target symbol table entry
 	jsr	FINDSYM
-	ENDC
+	ELSE
+	clr	,y		No symbolic information is to be printed
+	ENDC			SSDFEAT
 	ldx	#HEXBUF
 	jsr	PUTS
 	jsr	PUTCR
@@ -1262,7 +1413,7 @@ BKIN2PT	ldx	UBLK
 	RFXT	jsr,BLOCK+8	XT for BLOCK
 	puls	y
 	pulsw
-	UCNPOP			Retrieve buffer addr (to X)
+	UCNPOP			Retrieve buffer addr to X
 @done	stx	BSBFADR		Update base buffer address
 	ldd	UTOIN
 	leax	d,x		Add the current offset. Return the result via X
@@ -1270,6 +1421,7 @@ BKIN2PT	ldx	UBLK
 @consol	ldx	#CMDBUF
 	bra	@done
 
+	include	rtc.asm
 	include	storage.asm
 
 ******************************************************************************
@@ -1380,7 +1532,7 @@ BLOCK	fcb	5		79-STANDARD (REQ191)
 	bne	@blkctd
 	lda	#10		Assertion failed
 	jsr	ERRHDLR		No return
-	ENDC
+	ENDC			DEBUG
 @blkctd	anda	#BMAPPD		Has the block been read yet?
 	bne	@bkmapd		Yes
 	pshs	y		No. Push block number as arg0 to CF1BKRD
@@ -1461,9 +1613,65 @@ INDEX	fcb	5		79-STANDARD (REF)
 	bne	@indlop
 	rts
 
+TICKS	fcb	5		Non-standard
+	fcc	'TICKS'		( -- tickslow tickshigh )
+	fdb	INDEX
+	RFCS
+	IFNE	RTCFEAT
+	pshs	cc
+	orcc	#FFLAG		Mask FIRQ while reading the double cell
+	ldx	TIKSLOW
+	ldy	TIKSHI
+	puls	cc		Restore the previous interrupt handling mode
+	jsr	NPUSH
+	tfr	y,x
+	ELSE
+	tfr	0,x
+	jsr	NPUSH
+	ENDC			RTCFEAT
+	jmp	NPUSH
+
+RTCFTCH	fcb	4		Non-standard
+	fcc	'RTC@'		( regoff -- byteval )
+	fdb	TICKS
+	RFCS
+	IFNE	RTCFEAT
+	tst	RTCAVL
+	beq	RTNOCON
+* An MC146818 RTC is present. Let's get down to business.
+	jsr	NPOP		REGOFF to X
+	tfr	x,d
+	tfr	b,a
+	jsr	RTREGRD
+	clra			BYTEVAL to D
+	pshu	d		Unchecked NPUSH of D
+	rts
+RTNOCON	ldb	#17		RTC not detected on bootup -> I/O error
+	jsr	ERRHDLR		No return
+	ELSE
+	RFXT	jsr,DROP+7	XT for DROP
+	RFXT	jmp,ZEROL+4	XT for 0
+	ENDC			RTCFEAT
+
+RTCSTOR	fcb	4		Non-standard
+	fcc	'RTC!'		( byteval regoff -- )
+	fdb	RTCFTCH
+	RFCS
+	IFNE	RTCFEAT
+	tst	RTCAVL
+	beq	RTNOCON
+	jsr	MIN2PST		At least two cells need to be stacked up
+	lda	1,u		REGOFF to A
+	ldb	3,u		BYTEVAL to B
+	leau	4,u		Drop two cells from the data stack
+	jmp	RTREGWR
+	ELSE
+	RFXT	jmp,TWODROP+8	XT for 2 DROP
+	ENDC			RTCFEAT
+
 LIST	fcb	4		79-STANDARD (REQ109)
 	fcc	'LIST'		( ublkno -- )
-	fdb	INDEX
+	fdb	RTCSTOR
 	RFCS
 	tst	CFCARDP
 	bne	@lstpro
@@ -1565,7 +1773,7 @@ DOESEX	ldx	LSTWAD		Header of the last dictionary entry
 	leax	9,x		2 bytes/backlink, 1/cksum, 6 bytes code offset
 	ELSE
 	leax	8,x		2 bytes/backlink, 6 bytes code offset
-	ENDC
+	ENDC			RELFEAT
 	lda	,x
 	cmpa	#RTSOPC		RTS inherent
 	beq	@dosex1
@@ -1610,7 +1818,7 @@ CONS	fcb	8		79-STANDARD (REQ185)
 	RFXT	bra,MONITOR+10	XT for MONITOR
 	ELSE
 	bra	CREAT1
-	ENDC
+	ENDC			RELFEAT
 
 * Functionally: : VARIABLE CREATE 2 ALLOT ;
 * However we can save three bytes per instance with the following code.
@@ -1648,7 +1856,6 @@ RSTRCT	fcb	8		Non-standard (GNU Forth)
 	ldb	#DEFFLM
 	bra	IMMED1
 
-	IFNE	RELFEAT
 * This non-standard word enables checkum monitoring by ICHECK for the
 * last defined word in the dictionary. : words are monitored by default
 * and so are constants. CREATEd words require an explicit invokation of
@@ -1657,6 +1864,7 @@ MONITOR	fcb	7
 	fcc	'MONITOR'	( -- )
 	fdb	RSTRCT
 	RFCS
+	IFNE	RELFEAT
 	ldx	LSTWAD		Last word header address
 	lda	,x
 	ora	#MONFLM		Set the monitored flag in the attribute field
@@ -1665,8 +1873,10 @@ MONITOR	fcb	7
 	ldy	DICEND		The upper code section limit (excluded)
 	bsr	HDRCSUM		Current word's definition's checksum to A
 	sta	-1,x		Store the computed checksum into the header
+	ENDC			RELFEAT
 	rts
 
+	IFNE	RELFEAT
 * On entry, X has a word's header address. On return X has the compilation
 * address for that word (XT). A is cleared so as to initialize the checksum.
 HDRSKIP	lda	,x		Word's header attribute byte to A
@@ -1687,6 +1897,9 @@ HDRCSUM	pshs	x
 	puls	x
 	rts
 
+CSUMFLM	fcn	'integrity check failed'
+	ENDC			RELFEAT
+
 * This non-standard word walks through the dictionary linked list and checks
 * that the words that have the MONFLM flag set in their header's attribute
 * field have a definition that still matches the checksum stored in the word's
@@ -1698,6 +1911,7 @@ ICHECK	fcb	6
 	fcc	'ICHECK'	( -- )
 	fdb	MONITOR
 	RFCS
+	IFNE	RELFEAT
 	ldy	DICEND		Upper bound for the code of the last word (exc.)
 	ldx	LSTWAD		LAST points to the header of the last word
 @icklop	pshs	x		Current word's header address
@@ -1727,18 +1941,12 @@ ICHECK	fcb	6
 	ldx	-3,x		Point to the previous header via the backlink
 	beq	@ickdon		We've just reached the end of the dictionary
 	bra	@icklop
+	ENDC			RELFEAT
 @ickdon	rts
-
-CSUMFLM	fcn	'integrity check failed'
-	ENDC			RELFEAT enabled
 
 DO	fcb	$C2		79-STANDARD (REQ142)
 	fcc	'DO'
-	IFNE	RELFEAT
 	fdb	ICHECK
-	ELSE
-	fdb	RSTRCT
-	ENDC
 	RFCS
 	ldx	DICEND
 	leax	3,x
@@ -1829,7 +2037,7 @@ IFEX	jsr	NPOP
 	rts
 
 * Functionally equivalent to:
-* UNLESS ['] 0= COMPILE, POSTPONE IF ; IMMEDIATE RESTRICT
+* : UNLESS POSTPONE 0= POSTPONE IF ; IMMEDIATE RESTRICT
 UNLESS	fcb	$C6		Non-standard (Perl inspired)
 	fcc	'UNLESS'
 	fdb	IF
@@ -1912,7 +2120,7 @@ CC	fcb	2		Non-standard. Used for debugging
 	RFCS
 	ldx	CCREG
 	jmp	NPUSH
-	ENDC
+	ENDC			DEBUG
 
 XOR	fcb	3		79-STANDARD (REQ179)
 	fcc	'XOR'
@@ -1920,7 +2128,7 @@ XOR	fcb	3		79-STANDARD (REQ179)
 	fdb	CC
 	ELSE
 	fdb	SINFEQ
-	ENDC
+	ENDC			DEBUG
 	RFCS
 	jsr	MIN2PST		At least two cells need to be stacked up
 	ldd	,u
@@ -2311,8 +2519,7 @@ FIND	fcb	4		79-STANDARD (REQ203)
 	ldd	PLOAD		Retrieve word payload
 	std	FNDPLD		Make it accessible through PAYLOAD
 	ldd	TOKENEP
-	subd	BSBFADR
-	std	UTOIN		Derive >IN from TOKENEP
+	jsr	U2INFRD		Derive >IN from D
 @find1	tfr	y,x
 	jmp	NPUSH
 
@@ -2363,13 +2570,11 @@ POSTPON	fcb	$C8		ANSI (Core)
 	beq	@postp5		Target word is not immediate
 @postp4	jsr	EMXASXT		Set as action component
 	ldd	TOKENSP		Updated by SWDIC if the word was found
-	subd	BSBFADR
-	std	UTOIN
-	rts
+	jmp	U2INFRD		Derive >IN from D
 * The word being considered is non-immediate. The equivalent input should be:
 * ['] <word> COMPILE, We have the XT for <word> in X.
 @postp5	jsr	LITER
-	RFXT	ldx,#CMPCOMA+11
+	RFXT	ldx,#CMPCOMA+11	XT for COMPILE,
 	bra	@postp4
 
 * Like the 79-STANDARD COMPILE word, GNU Forth has this as a compile-only word.
@@ -2429,12 +2634,12 @@ COMPR	fcb	$C1		79-STANDARD (REQ196)
 	IFNE	DEBUG
 	lda	#ILLOPC		Illegal opcode
 	sta	,x+
-	ENDC
+	ENDC			DEBUG
 	stx	DICEND		Update HERE
 	IFNE	RELFEAT
 	RFXT	jsr,MONITOR+10	XT for MONITOR. All : words are candidates
 *				for integrity check by ICHECK.
-	ENDC
+	ENDC			RELFEAT
 	rts
 
 RECURSE	fcb	$C7		FORTH-83
@@ -2473,15 +2678,13 @@ FORGET	fcb	6		79-STANDARD (REQ196)
 	ldx	-2,x		Backlink to X
 	stx	LSTWAD		Update LAST
 	leax	-3,y		XT-3 to X (1B/attr, 2B/backlink)
-	ENDC
+	ENDC			RELFEAT
 	clra
 	ldb	CURTOKL		Token name length to D
 	subr	d,x		Substract word length
 	stx	DICEND		Update HERE
 	ldd	TOKENSP		Set by SWDIC to point to the end of the token
-	subd	BSBFADR
-	std	UTOIN		Derive >IN from TOKENSP
-	rts
+	jmp	U2INFRD		Derive >IN from D
 @frgt4	ldb	#11		Word is unforgettable
 	jsr	ERRHDLR		No return
 
@@ -2500,6 +2703,15 @@ BYE	fcb	3		Non-standard
 	fcc	'BYE'
 	fdb	EXCT
 	RFCS
+	IFNE	RTCFEAT
+	lda	#RTOREGB
+	jsr	RTREGRD		RTCB register to B
+	andb	#^RTBPIE	Disable periodic interrupt generation
+	jsr	RTREGWR
+	ldx	#40
+	jsr	MILLIS1		Wait for 40 milliseconds
+	orcc	#(FFLAG|IFLAG)	Disable maskable interrupts
+	ENDC			RTCFEAT
 	jmp	RSTHDL
 
 BKCHAR	fcb	$C6		ANSI (Core)
@@ -2523,9 +2735,7 @@ CHAR	fcb	4		ANSI (Core)
 	ldx	TOKENSP		Set by SCNSTOK
 	jsr	SCNETOK
 	tfr	x,d		TOKENEP
-	subd	BSBFADR
-	std	UTOIN		Derive >IN from TOKENEP
-	rts
+	jmp	U2INFRD		Derive >IN from D
 @chrerr	ldb	#13		Illegal argument
 	jsr	ERRHDLR
 * No return.
@@ -2560,8 +2770,7 @@ WORD	fcb	4		79-STANDARD (REQ181)
 	bra	@word2
 @word4	leax	-1,x		EOL reached
 @word5	tfr	x,d		Pointing one char after the delimiter or to NUL
-	subd	BSBFADR
-	std	UTOIN
+	jsr	U2INFRD		Derive >IN from D
 	bra	@word0
 
 LPAR	fcb	$81		79-STANDARD (REQ122)
@@ -2574,9 +2783,7 @@ LPAR	fcb	$81		79-STANDARD (REQ122)
 	cmpa	#')
 	bne	@lpar1
 	tfr	x,d		Just matched )
-	subd	BSBFADR
-	std	UTOIN		Update >IN
-	rts
+	jmp	U2INFRD		Derive >IN from D
 @lparx	ldb	#12		Missing delimiter
 	jsr	ERRHDLR		No return
 
@@ -2627,8 +2834,8 @@ PSTR	fcb	$82		79-STANDARD (REQ133)
 	RFXT	bsr,SQUOTE+5	XT for S"
 	tst	USTATE+1
 	bne	@pstcmp
-	RFXT	jmp,TYPE+7
-@pstcmp	RFXT	ldx,#TYPE+7
+	RFXT	jmp,TYPE+7	XT for TYPE
+@pstcmp	RFXT	ldx,#TYPE+7	Emit TYPE as an XT
 	jmp	EMXASXT
 
 SQUOTE	fcb	$82		ANSI (Core)
@@ -2817,7 +3024,7 @@ CONVERT	fcb	7		79-STANDARD (REQ195)
         cmpb    #'z-'0
         bhi     @cvoor		Definitely out of range
 	subb    #'a-'A          To upper case
-        ENDC
+        ENDC			CSSNTVE
 @cvisuc subb    #'A-':          A-Z to number
 @cvnolt	cmpb	UBASE+1 	B has a digit. Make sure it's less than BASE
 	bhs	@cvoor		Number under scrutiny is >= BASE
@@ -2864,7 +3071,7 @@ CONVERT	fcb	7		79-STANDARD (REQ195)
 	bra	@cvloop		Here we go again
 @cvoor	stx	,u		Update ADDR2
 	rts
-	ENDC
+	ENDC			HVCONV
 
 CVTE	fcb	2
 	fcc	'#>'
@@ -2872,7 +3079,7 @@ CVTE	fcb	2
 	fdb	CONVERT
 	ELSE
 	fdb	TWOFTCH
-	ENDC
+	ENDC			HVCONV
 	RFCS
 	jsr	NPOP
 	jsr	NPOP		Drop 2 cells from the data stack
@@ -3034,7 +3241,7 @@ DOT	fcb	1		79-STANDARD (REQ193)
 	RFCS
 	lda	#1
 	sta	CVISSGN		Force a signed number conversion
-ptop0	jsr	NPOP
+PTOP0	jsr	NPOP
 	jsr	CVNSTR
 	ldx	#TBUFF
 	lda	#SP
@@ -3049,7 +3256,7 @@ UDOT	fcb	2		79-STANDARD (REQ106)
 	fdb	DOT
 	RFCS
 	clr	CVISSGN		Conversion is unsigned
-	bra	ptop0
+	bra	PTOP0
 
 DOTR	fcb	2		79-STANDARD (REF)
 	fcc	'.R'
@@ -3635,9 +3842,9 @@ VLIST	fcb	5		Non-standard
 	leax	3,x		Word XT to X (Skip backlink and checksum)
 	ELSE
 	leax	2,x		Word XT to X (Skip backlink)
-	ENDC
+	ENDC			RELFEAT
 	tfr	x,d		CVNSTR depends on UBASE and we want HEX output
-	ldx	#TBUFF
+	ldy	#TBUFF
 	jsr	HDMP4		So we use trusted debugging code
 	ldx	#TBUFF
 	jsr	PUTS
@@ -3651,10 +3858,10 @@ VLIST	fcb	5		Non-standard
 	leay	3,y		Current word code entry address
 	ELSE
 	leay	2,y		Current word code entry address
-	ENDC
+	ENDC			RELFEAT
 	subr	y,x
 	tfr	x,d
-	ldx	#TBUFF
+	ldy	#TBUFF
 	jsr	HDMP4
 	ldx	#TBUFF
 	jsr	PUTS
@@ -3679,7 +3886,7 @@ VLIST	fcb	5		Non-standard
 	beq	@vlst51
 	lda	#'M
 @vlst51	sta	,x+
-	ENDC
+	ENDC			RELFEAT
 * Check for forgettable also. In ROM => R else W unless we just processed '@'.
 	lda	#'R
 	ldy	,s
@@ -3687,7 +3894,7 @@ VLIST	fcb	5		Non-standard
 	leay	3,y		Word entry point to Y
 	ELSE
 	leay	2,y		Word entry point to Y
-	ENDC
+	ENDC			RELFEAT
 	cmpy	#RAMFTCH	@ in RAM is unforgettable
 	beq	@vlist6
 	cmpy	#ROMSTRT	as are all ROM resident words
@@ -3757,182 +3964,31 @@ HEX	fcb	3		79-STANDARD (REF162)
 	std	UBASE
 	rts
 
-* DUMP is not optimized for speed or clarity but for code compactness and yet
-* it remains the largest dictionary entry! It resorts to builtin HEX dump
-* primitives that do not depend on the current base (HDMP4, HDMP2).
-* DUMP operates on the basis of one line of output to #TBUFF per 16 byte
-* (a block) of input. The input buffer is pointed to by D (backed up by Y)
-* and the output is pointed to by X. The output (besides the header line)
-* comprises 3 distinct areas:
-*
-* - the base block address. Aligned on a 16 byte address, followed by one #SP.
-* - the HEX dump area. Made up of 16 times 2 HEX numbers separated by #SP.
-* - the ASCII dump area. Made up of 16 characters.
-*
-* This results in the following "magical" constants:
-*
-* #TBUFF+53 points to the beginning of the ASCII dump area.
-* #TBUFF+69 points to the end of the output string (to be NUL terminated).
-*
-DUMP	fcb	4		79-STANDARD (REF123)
-	fcc	'DUMP'		( START NBYTES -- )
-	fdb	HEX
-	RFCS
-	jsr	NPOP
-	tfr	x,y		NBYTES to Y
-	jsr	NPOP
-* Input parameter validation.
-	cmpr	0,y
-	bne	@dmproc		Proceed if NBYTES in non-zero
-	rts			A zero byte count is not flagged as an error
-@dmproc	bgt	@dmpini
-	ldb	#13		Illegal argument (negative)
-	jsr	ERRHDLR		No return
-* Initialization and header processing.
-@dmpini	pshs	y		NBYTES
-	pshs	x		START
-	leas	-2,s		Allocate storage for STARTSEEN
-* Stack structure:
-* ,s	STARTSEEN		Set to 1 as soon as D is seen = to START
-*				Only the LSB is used (1,s).
-* 2,s	START			Lower bound of the area of interest (included)
-* 4,s	NBYTES			Byte count to be dumped
-	tfr	x,d		START to D
-	andb	#$F0		Align to lower 16 byte boundary
-	clr	1,s		Clear STARTSEEN until better informed
-	jsr	PUTCR		Print CR
-	ldf	#SP		Preserved across called subroutines
-	ldx	#TBUFF
-	tfr	x,v		Invariants: F has #SP, V has #TBUFF
-	pshs	d
-	jsr	_DMPHDR		D is not preserved
-	puls	d
-	clr	,x		NUL terminate the current output line
-	tfr	v,x		Point back to the beginning of the output buffer
-	jsr	PUTS		Print header
-* Main loop. Index is D. We output everything to the string pointed by X.
-* Occasional resort to #TBUFF + 53 + (B % 15) will be used.
-@dmmain	pshs	b
-	andb	#$F
-	puls	b
-	bne	@dmphx		Not a beginning of line
-	jsr	PUTCR		Print CR
-	jsr	HDMP4		4 hex digit dump of the base block address
-	stf	,x+		SPACE after the base address
-@dmphx	tfr	d,y		Save D, prepare pointer to actual data
-	bsr	_DMPINT
-	bne	@dmhx2		We are in the area of interest
-@dmspc	lda	#SP
-	sta	,x+		Nothing interesting here. Emit three spaces
-	sta	,x+
-	sta	,x+
-	bra	@dmasc		Have #SP printed to the ASCII area
-* We are within the area of interest. Perform a regular HEX 2 digit conversion.
-@dmhx2	lda	,y
-	jsr	HDMP2
-	stf	,x+
-* Decrement NBYTES, only if it is not already zero.
-	pshs	y
-	ldy	6,s		Offset plus 2 since we just pushed Y
-	beq	@dmrsty		NBYTES is nul
-	leay	-1,y		Decrement NBYTES
-	sty	6,s
-@dmrsty	puls	y
-@dmasc	cmpa	#SP
-	blo	@dmnprt		Character is not printable
-	cmpa	#$7E
-	bls	@dmasis
-@dmnprt	lda	#'.		Default character when not printable
-@dmasis	pshs	x		The ASCII image is the character itself
-	ldx	#TBUFF+53	Base address for the ASCII dump area
-	andb	#$F		Offset is B modulo 15
-	abx			Add offset to base address
-	sta	,x+
-	puls	x
-* If B is #$F, we've just processed the last byte of a block. Print #TBUFF.
-	cmpb	#$F
-	tfr	cc,e
-	bne	@dmctd
-	tfr	v,x		#TBUFF to X
-	clr	69,x
-	jsr	PUTS
-@dmctd	tfr	y,d		Restore D
-	incd
-	tfr	e,cc
-	bne	@dmmain		Proceed until end of block is reached
-	tst	5,s		NBYTES LSB
-	bne	@dmmain
-	tst	4,s		NYTES MSB
-	bne	@dmmain
-	leas	6,s		Free stack storage used by local variables
-	rts
-
-* Predicate to indicate whether or not D covers the area of interest.
-* Upon return NZ will be set iff we are pointing to the "interesting" area.
-_DMPINT	tst	3,s		STARTSEEN?
-	bne	@strsen		Yes, check for zero remaining byte count
-	cmpd	4,s		START
-	bhs	@ststrt		Set STARTSEEN once and for all
-@retwz	orcc	#ZFLAG		Set Z flag
-	rts
-* STARTSEEN is set. Check remaining byte count.
-@strsen	tst	7,s		NBYTES LSB
-	bne	@retwnz
-	tst	6,s		NBYTES MSB
-	bne	@retwnz
-	bra	@retwz		We are beyond the interesting area
-@ststrt	pshs	a
-	lda	#1
-	sta	4,s		Set STARTSEEN
-	puls	a
-@retwnz	andcc	#^ZFLAG		Clear Z flag
-	rts
-
-* Print the dump header to X.
-_DMPHDR	lda	#SP
-	sta	,x+
-	sta	,x+
-	sta	,x+
-	sta	,x+
-	clrb
-@dmhlp1	sta	,x+		Space before every 2 hex digits
-	tfr	b,a
-	jsr	HDMP2
-	lda	#SP
-	incb
-	cmpb	#$10
-	bne	@dmhlp1
-	sta	,x+		Space before the ASCII dump
-	clrb
-@dmhlp2	tfr	b,a
-	jsr	HEX1D		Offset to HEX char stored to x+
-	incb
-	cmpb	#$10
-	bne	@dmhlp2
-	rts
-
-	IFNE	SSDFEAT
 DOTTICK	fcb	2		Non-standard (SwiftForth)
 	fcb	$2E,$27		.' ( memaddr -- )
-	fdb	DUMP
+	fdb	HEX
 	RFCS
+	IFNE	SSDFEAT
 	jsr	NPOP
 	tfr	x,y
 	ldx	#HEXBUF
 	jsr	FINDSYM
+	ELSE
+	lda	#'$
+	jsr	PUTCH
+	jsr	NPOP
+	tfr	x,d
+	ldy	#HEXBUF
+	jsr	HDMP4
+	ENDC			SSDFEAT
 	ldx	#HEXBUF
 	jmp	PUTS
-	ENDC
 
 * Display a dump of the data stack in the current BASE. In Leo Brodie's
 * "Starting Forth" the data stack is printed from the bottom up. So it is here.
 DDUMP	fcb	2		ANSI (Optional "Programming tools" word set)
-	fcc	'.S'		( memaddr bcount -- )
-	IFNE	SSDFEAT
+	fcc	'.S'		( -- )
 	fdb	DOTTICK
-	ELSE
-	fdb	DUMP
-	ENDC
 	RFCS
 	ldd	#NSTBOT
 	subr	u,d
@@ -3975,15 +4031,15 @@ TUCK	fcb	4		ANSI (Core ext)
 	fcc	'TUCK'		( x1 x2 -- x2 x1 x2 ) i.e. SWAP OVER
 	fdb	QRYDUP
 	RFCS
-	RFXT	bsr,SWAP+7
-	RFXT	bra,OVER+7
+	RFXT	bsr,SWAP+7	XT for SWAP
+	RFXT	bra,OVER+7	XT for OVER
 
 NIP	fcb	3		ANSI (Core ext)
 	fcc	'NIP'		( x1 x2 -- x2 ) i.e. SWAP DROP
 	fdb	TUCK
 	RFCS
-	RFXT	bsr,SWAP+7
-	RFXT	bra,DROP+7
+	RFXT	bsr,SWAP+7	XT for SWAP
+	RFXT	bra,DROP+7	XT for DROP
 
 DUP	fcb	3		79-STANDARD (REQ205)
 	fcc	'DUP'
@@ -4094,9 +4150,9 @@ ALLOT	fcb	5		79-STANDARD (REQ154)
 	fdb	COMMA
 	RFCS
 	jsr	NPOP
-	ldy	DICEND
-	addr	x,y
-	sty	DICEND
+	ldd	DICEND
+	leax	d,x
+	stx	DICEND
 	rts
 
 FILL	fcb	4		79-STANDARD (REQ234)
@@ -4278,9 +4334,13 @@ REALEND	equ	*
 CSVT100	fcb	$1B,'[','H',$1B,'[','J',CR,NUL
 
 BOOTMSG	fcb	CR,LF
+	IFNE	RTCFEAT
+	fcc	'Z79Forth 6309/R FORTH-79 Standard Sub-set'
+	ELSE
 	fcc	'Z79Forth 6309/I FORTH-79 Standard Sub-set'
+	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20211101 Copyright Francois Laagel (2019)'
+	fcc	'20220116 Copyright Francois Laagel (2019)'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
@@ -4289,11 +4349,14 @@ CRLFSTR	fcb     CR,LF,NUL
 RAMFM	fcc	'RAM check failed'
 	fcb     CR,LF,NUL
 
+RTPRESM	fcc	'MC146818 RTC'
+	fcb	CR,LF,NUL
+
 	IFEQ	CSSNTVE
 OKFEEDB	fcc	' ok'		As per GNU Forth's implementation...
 	ELSE
 OKFEEDB	fcc	' OK'
-	ENDC
+	ENDC			CSSNTVE
 	fcb	CR,LF,NUL
 
 * Error messages for IODZHDL.
@@ -4302,7 +4365,7 @@ DV0ERRM	fcn	'Division by 0 near '
 
 ERRMTBL	fcn	'Data stack overflow'	Error 0
 	fcn	'Data stack underflow'	Error 1
-	fcn	'Undefined'		Error 2
+	fcn	'?'			Error 2
 	fcn	'User ABORT'		Error 3
 	fcn	''			Error 4 (formerly "Division by zero")
 	fcn	'Missing word name'	Error 5

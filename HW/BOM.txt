@@ -18,8 +18,9 @@ BS170		1	Q1	N channel MOSFET (Fairchild)
 				E.g. Quantek QX8 series.
 16 MHz CXO	1	Y2	DIP 8 osc. w/ 5V output. 12.9mm x 12.9mm.
 				E.g. AEL Crystals 1210 series.
+DS32kHz-N	1	Y3	Source: Mouser
 CD74HCT74E	1	U1
-CD74HCT112E	1	U2
+CD74HCT112E	1	U2	Harris semiconductor. Source: Ebay
 CD74HC14E	1	U3
 CD74HCT00E	1	U4
 SN74HCT138N	2	U5, U7
@@ -30,6 +31,8 @@ AT28C64B-15PU	1	U10	Atmel. 150 ns access time. Source: Ebay
 F84256-10LL	1	U11	Fujitsu 100 ns access time
 CD74HCT245E	1	U12
 Max232IN	1	U13
+ATF22V10C-7PX	1	U14	Atmel GAL. Source: Farnell
+MC146818P	1	U15	Source: Ebay
 
 Switches, sockets and miscellaneous:
 
@@ -45,10 +48,11 @@ N/A		1	N/A	Double Europe prototyping board. 233.4 mm x
 				160 mm (2.54 mm). 1572096 is a "TRU COMPONENTS"
 				commercial reference. Source: Conrad
 N/A		2	N/A	DIP8 wire wrap socket. Source: Ebay
-N/A		4	N/A	DIP14 wire wrap socket. Source: Ebay/Conrad
+N/A		5	N/A	DIP14 wire wrap socket. Source: Ebay/Conrad
 N/A		4	N/A	DIP16 wire wrap socket. Source: Ebay
 N/A		1	N/A	DIP20 wire wrap socket. Source: Ebay/Conrad
-N/A		1	N/A	Wide DIP24 wire wrap socket. Source: Ebay
+N/A		2	N/A	Wide DIP24 wire wrap socket. Source: Ebay
+N/A		1	N/A	DIP24 wire wrap socket. Source: Mouser
 N/A		2	N/A	Wide DIP28 wire wrap socket. Source: Ebay
 N/A		1	N/A	DIP40 wire wrap socket. Source: Ebay
 DPST-NO PB	1	SW1	6 x 6 mm.
@@ -56,6 +60,7 @@ HX-2118P	1	N/A	ATA/CF 8 bit adapter. Source: Ebay
 FT232RL		1	N/A	az-delivery.com FTDI TTL serial to USB adapter
 				(as a module)
 SDCFB-128	1	N/A	SanDisk 128 MB (or larger) CompactFlash card
+				Source: Ebay
 
 Optional:
 N/A		1	N/A	USB phone charger

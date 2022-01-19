@@ -108,7 +108,10 @@ D. is not offered in the EEPROM image. However, UD. can be easily defined as:
 --> .R 1+! 2* 2/ <> AGAIN BL BLANKS C, COM CONTINUED DUMP END FLUSH HEX
 I' INDEX INTERPRET K LAST LINE MS OCTAL PAGE SHIFT THRU U.R VLIST
 
-Note:
+Note1:
+DUMP is offered as Forth code (see examples/DUMP.4th)
+
+Note2:
 FLUSH is implemented as a straight alias to SAVE-BUFFERS (i.e. the 79-STANDARD
 way), which means that the buffers remain assigned to blocks. However, the
 ANSI semantics of FLUSH mandate that all buffers should be unassigned. If this
@@ -196,7 +199,12 @@ PAYLOAD	( -- nbytes ) This primitive output is only relevant after an invokation
 	DIS's invokation time (see SW/examples/dis.4th for a minimal
 	disassembler implementation).
 RCLR	Resets the return stack.
+RTC@	( rtcregoffset -- rtcbyteval ) Retrieves the contents of an RTC
+	register.
+RTC!	( rtcbyteval rtcregoffset -- ) Writes to an RTC register.
 S	( -- sreg ) Returns the contents of the system stack pointer (S).
+TICKS	( -- tickslow tickshigh ) Stacks up a double cell containing the
+	number of ticks since boot time. There are 64 ticks per second.
 UNLESS	Perl inspired. Functionally equivalent to:
 	: UNLESS ['] 0= COMPILE, POSTPONE IF ; IMMEDIATE RESTRICT
 
