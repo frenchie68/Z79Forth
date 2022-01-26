@@ -5,8 +5,8 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 2
 Title "Z79Forth Reference Board"
-Date "2021-10-28"
-Rev "2.2"
+Date "2022-01-26"
+Rev "2.2.1"
 Comp "Francois Laagel"
 Comment1 " "
 Comment2 ""
@@ -682,21 +682,21 @@ Text GLabel 7050 5650 0    39   Input ~ 0
 ~WR
 Text GLabel 7050 5750 0    39   Input ~ 0
 ~DEV0
-Text GLabel 7050 4750 0    50   Input ~ 0
+Text GLabel 7050 4750 0    50   BiDi ~ 0
 D0
-Text GLabel 7050 4850 0    50   Input ~ 0
+Text GLabel 7050 4850 0    50   BiDi ~ 0
 D1
-Text GLabel 7050 4950 0    50   Input ~ 0
+Text GLabel 7050 4950 0    50   BiDi ~ 0
 D2
-Text GLabel 7050 5050 0    50   Input ~ 0
+Text GLabel 7050 5050 0    50   BiDi ~ 0
 D3
-Text GLabel 7050 5150 0    50   Input ~ 0
+Text GLabel 7050 5150 0    50   BiDi ~ 0
 D4
-Text GLabel 7050 5250 0    50   Input ~ 0
+Text GLabel 7050 5250 0    50   BiDi ~ 0
 D5
-Text GLabel 7050 5350 0    50   Input ~ 0
+Text GLabel 7050 5350 0    50   BiDi ~ 0
 D6
-Text GLabel 7050 5450 0    50   Input ~ 0
+Text GLabel 7050 5450 0    50   BiDi ~ 0
 D7
 Wire Wire Line
 	8050 5450 9050 5450
@@ -866,7 +866,7 @@ L Z79Forth:R_Network05 RN2
 U 1 1 6141A713
 P 4600 1550
 F 0 "RN2" H 4888 1596 50  0000 L CNN
-F 1 "10K x 5" H 4888 1505 50  0000 L CNN
+F 1 "1K x 5" H 4888 1505 50  0000 L CNN
 F 2 "Resistor_THT:R_Array_SIP6" V 4975 1550 50  0001 C CNN
 F 3 "http://www.vishay.com/docs/31509/csc.pdf" H 4600 1550 50  0001 C CNN
 	1    4600 1550
@@ -1379,10 +1379,10 @@ Wire Wire Line
 Wire Wire Line
 	4250 6850 3700 6850
 $Comp
-L Device:R R5
+L Device:R R3
 U 1 1 61882744
 P 4250 6700
-F 0 "R5" V 4150 6700 50  0000 C CNN
+F 0 "R3" V 4150 6700 50  0000 C CNN
 F 1 "10K" V 4250 6700 50  0000 C CNN
 F 2 "" V 4180 6700 50  0001 C CNN
 F 3 "~" H 4250 6700 50  0001 C CNN

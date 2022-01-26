@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name Z79Forth)(type Legacy)(uri ${KIPRJMOD}/Z79Forth.lib)(options "")(descr ""))
+  (lib (name Max232)(type Legacy)(uri /home/mit/kicad/projects/Max232/Max232.lib)(options "")(descr ""))
+)

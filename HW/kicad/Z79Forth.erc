@@ -1,0 +1,13 @@
+ERC report (Wed 26 Jan 2022 01:19:48 PM CET, Encoding UTF8 )
+
+***** Sheet /
+
+***** Sheet /Sheet615D6455/
+ErrType(3): Pin connected to other pins, but not driven by any pin
+    @(34,29 mm, 146,05 mm): Pin 3 (Input) of component U9 is not driven (Net 58).
+ErrType(3): Pin connected to other pins, but not driven by any pin
+    @(73,66 mm, 160,02 mm): Pin 2 (Input) of component JP5 is not driven (Net 136).
+ErrType(3): Pin connected to other pins, but not driven by any pin
+    @(57,15 mm, 144,78 mm): Pin 2 (Input) of component U9 is not driven (Net 137).
+
+ ** ERC messages: 3  Errors 0  Warnings 3
