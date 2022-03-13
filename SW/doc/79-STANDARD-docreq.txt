@@ -41,7 +41,7 @@ cells). The upper limit is only constrained by the SRAM size.
 ---------------
 The return stack size is configurable through the RSTKSZ tunable parameter
 (defined in constants.asm) and expressed in bytes. It defaults to 128
-(64 cells). The RPICKN implementation contraints it to be no higher than 254
+(64 cells). The ARPICKN implementation contraints it to be no higher than 254
 bytes. This puts an upper limit on the number of screens that can be chained
 through LOAD. For every chained screen, two cells will be stacked up on the
 return stack.

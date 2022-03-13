@@ -95,10 +95,13 @@ N/A
 ---------------------
 2CONSTANT 2ROT 2VARIABLE D- D. D.R D= DMAX DMIN DU<
 
-Note:
+Note 1:
 D. is not offered in the EEPROM image. However, UD. can be easily defined as:
 
 	: UD. <# #S #> TYPE ;
+
+Note 2:
+A working definition for 2CONSTANT can be found in testsuite/doubletest.4th.
 
 3 Reference Word Set
 --------------------
@@ -109,7 +112,7 @@ D. is not offered in the EEPROM image. However, UD. can be easily defined as:
 I' INDEX INTERPRET K LAST LINE MS OCTAL PAGE SHIFT THRU U.R VLIST
 
 Note1:
-DUMP is offered as Forth code (see examples/DUMP.4th)
+DUMP is offered as Forth source code (see examples/DUMP.4th)
 
 Note2:
 FLUSH is implemented as a straight alias to SAVE-BUFFERS (i.e. the 79-STANDARD
@@ -161,9 +164,6 @@ RESTRICT makes the latest defined word usable in compilation mode only.
 .' ( addr -- ) Common usage
 Displays the name of the nearest definition before addr, and the offset
 of addr from the beginning of that definition. “dot-tick”
-
-This word will only be available if the symbolic stack dump feature has not
-been disabled at compilation time (see SSDFEAT in constants.asm).
 
 8 Additional (non-standard) Words
 ---------------------------------
@@ -220,6 +220,18 @@ $	for hexadecimal.
 @	for octal.
 %	for binary.
 
-Attention should be paid to the fact that, due to physical implementation
-constraints, CONVERT does not honor that convention.
+Additionally the . (dot) character might be used as a suffix to a numeric
+literal, so as to indicate that a double is meant. This conforms to the
+double-number extension specification of the ANSI standard.
+
+Attention should be paid to the fact that, CONVERT itself does not honor that
+convention and that, conforming to the 79-STANDARD specification, an unsigned
+double cell will be returned, i.e. no prefix or suffix will be accepted.
+
+For all intents and purposes, CONVERT should not be called directly at the
+application level. However, it is essential to the implementation of the
+string to number conversion. A consequence of this is that every string to
+number conversion, be it interpreted or compiled, will require at least three
+cells to be available on the data stack.
+
 

@@ -7,8 +7,8 @@ RELFEAT	set	1		Set to 1 to enable the reliability feature
 *				longer fit a DEBUG image into an 8 KB EEPROM
 RTCFEAT	equ	0		Cool but the reliability feature must go...
 DEBUG	equ	0		Enforce assertions and miscellaneous checks
-HVNMI	equ	1		NMI handler support (async input debugging)
-HVCONV	equ	0		Include CONVERT in the default dictionary
+HVNMI	equ	1		NMI handler support
+HVNMI2	equ	0		NMI handler support (async input debugging)
 * Loop count for MS. This is busy waiting, so we depend on the CPU clock speed.
 MSLCNT	equ	794		at 4 MHz native mode
 *MSLCNT	equ	994		at 5 MHz native mode

@@ -567,16 +567,16 @@ T{ 3 GI4 -> 3 4 5 6 }T
 T{ 5 GI4 -> 5 6 }T
 T{ 6 GI4 -> 6 7 }T
 
-\ Amazingly, this compiles under Z79Forth, but it produces
-\ an illegal instruction opcde trap. Multiple WHILE clauses
-\ are definitely not supported!
-\ T{ : GI5 BEGIN DUP 2 > WHILE DUP 5 <
-\     WHILE DUP 1+ REPEAT 123 ELSE 345 THEN ; -> }T
-\ T{ 1 GI5 -> 1 345 }T
-\ T{ 2 GI5 -> 2 345 }T
-\ T{ 3 GI5 -> 3 4 5 123 }T
-\ T{ 4 GI5 -> 4 5 123 }T
-\ T{ 5 GI5 -> 5 123 }T
+\ Starting from version 20220222, this test case now works OK.
+\ Multiple WHILE clauses now are supported! ANS compliance
+\ thanks to the maintainers of forth-standard.org!
+T{ : GI5 BEGIN DUP 2 > WHILE DUP 5 <
+    WHILE DUP 1+ REPEAT 123 ELSE 345 THEN ; -> }T
+T{ 1 GI5 -> 1 345 }T
+T{ 2 GI5 -> 2 345 }T
+T{ 3 GI5 -> 3 4 5 123 }T
+T{ 4 GI5 -> 4 5 123 }T
+T{ 5 GI5 -> 5 123 }T
 
 T{
 : GI6 ( N -- 0,1,..N ) DUP IF DUP >R 1- RECURSE R> THEN ; -> }T

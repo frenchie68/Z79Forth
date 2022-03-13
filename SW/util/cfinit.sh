@@ -54,9 +54,12 @@ fi
 -h "\ Z79Forth test suite. Based on Gerry Jackson's Forth2012."
 ./txt2blk -i ../testsuite/blocktest.4th -d $CFDEV -s 466 \
 -h "\ Z79Forth test suite. Based on Steve R. Palmer's Forth2012."
+./txt2blk -i ../testsuite/doubletest.4th -d $CFDEV -s 505 \
+-h "\ Z79Forth test suite. Based on Hayes/Jackson's Forth2012."
 
 # : f12testload 400 404 THRU  \ Test infrastructure setup
 #   405 465 THRU              \ Core word set test
 #   466 504 THRU              \ Block word set test
+#   505 538 THRU              \ Double word set test
 # ;
 

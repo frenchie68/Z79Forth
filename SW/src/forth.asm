@@ -215,6 +215,7 @@ F83DIVF	rmb	1		FORTH-83 adjusment flag for floored division
 STSLFCN	rmb	1		Flag used by */, */MOD
 CVTFCN	rmb	1		CVT: 0 => # semantics, 1 => #S semantics
 ISNEGF	rmb	1		Number being scanned is negative
+ISDBLF	rmb	1		Number being scanned is a double
 CVISSGN	rmb	1		Flag: should CVNSTR consider numbers as signed
 CURTOKL	rmb	1		Current token length. Set by SWDIC
 IMDFLG	rmb	1		Immediate flag
@@ -417,7 +418,7 @@ MINTLRA	bra	INTERP
 * The interpreter itself.
 _INTERP	jsr	SCNSTOK		Scan for the beginning of a word at address X
 	beq	@more0		This is the end
-	tfr	x,d		Start to token address to D
+	tfr	x,d		Starting token address to D
 	jsr	U2INFRD		Derive >IN from D
 	tst	USTATE+1	We do ignore the upper byte
 	bne	COMP		We are compiling
@@ -425,7 +426,6 @@ _INTERP	jsr	SCNSTOK		Scan for the beginning of a word at address X
 	bne	@exec		Word found, execute it
 	jsr	NUMCVT
 NMCVIRA	equ	*
-	jsr	NPUSH
 	ldx	TOKENEP
 MORE	tst	,x
 	bne	_INTERP		Next token, please!
@@ -474,7 +474,18 @@ COMPLRA	jsr	BKIN2PT		Derive input stream pointer from BLK, >IN
 	bra	MORE
 @cmpnum	jsr	NUMCVT
 NMCVCRA	equ	*
+	tst	ISDBLF
+	bne	@cmpdbl
+	UCNPOP			TOS to X
 	jsr	LITER
+	bra	@cmpdon
+* The following is some sort of half baked 2LITERAL.
+* Please note that NUMCVT guarantees us that at least two cells are stacked up.
+@cmpdbl	ldx	2,u
+	jsr	LITER		LSC
+	ldx	,u
+	jsr	LITER		MSC
+	leau	4,u		2DROP
 	bra	@cmpdon
 
 * Check whether the final RTS can be eliminated. It can only be if we have no
@@ -628,6 +639,7 @@ NMIHDL	lda	ACIACTL
 
 	bsr	NMIDML
 
+	IFNE	HVNMI2
 * Second line: ACIST, XMTOK, SBASE, SBENQ, SBDEQ, SBCNT, SBDROPC
 	ldy	#TBUFF
 	ldx	#ACISTM
@@ -653,6 +665,7 @@ NMIHDL	lda	ACIACTL
 	bsr	NMI4DM
 
 	bsr	NMIDML
+	ENDC			HVNMI2
 
 	leas	2,s		System stack cleanup
 	rti
@@ -666,6 +679,7 @@ YREGM	fcn	' Y '
 UREGM	fcn	' U '
 PCREGM	fcn	' PC '
 SREGM	fcn	' S '
+	IFNE	HVNMI2
 ACISTM	fcn	'AS '
 XMTOKM	fcn	' XO '
 SBASEM	fcn	' SB '
@@ -673,6 +687,7 @@ SBENQM	fcn	' EN '
 SBSEQM	fcn	' DE '
 SBCNTM	fcn	' CN '
 SBDRPM	fcn	' DR '
+	ENDC			HVNMI2
 
 	ENDC			HVNMI
 
@@ -776,10 +791,6 @@ CKNBPFX	ldb	,x		B has a potential base prefix character
 	sta	UBASE+1		Update BASE
 	puls	x
 	leax	1,x		Skip the prefix from the input stream
-* The following is not especially pretty since we are altering system
-* stack contents owned by the caller. Yet it remains conducive to more
-* compact code. With only a few bytes of EEPROM left, I think this is legit.
-	dec	2,s		Decrement the stacked up flavour of CURTOKL
 	rts
 
 * Restore BASE if a numeric literal BASE prefix was detected.
@@ -805,13 +816,11 @@ CKBASRA	equ	*
 * after a dictionary lookup (SWDIC), so TOKENSP and CURTOKL are guaranteed
 * to have been set previously. There are two ways out this routine:
 * - redirection to the error handler (Undefined word), or
-* - a converted cell returned through X.
-* This a re-implementation based on CONVERT but unlike CONVERT, which produces
-* an unsigned double as its output, this produces a signed single cell.
+* - a converted cell or double cell returned through the data stack.
+*   Upon return, ISDBLF being NZ will indicate a double.
 NUMCVT	bsr	CKBASE		No return if BASE isn't in the [2..36] range
-	lda	CURTOKL		Character count to go through
-	pshs	a
 	clr	ISNEGF		Assume the result is positive
+	clr	ISDBLF		Assume the result is not a double number
 	ldx	TOKENSP
 	bsr	CKNBPFX		Check for numeric literal BASE prefix
 * Check for optional minus sign.
@@ -820,39 +829,37 @@ NUMCVT	bsr	CKBASE		No return if BASE isn't in the [2..36] range
 	bne	@ncini
 	inc	ISNEGF		Remember to negate the result before returning
 	leax	1,x		Skip the negativity!
-	dec	,s		Decrement token length
-@ncini	clrd			Initialize the result
-@ncnxt	muld	UBASE		D multipled by BASE to Q (D:W)
-	ldb	,x+		Acquire next input char (ignore the product MSC)
-	subb	#'0
-	blo	@ncoor		Digit out of range
-	cmpb	#10
-	blo	@ncnolt		No letter in potential BASE
-	IFEQ	CSSNTVE
-	cmpb	#'A-'0
-	blo	@ncoor		Greater than 9 but lower than A
-	cmpb	#'a-'0
-	blo	@ncisuc		Upper case already
-	cmpb	#'z-'0
-	bhi	@ncoor		Definitely out of range
-	subb	#'a-'A		To upper case
-	ENDC			CSSNTVE
-@ncisuc	subb	#'A-':		A-Z to number
-@ncnolt	cmpb	UBASE+1		B has a digit. Make sure it's less than BASE
-	bhs	@ncoor
-* Digit in B has been validated wrt. BASE.
-	clra
-	addr	w,d
-	dec	,s		Are we done yet?
-	bne	@ncnxt		No. Iterate over to the next digit
+@ncini	tfr	x,y		Backup input stream pointer
+	tfr	0,x		Initialize the result
+	jsr	NPUSH		LSC
+	jsr	NPUSH		MSC
+	tfr	y,x		Restore the input stream pointer
+	leax	-1,x
+	jsr	NPUSH		Base scanning address minus 1
+	RFXT	jsr,CONVERT+10
+* Upon return TOS C@ should be BL, NUL or . Anything else indicates an error.
+* In any case, at this point, at least three cells are on the data stack.
+	UCNPOP			Address of the last non convertible char to X
+	lda	,x
+	beq	@ncadj		NUL is acceptable
+	cmpa	#SP
+	beq	@ncadj		So is BL
+	cmpa	#'.		Was a double number meant?
+	bne	@ncnogo		No, we do not have a winner...
+	inc	ISDBLF
+* If Z is not set at this point, we are dealing with a double number.
+@ncadj	bne	@ncdadj	
+	UCNPOP			Drop the MSC
 	tst	ISNEGF		Are we dealing with a negative number?
-	beq	@ncdone		No
-	negd			Acknowledge the negativity
-@ncdone	leas	1,s		Drop token length from the system stack
-	tfr	d,x		Return the result in X
+	beq	RSBSPFX		No. Restore BASE if needed--the end
+	RFXT	jsr,NEGATE+9	Acknowledge the negativity
 	bra	RSBSPFX		Restore BASE if needed--the end
-@ncoor	leas	1,s		Drop token length from the system stack
-	ldx	TOKENSP		Current digit is out of range
+@ncdadj	tst	ISNEGF		Are we dealing with a negative number?
+	beq	RSBSPFX		No. Restore BASE if needed--the end
+	RFXT	jsr,DNEG+10	Acknowledge the negativity
+	bra	RSBSPFX		Restore BASE if needed--the end
+@ncnogo	leau	4,u		Drop two cells from the data stack
+	ldx	TOKENSP		Beginning address of the current token
 	ldb	#2		Undefined (X points to the offending word)
 	jsr	ERRHDLR		No return
 NUMCVRA	equ	*		For symbolic stack dump purposes
@@ -1237,6 +1244,8 @@ NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
 	fcn	'INTRPRA'
 	fdb	COMPLRA		Compiler RA (after the execution of an IMD word)
 	fcn	'COMPLRA'
+	fdb	EMXASXT		Emit "JSR <X>" where X has an execution token
+	fcn	'EMXASXT'
 	fdb	LWMNRA		Missing word name in LOCWRT
 	fcn	'LWMNRA'
 	fdb	CFR1SRA		CF read one sector failed
@@ -1513,7 +1522,7 @@ BUFFER	fcb	6		79-STANDARD (REQ130)
 @bselct	pshs	y		Backup the target block number
 	jsr	WBIFDRT		Write back if dirty. X and D are preserved
 	lda	#BINUSE
-	sta	BOFLAGS,x	Update the buffers 'flags' field
+	sta	BOFLAGS,x	Update the buffer's 'flags' field
 	puls	y		Restore the target block number
 	sty	BOBLKNO,x	and update the 'blknum' field as well
 	bra	@retba
@@ -1541,7 +1550,7 @@ BLOCK	fcb	5		79-STANDARD (REQ191)
 * 2,s has the buffer base address.
 	jsr	CF1BKRD
 	leas	2,s		Drop one cell from the system stack
-* Update the buffer flags field.
+* Update the buffer's flags field.
 	ldx	,s		Base buffer address
 	leax	BOFLAGS,x	Buffer 'flags' field address to X
 	lda	,x		Read buffer 'flags' field
@@ -1742,7 +1751,7 @@ CREATE	fcb	6		79-STANDARD (REQ239)
 	fcc	'CREATE'
 	fdb	DEPTH
 	RFCS
-CREAT0	jsr	LOCWRT		Code entry point returned to Y
+	jsr	LOCWRT		Code entry point returned to Y
 	lda	#LDXOPC		LDX immediate
 	sta	,y+
 	tfr	y,x
@@ -1948,25 +1957,21 @@ DO	fcb	$C2		79-STANDARD (REQ142)
 	fcc	'DO'
 	fdb	ICHECK
 	RFCS
-	ldx	DICEND
-	leax	3,x
-	jsr	RPUSH
 	ldx	#DOEX
-	jmp	EMXASXT		Set as action component
+	jsr	EMXASXT		Compile "JSR DOEX"
+	tfr	y,x
+	jmp	RPUSH		HERE to the control flow stack
 
 DOEX	RFXT	jsr,SWAP+7	XT for SWAP
-	RFXT	jsr,TOR+5	XT for >R
-	RFXT	jmp,TOR+5	XT for >R
+	RFXT	jsr,TOR+5	XT for >R (limit)
+	RFXT	jmp,TOR+5	XT for >R (index)
 
 LOOP	fcb	$C4		79-STANDARD (REQ124)
 	fcc	'LOOP'
 	fdb	DO
 	RFCS
 	ldx	#LOOPEX
-LOOP1	ldy	DICEND
-	lda	#JSROPC		JSR extended
-	jsr	CHKRTS		Check if the final RTS can be omitted
-	jsr	VARCON2
+LOOP1	jsr	EMXASXT
 	ldx	#BCSOPC		Compile "BCS *+5"
 	stx	,y++
 	jsr	RPOP
@@ -2017,19 +2022,17 @@ IF	fcb	$C2		79-STANDARD (REQ210)
 	fcc	'IF'
 	fdb	UNLOOP
 	RFCS
-	ldy	DICEND
 	ldx	#IFEX
-	lda	#JSROPC		JSR extended
-	jsr	CHKRTS		Check if the final RTS can be omitted
-	jsr	VARCON2
-	ldx	#BNEOPC		Compile "BNE *+5"
-	stx	,y++
+	jsr	EMXASXT		Compile "JSR IFEX"
+	ldx	#BNEOPC
+	stx	,y++		Compile "BNE *+5"
 	lda	#JMPOPC		JMP extended
-	sta	,y+
+	sta	,y+		C,
 	tfr	y,x
-	jsr	RPUSH
-	leay	2,y		Reserve 2 bytes for the jump address
-	sty	DICEND
+	jsr	RPUSH		HERE to the control stack (ANS:orig)
+* This cell contents is a forward reference that will be resolved by ELSE/THEN.
+	leay	2,y
+	sty	DICEND		2 ALLOT
 	rts
 
 IFEX	jsr	NPOP
@@ -2043,7 +2046,7 @@ UNLESS	fcb	$C6		Non-standard (Perl inspired)
 	fdb	IF
 	RFCS
 	RFXT	ldx,#NULP+5	XT for 0=
-	jsr	CMPCOM1
+	jsr	EMXASXT
 	RFXT	bra,IF+5	XT for IF
 
 ELSE	fcb	$C4		79-STANDARD (REQ167)
@@ -2330,15 +2333,15 @@ BEGIN	fcb	$C5		79-STANDARD (REQ147)
 	fcc	'BEGIN'
 	fdb	NEGATE
 	RFCS
-	ldx	DICEND
-	jmp	RPUSH
+	ldx	DICEND		HERE is ANS:dest
+	jmp	RPUSH		to the control flow stack
 
 AGAIN	fcb	$C5		79-STANDARD (REF114)
 	fcc	'AGAIN'
 	fdb	BEGIN
 	RFCS
 	jsr	RPOP
-	tfr	x,y
+	tfr	x,y		ANS:dest from the control flow stack to Y
 	ldx	DICEND
 	lda	#JMPOPC		JMP extended
 	sta	,x+
@@ -2395,20 +2398,31 @@ WHILE	fcb	$C5		79-STANDARD (REQ149)
 	fcc	'WHILE'
 	fdb	END
 	RFCS
-	RFXT	jmp,IF+5	XT for IF
+	ldx	#IFEX
+	jsr	EMXASXT		Compile "JSR IFEX"
+	ldd	#BNEOPC
+	std	,y++		Compile "BNE *+5"
+	lda	#JMPOPC		JMP extended
+	sta	,y+
+	jsr	RPOP		ANS:dest to X, Y has HERE (ANS:orig)
+	exg	y,x
+	jsr	RPUSH		ANS:orig to the return stack
+	exg	y,x
+	jsr	RPUSH		ANS:dest to the return stack
+	leay	2,y		2 ALLOT
+	sty	DICEND
+	rts
 
 REPEAT	fcb	$C6		79-STANDARD (REQ120)
 	fcc	'REPEAT'
 	fdb	WHILE
 	RFCS
-	jsr	RPOP
-	pshs	x
-	jsr	RPOP
+	jsr	RPOP		ANS:dest to X
 	ldy	DICEND
 	lda	#JMPOPC		JMP extended
 	jsr	VARCON2
-	puls	x
-	sty	,x
+	jsr	RPOP		ANS:orig
+	sty	,x		Resolve ANS:orig to HERE
 	sty	DICEND
 	rts
 
@@ -2439,16 +2453,19 @@ INDI	fcb	$41		79-STANDARD (REQ136)
 	fcc	'I'
 	fdb	LEAVE
 	RFCS
-	ldb	#1		1 means top of the stack
-RPICKN	lda	RDEPTH
-	cmpr	b,a
-	bcs	@rpick1
+	clrb
+* This is called ARPICKN because the argument in B on entry is expected
+* to be zero to refer to the top of the return stack. This is some sort
+* of F83/ANSI behaviour that one would not expect in a 79-STANDARD.
+* It makes the code slightly more compact.
+ARPICKN	lda	RDEPTH
+	cmpr	a,b
+	bhs	@rpick1
 	ldx	RSP
-	decb			Minus 1, unlike in the Z80 implementation
-	lslb			Times 2
-	abx
-	ldx	,x
-	jmp	NPUSH
+	clra
+	lsld			Times 2
+	ldx	d,x
+	jmp	NPUSH		We cannot use UCNPUSH here
 @rpick1	ldb	#8		Return stack underflow
 	jsr	ERRHDLR		No return
 
@@ -2462,29 +2479,29 @@ INDIP	fcb	$42		79-STANDARD (REF)
 	fdb	$4927
 	fdb	RFETCH
 	RFCS
-	ldb	#2
-	bra	RPICKN
+	ldb	#1
+	bra	ARPICKN
 
 INDJ	fcb	$41		79-STANDARD (REQ225)
 	fcc	'J'
 	fdb	INDIP
 	RFCS
-	ldb	#3
-	bra	RPICKN
+	ldb	#2
+	bra	ARPICKN
 
 INDJP	fcb	$42		Non-standard
 	fdb	$4A27
 	fdb	INDJ
 	RFCS
-	ldb	#4
-	bra	RPICKN
+	ldb	#3
+	bra	ARPICKN
 
 INDK	fcb	$41		79-STANDARD (REF)
 	fcc	'K'
 	fdb	INDJP
 	RFCS
-	ldb	#5
-	bra	RPICKN
+	ldb	#4
+	bra	ARPICKN
 
 QUIT	fcb	4		79-STANDARD (REQ211)
 	fcc	'QUIT'
@@ -2584,7 +2601,7 @@ CMPCOMA	fcb	$48		ANSI (Core Ext)
 	fdb	POSTPON
 	RFCS
 	jsr	NPOP		Execution token to X
-CMPCOM1	jmp	EMXASXT
+	jmp	EMXASXT
 
 * As per the standard, : is not immediate. This allows for further interesting
 * developments, like tracing words execution...
@@ -2699,7 +2716,7 @@ EXCT	fcb	7		79-STANDARD (REQ163)
 @exct1	ldb	#13		Illegal argument
 	jsr	ERRHDLR		No return
 
-BYE	fcb	3		Non-standard
+BYE	fcb	3		ANSI (Programming tools)
 	fcc	'BYE'
 	fdb	EXCT
 	RFCS
@@ -2881,18 +2898,16 @@ SQUOTE	fcb	$82		ANSI (Core)
 * aside, it also allows us to access the data stack as directly indexed
 * through the 6309 U register, resulting in better performance.
 DPLUS	fcb	2		79-STANDARD (REQ241)
-	fcc	'D+'		( d2 d1 -- d1+d2--signed )
-	fdb	SQUOTE		Initially ( L2 H2 L1 H1)
+	fcc	'D+'		( d1 d2 -- d1+d2--signed )
+	fdb	SQUOTE		In processor's terms U has ( L1 H1 L2 H2)
 	RFCS
 	jsr	MIN4PST		Make sure we have at least 4 cells stacked up
 * At this point sufficient stack depth has been assessed. Let's rock and roll!
-@stkok	RFXT	jsr,ROT+6	XT for ROT ( L2 L1 H1 H2 )
-	ldd	4,u		L1
-	addd	6,u		L2
+	ldd	6,u		L1
+	addd	2,u		L2
 	std	6,u		d1+d2 least significant cell
-	ldd	2,u		H1
-	adcd	#0		Carry from least significant cell addition
-	addd	,u		H2
+	ldd	4,u		H1
+	adcd	,u		H2 (add with carry bit)
 	std	4,u		d1+d2 most significant cell
 	leau	4,u		Drop 2 cells from the data stack
 	rts
@@ -2911,30 +2926,55 @@ DNEG	fcb	7		79-STANDARD (REQ245)
 	stq	,u		Store the result back to the data stack
 	rts
 
+DMINUS	fcb	2		79-STANDARD (REQ241)
+	fcc	'D-'		( d1 d2 -- d1-d2--signed )
+	fdb	DNEG		In processor's terms U has ( L1 H1 L2 H2)
+	RFCS
+	jsr	MIN4PST		Make sure we have at least 4 cells stacked up
+	ldd	6,u		L1
+	subd	2,u		L2
+	std	6,u		d1-d2 least significant cell
+	ldd	4,u		H1
+	sbcd	,u		H2 (substract with borrow)
+	std	4,u		d1-d2 most significant cell
+	leau	4,u
+	rts
+
 DZEQ	fcb	3		79-STANDARD (double number extension)
 	fcc	'D0='		( d -- flag )
-	fdb	DNEG
+	fdb	DMINUS
 	RFCS
 	RFXT	jsr,OR+5	XT for OR
 	RFXT	jmp,NULP+5	XT for 0=
 
-* In essence:
-* : D< DNEGATE D+ NIP [ HEX ] 8000 AND IF 1 ELSE 0 THEN ;
+* GNU Forth has:
+* f = FLAG(d1.hi==d2.hi ? d1.lo<d2.lo : d1.hi<d2.hi);
+* Comparisons between high cells are signed, but they are unsigned between
+* the low cells.
 DLESS	fcb	2		79-STANDARD (REQ244)
 	fcc	'D<'		( d1 d2 -- flag )
 	fdb	DZEQ
 	RFCS
-	RFXT	bsr,DNEG+10	XT for DNEGATE
-	RFXT	bsr,DPLUS+5	XT for D+
-	clra
-	sta	2,u
-	ldb	,u
-	blt	@setto1
-@setrv	sta	3,u
-	leau	2,u
+	jsr	MIN4PST
+* Data stack structure at this point:
+* ,u	d2.hi			1 cell
+* 2,u	d2.lo			1 cell
+* 4,u	d1.hi			1 cell
+* 6,u	d1.lo			1 cell
+	clrf			A priori return value for FLAG
+	ldd	,u		D2.HI
+	cmpd	4,u		D1.HI
+	bne	@term2
+	ldd	2,u		D2.LO
+	cmpd	6,u		D1.LO
+	bls	@done
+@setto1	incf
+@done	stf	7,u		FLAG's LSB
+	clr	6,u		FLAG's MSB
+	leau	6,u		Drop three cells fron the data stack
 	rts
-@setto1	inca
-	bra	@setrv
+@term2	ble	@done
+	bra	@setto1
 
 TWOOVER	fcb	5		79-STANDARD (double number extension)
 	fcc	'2OVER'		( d1 d2 -- d1 d2 d1 )
@@ -2999,7 +3039,6 @@ TWOFTCH	fcb	2		79-STANDARD (double number extension)
 	tfr	d,x		Most significant cell goes through standard push
 	jmp	NPUSH
 
-	IFNE	HVCONV
 CONVERT	fcb	7		79-STANDARD (REQ195)
 	fcc	'CONVERT'	( d1 addr1 -- d2 addr2 )
 	fdb	TWOFTCH
@@ -3071,15 +3110,10 @@ CONVERT	fcb	7		79-STANDARD (REQ195)
 	bra	@cvloop		Here we go again
 @cvoor	stx	,u		Update ADDR2
 	rts
-	ENDC			HVCONV
 
 CVTE	fcb	2
 	fcc	'#>'
-	IFNE	HVCONV
 	fdb	CONVERT
-	ELSE
-	fdb	TWOFTCH
-	ENDC			HVCONV
 	RFCS
 	jsr	NPOP
 	jsr	NPOP		Drop 2 cells from the data stack
@@ -3158,8 +3192,7 @@ CVT1	pshs	x		Numerator least significant cell
 	lsra
 	ldb	#3
 	subr	a,b
-	abx
-	lda	,x
+	lda	b,x
 	tfr	f,b		Bitno: F & 7
 	andb	#7
 * At this point, A has the data we're interested in. B has the bit number.
@@ -4340,7 +4373,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth 6309/I FORTH-79 Standard Sub-set'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20220116 Copyright Francois Laagel (2019)'
+	fcc	'20220312 Copyright Francois Laagel (2019)'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
@@ -4349,8 +4382,10 @@ CRLFSTR	fcb     CR,LF,NUL
 RAMFM	fcc	'RAM check failed'
 	fcb     CR,LF,NUL
 
+	IFNE	RTCFEAT
 RTPRESM	fcc	'MC146818 RTC'
 	fcb	CR,LF,NUL
+	ENDC
 
 	IFEQ	CSSNTVE
 OKFEEDB	fcc	' ok'		As per GNU Forth's implementation...

@@ -70,11 +70,11 @@ DEBUG	0	NZ		If non-zero, extra validation code will be
 				(see below), you will not be able to fit a
 				DEBUG image into an 8 KB EEPROM!
 HVNMI	1	0		Include an interrupt handler for NMI#. This
-				adds 177 bytes to the EEPROM image but it is
-				extremely useful for debugging a locked up
-				system. The required hardware schmematics are
-				unpublished at the time of this writing.
-HVCONV	0	NZ		Include CONVERT in the default dictionary.
+				will increase the toll on the EEPROM image
+				but it is extremely useful for debugging a
+				locked up system.
+HVNMI2	0	NZ		If HVNMI2 is non-zero, also dump asynchronous
+				serial input buffer parameters.
 MSLCNT	794	994, any	This is a loop count used by the MS primitive.
 				794 is appropriate for a 4 MHz system operating
 				in 6309 native mode. 994 is appropriate for a 5

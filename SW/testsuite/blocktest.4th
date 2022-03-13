@@ -576,5 +576,5 @@ TUF-N \ ." TUF-N "
 \ FLA: What is this thing?
 \ BLOCK-ERRORS SET-ERROR-COUNT
 
-CR ." End of Block word tests"
+CR ." End of Block word tests" CR
 
