@@ -19,3 +19,5 @@ Known shortcomings of the current repository are as follows:
 - unfinished editor (see SW/examples/lwvi.4th). Some extra work still is needed
   on the delete primitives.
   
+Please note that it is not recommend to clone master directly, as the software
+may not match the schematics. The recommended approach is to clone a release.
