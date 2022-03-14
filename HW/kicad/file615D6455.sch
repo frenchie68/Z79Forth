@@ -5,8 +5,8 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 2 2
 Title "Z79Forth Reference Board"
-Date "2022-01-26"
-Rev "2.2.1"
+Date "2022-03-14"
+Rev "2.2.2"
 Comp "Francois Laagel"
 Comment1 ""
 Comment2 ""
@@ -507,8 +507,6 @@ Text GLabel 10750 3700 2    36   Input ~ 0
 ~FIRQ
 Text GLabel 10250 3800 0    36   Input ~ 0
 ~IRQ
-Text GLabel 10750 3800 2    36   Output ~ 0
-~RD
 Text GLabel 10250 3900 0    36   Output ~ 0
 ~WR
 Text GLabel 10750 3900 2    36   Output ~ 0
@@ -1092,4 +1090,6 @@ Wire Notes Line
 	9800 2750 9800 6100
 Text Notes 6450 3000 0    50   ~ 0
 Experimental--not a part of the reference design
+Text GLabel 10750 3800 2    36   Output ~ 0
+~RD
 $EndSCHEMATC

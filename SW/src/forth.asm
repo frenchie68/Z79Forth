@@ -2926,7 +2926,7 @@ DNEG	fcb	7		79-STANDARD (REQ245)
 	stq	,u		Store the result back to the data stack
 	rts
 
-DMINUS	fcb	2		79-STANDARD (REQ241)
+DMINUS	fcb	2		79-STANDARD (double number extension)
 	fcc	'D-'		( d1 d2 -- d1-d2--signed )
 	fdb	DNEG		In processor's terms U has ( L1 H1 L2 H2)
 	RFCS

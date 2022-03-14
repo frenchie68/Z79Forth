@@ -5,8 +5,8 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 2
 Title "Z79Forth Reference Board"
-Date "2022-01-26"
-Rev "2.2.1"
+Date "2022-03-14"
+Rev "2.2.2"
 Comp "Francois Laagel"
 Comment1 " "
 Comment2 ""
