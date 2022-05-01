@@ -203,7 +203,9 @@ TIKSLOW	rmb	2		RTC clock ticks updated on FIRQ
 CCREG	rmb	2		A DEBUG variable for predicates (see CMP2)
 	ENDC			DEBUG
 	IFNE	HVNMI
+	IFNE	HVNMI2
 SBDROPC	rmb	2		Char. drop count for serial input (see FIRQHDL)
+	ENDC			HVNMI2
 	ENDC			HVNMI
 BASBKUP	rmb	1		BASE backup when a base prefix is in use
 CMDLNSZ	rmb	1		Entered character count in GETS (INTERP)
@@ -374,7 +376,9 @@ RAMOK	ldx	#RAMSTRT
 	std	SERBENQ		Two birds with one stone
 	sta	SERBCNT
 	IFNE	HVNMI
+	IFNE	HVNMI2
 	std	SBDROPC		Initialize chararacter drop count
+	ENDC			HVNMI2
 	ENDC			HVNMI
 	ENDC			DEBUG
 	lda	#1		Initialize software flow control on output
@@ -615,7 +619,7 @@ NMIHDL	lda	ACIACTL
 	ldd	3,s		D in the system stack
 	bsr	NMI4DM
 
-	ldd	5,s		X in the system stack
+	ldd	5,s		W in the system stack
 	bsr	NMI4DM
 
 	lda	7,s		DP in the system stack
@@ -4373,7 +4377,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth 6309/I FORTH-79 Standard Sub-set'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20220312 Copyright Francois Laagel (2019)'
+	fcc	'20220417 Copyright Francois Laagel (2019)'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'

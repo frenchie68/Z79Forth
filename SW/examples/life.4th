@@ -155,7 +155,7 @@ CREATE new-board cellwidth CELLS ALLOT \ allocate nextgen space
 \ ** bits in the extracted board line denoted by row. The order
 \ ** of printing on the screen is highest order bit to the
 \ ** left.
-  >R CR R@ 3 .r 2 SPACES        \ --            (R row)
+  >R CR R@ 3 .R 2 SPACES        \ --            (R row)
   board R> CELLS + @            \ data          (R --)
   0 cellwidth 1-                \ data\low\high
   DO   DUP I .cell -1           \ data
@@ -169,8 +169,8 @@ CREATE new-board cellwidth CELLS ALLOT \ allocate nextgen space
 \ ** bits in the extracted board line denoted by row. The order
 \ ** of printing on the screen is highest order bit to the
 \ ** left.
-  >R CR R@ 3 .r 2 SPACES        \ --            (R row)
-  new-board r> CELLS + @        \ data          (R --)
+  >R CR R@ 3 .R 2 SPACES        \ --            (R row)
+  new-board R> CELLS + @        \ data          (R --)
   0 cellwidth 1-                \ data\low\high
   DO   DUP I .cell -1           \ data
   +LOOP                         \ data

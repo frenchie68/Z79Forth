@@ -31,11 +31,11 @@ FIRQHDL	pshs	x,d
 	stb	ACIACTL		Negate RTS#
 	puls	b
 @sbenq	cmpa	#SERBSZ
-	IFNE	HVNMI
+	IFNE	HVNMI2
 	beq	@nsdrop		Serial input buffer physically full
 	ELSE
 	beq	@nsintr		Serial input buffer physically full
-	ENDC			HVNMI
+	ENDC			HVNMI2
 	inca
 	sta	SERBCNT		Update incoming FIFO byte count
 	ldx	#SERBUF
@@ -63,13 +63,13 @@ FIRQHDL	pshs	x,d
 @outok	lda	#1
 @sxmsta	sta	XMITOK		Update XMIT status flag
 	bra	@nsintr
-	IFNE	HVNMI
+	IFNE	HVNMI2
 * Increment character drop count (displayed by NMIHDL).
 @nsdrop	ldd	SBDROPC
 	incd
 	std	SBDROPC
 	bra	@nsintr
-	ENDC			HVNMI
+	ENDC			HVNMI2
 
 * We do not have to talk to the ACIA directly, unless SERBCNT is zero,
 * in which case we have to lower RTS#, so as to accept incoming characters.

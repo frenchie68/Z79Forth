@@ -198,3 +198,5 @@ such a feature is considered desirable, : can be redefined as:
   :
 ;
 
+Caution: this will not cover CREATEd word, VARIABLE or CONSTANT entities.
+
