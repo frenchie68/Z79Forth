@@ -48,6 +48,10 @@ fi
 -h '\ Xmas ASCII art (Michel Jean).'
 # : sapinload 300 LOAD ;
 
+./txt2blk -i ../examples/coop-mtask.4th -d $CFDEV -s 305 \
+-h '\ Cooperative Multitasking, Matthias Koch. VD 2021/01.'
+# : coopmtload 305 325 THRU ;
+
 ./txt2blk -i ../testsuite/tester.4th -d $CFDEV -s 400 \
 -h "\ Z79Forth test suite. Based on Gerry Jackson's Forth2012."
 ./txt2blk -i ../testsuite/core.4th -d $CFDEV -s 405 \

@@ -3824,12 +3824,15 @@ STRSLMD	fcb	5		79-STANDARD (REQ192)
 	clr	STSLFCN
 	bra	STRSL1
 
-* Returns the current value of the S register (informational only).
+* Returns the current value of the Sreg register (informational only).
+* This word is either called (JSROPC) or jumped to (JMPOPC), as a result
+* of the tail call optimization process. There is no way to tell the
+* difference. Here we assume that it is called and return Sreg+2.
 SYSSTK	fcb	1		Non-standard
 	fcc	'S'
 	fdb	STRSLMD
 	RFCS
-	tfr	s,x
+	leax	2,s
 	jmp	NPUSH
 
 PAYLOAD	fcb	7		Non standard
@@ -4377,7 +4380,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth 6309/I FORTH-79 Standard Sub-set'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20220417 Copyright Francois Laagel (2019)'
+	fcc	'20220528 Copyright Francois Laagel (2019)'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
