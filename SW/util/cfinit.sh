@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # This script remains not entirely comprehensive in that it does not blank the
-# target device or initialize block #1-5 at all.
+# target device or initialize block #1-6 at all.
 
 CFDEV=/dev/sdb
 
@@ -66,4 +66,8 @@ fi
 #   466 504 THRU              \ Block word set test
 #   505 538 THRU              \ Double word set test
 # ;
+
+./txt2blk -i ../examples/expsys.4th -d $CFDEV -s 550 \
+-h "\ Simple Forth expert system. Demitri Peynado: May 14, 2022."
+# : expsysload 550 560 THRU ;
 

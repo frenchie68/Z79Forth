@@ -188,7 +188,7 @@ processInputFile(FILE *inFile) {
 
       inputLineCount++;                             /* Global line count */
 
-      /* Cap line lenght to MAXCOL+spc. Issue a warning if line is trunc'd */
+      /* Cap line length to MAXCOL+spc. Issue a warning if line is trunc'd */
       assert(tempPtr = strchr(lineBuffer, '\n')); /* CR must be in the input */
       len = tempPtr - lineBuffer;
       if(len > MAXCOL) {
@@ -268,20 +268,12 @@ main(int argc, char **argv) {
     }
 
  /*
-  * Sanity check:
+  * Sanity checks:
   * - an input file name must be specified.
   * - startingBlockNo should be non-zero.
   */
-  if(!inputFilename) {
-    fprintf(stderr, "%s: an input filename must be specified (-i <fn>).\n",
-      SELF);
-    exit(1);
-  }
-  if(!startingBlockNo) {
-    fprintf(stderr, "%s: a starting block number must be specified (-s <nb>) "
-      "and cannot be zero.\n", SELF);
-    exit(1);
-  }
+  if(!inputFilename || !startingBlockNo)
+    usage();
 
   assert(inputFile = openInputFile(inputFilename));
   processInputFile(inputFile);

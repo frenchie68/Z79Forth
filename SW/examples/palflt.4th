@@ -1,4 +1,4 @@
-: num>str ( n -- addr bytecount ) 0 <# #S #> ;
+: num>str ( n -- addr bytecount ) S>D <# #S #> ;
 
 : lasteqfirst? ( addr offsetlast -- flag )
   OVER + C@ SWAP C@ = ;

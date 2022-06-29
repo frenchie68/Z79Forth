@@ -9,8 +9,8 @@
 * Also credited for their help: Justin Poirier (seminal HW design), Daniel
 * Tufvesson (original CompactFlash interface), Peter Minuth (general Forth
 * guruness), Paul E. Bennett (ANSI compatibility advice); Michel Jean, Bill
-* Ragsdale and Pablo Hugo Reda for contributed application level code;
-* Carsten Strotmann for most of the benchmarking code (see
+* Ragsdale, Pablo Hugo Reda and Demitri Peynado for contributed application
+* level code; Carsten Strotmann for most of the benchmarking code (see
 * https://theultimatebenchmark.org/); Gerry Jackson and Steve R. Palmer
 * (see https://github.com/gerryjackson/forth2012-test-suite) for selected
 * bits and pieces of the Forth2012 test suite (see https://forth-standard.org/).
@@ -4380,7 +4380,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth 6309/I FORTH-79 Standard Sub-set'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20220528 Copyright Francois Laagel (2019)'
+	fcc	'20220629 Copyright Francois Laagel (2019)'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'

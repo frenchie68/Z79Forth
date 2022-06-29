@@ -9,8 +9,8 @@
                       (        forth.asm):00009         * Also credited for their help: Justin Poirier (seminal HW design), Daniel
                       (        forth.asm):00010         * Tufvesson (original CompactFlash interface), Peter Minuth (general Forth
                       (        forth.asm):00011         * guruness), Paul E. Bennett (ANSI compatibility advice); Michel Jean, Bill
-                      (        forth.asm):00012         * Ragsdale and Pablo Hugo Reda for contributed application level code;
-                      (        forth.asm):00013         * Carsten Strotmann for most of the benchmarking code (see
+                      (        forth.asm):00012         * Ragsdale, Pablo Hugo Reda and Demitri Peynado for contributed application
+                      (        forth.asm):00013         * level code; Carsten Strotmann for most of the benchmarking code (see
                       (        forth.asm):00014         * https://theultimatebenchmark.org/); Gerry Jackson and Steve R. Palmer
                       (        forth.asm):00015         * (see https://github.com/gerryjackson/forth2012-test-suite) for selected
                       (        forth.asm):00016         * bits and pieces of the Forth2012 test suite (see https://forth-standard.org/).
@@ -5089,7 +5089,7 @@ FE21 5A3739466F727468 (        forth.asm):04380                 fcc     'Z79Fort
      74
                       (        forth.asm):04381                 ENDC                    RTCFEAT
 FE4A 0D0A             (        forth.asm):04382                 fcb     CR,LF
-FE4C 3230323230353238 (        forth.asm):04383                 fcc     '20220528 Copyright Francois Laagel (2019)'
+FE4C 3230323230363239 (        forth.asm):04383                 fcc     '20220629 Copyright Francois Laagel (2019)'
      20436F7079726967
      6874204672616E63
      6F6973204C616167

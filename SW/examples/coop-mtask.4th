@@ -45,7 +45,7 @@
 \ calling WAKE or to suspend an arbitrary task by calling IDLE.
 \
 \ Re-scheduling points occurr when PAUSE is called. Prior to
-\ that either MULTITASK ot SINGLETASK must be called. This
+\ that either MULTITASK or SINGLETASK must be called. This
 \ defines the behaviour of PAUSE.
 \
 \ -----------------------------------------------------------
