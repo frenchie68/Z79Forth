@@ -200,3 +200,22 @@ such a feature is considered desirable, : can be redefined as:
 
 Caution: this will not cover CREATEd word, VARIABLE or CONSTANT entities.
 
+###############################################################################
+examples/meta2/meta2.4th is a compiler generator based on a BNF (Backus-Naur
+Form) language syntax specification that is expected to be stored in blocks
+600-602. The target language is ValgolI: an Algol 60 derivative.
+
+A sample ValgolI program also is expected to be resident at block 603. This
+requires the CompactFlash image supplied in util/*.img to have been installed.
+
+This is a conceptually very advanced program. Understanding its implementation
+will require some degree of familiarity with compilation techniques.
+
+The added value of this particuliar example is that it provides experimental
+support for anynymous primitives (:NONAME in ANSI parlance).
+
+:NONAME words are tricky because, as implemented here, they simply flip the
+interpreter into compilation mode without actually invoking : Tail call
+optimization will not apply and anonymous definitions are not allowed to
+RECURSE. Yet, the whole thing works!
+

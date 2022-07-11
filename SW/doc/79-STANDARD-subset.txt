@@ -108,11 +108,13 @@ A working definition for 2CONSTANT can be found in testsuite/doubletest.4th.
 
 3.1 Implemented
 ---------------
---> .R 1+! 2* 2/ <> AGAIN BL BLANKS C, COM CONTINUED DUMP END FLUSH HEX
-I' INDEX INTERPRET K LAST LINE MS OCTAL PAGE SHIFT THRU U.R VLIST
+--> .R 1+! 2* 2/ <> AGAIN BL BLANKS C, COM CONTINUED DUMP FLUSH HEX I' INDEX
+INTERPRET K LAST LINE MS OCTAL PAGE SHIFT THRU U.R VLIST
 
 Note1:
-DUMP is offered as Forth source code (see examples/DUMP.4th)
+DUMP is offered as Forth source code (see examples/DUMP.4th). If the supplied
+CompactFlash image had been installed on the target medium, it will be available
+by invoking DUMPLOAD
 
 Note2:
 FLUSH is implemented as a straight alias to SAVE-BUFFERS (i.e. the 79-STANDARD
@@ -123,11 +125,24 @@ as:
 
 	: FLUSH SAVE-BUFFERS EMPTY-BUFFERS ;
 
+Note3:
+Support for END as an alias for UNTIL has been discontinued. If needed, it can
+be defined as:
+
+: END ['] UNTIL EXECUTE ; IMMEDIATE RESTRICT
+
+Test pattern:
+: foo 10 BEGIN                                                                 
+    DUP .                                                                       
+    1- DUP 0=                                                                   
+  END DROP ;
+\ Sequence [10 .. 1] should be printed.
+
 3.2 Not Implemented
 -------------------
 !BITS ** +BLOCK -' -MATCH -TEXT /LOOP 1-! ;: ;S <CMOVE <BUILDS >< >MOVE>
 @BITS ABORT" ASCII ASHIFT B/BUF BELL CHAIN CUR DBLOCK DPL EDITOR
-ERASE FLD H. IFEND IFTRUE LINELOAD LOADS MAP0 MASK
+END ERASE FLD H. IFEND IFTRUE LINELOAD LOADS MAP0 MASK
 NAND NOR NUMBER O. OFFSET OTHERWISE READ-MAP REMEMBER REWIND
 ROTATE S0 SET SP@ TEXT USER WHERE \LOOP
 
@@ -137,11 +152,11 @@ the 79-STANDARD specification.
 
 4 FORTH-83 Words
 ----------------
-CMOVE> RECURSE
+\ CMOVE> RECURSE
 
 5 1994 ANSI draft 6 Words
 -------------------------
-\ ['] .S ACCEPT CELLS CHAR [CHAR] COMPILE, INVERT KEY? NIP POSTPONE S>D S"
+['] .S ACCEPT CELLS CHAR [CHAR] COMPILE, INVERT KEY? NIP POSTPONE S>D S"
 SOURCE U> TUCK UNLOOP WITHIN
 
 Note: KEY? U> and WITHIN return the 79-STANDARD version of true, i.e. 1.
@@ -203,6 +218,10 @@ RTC@	( rtcregoffset -- rtcbyteval ) Retrieves the contents of an RTC
 	register.
 RTC!	( rtcbyteval rtcregoffset -- ) Writes to an RTC register.
 S	( -- sreg ) Returns the contents of the system stack pointer (S).
+S@	( -- retaddr ) Returns the return address to the caller's.
+	This is most useful for debugging purposes when used in conjunction
+	with .' Please note that this requires RELFEAT to be enabled at
+	compilation time.
 TICKS	( -- tickslow tickshigh ) Stacks up a double cell containing the
 	number of ticks since boot time. There are 64 ticks per second.
 UNLESS	Perl inspired. Functionally equivalent to:
@@ -233,5 +252,4 @@ application level. However, it is essential to the implementation of the
 string to number conversion. A consequence of this is that every string to
 number conversion, be it interpreted or compiled, will require at least three
 cells to be available on the data stack.
-
 

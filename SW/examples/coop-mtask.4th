@@ -99,7 +99,7 @@ VARIABLE up           \ U-area
 \ -----------------------------------------------------------
 : (pause) ( stacks fly around )
 
-  S @ task-cra !             \ Save code return address
+  S cell+ @ task-cra !       \ Save code return address
 
 \ Parameter stack backup.
   depth task-data !          \ Number of elements
@@ -169,7 +169,7 @@ VARIABLE up           \ U-area
 
   rdrop
 
-  task-cra @ S !             \ Context switch
+  task-cra @ S cell+ !       \ Context switch
 ;
 
 \ -----------------------------------------------------------

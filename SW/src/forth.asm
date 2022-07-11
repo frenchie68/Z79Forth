@@ -2392,15 +2392,9 @@ UNTIL	fcb	$C5		79-STANDARD (REQ237)
 	sty	DICEND
 	rts
 
-END	fcb	$C3		79-STANDARD (REF224)
-	fcc	'END'
-	fdb	UNTIL
-	RFCS
-	RFXT	bra,UNTIL+8	XT for UNTIL
-
 WHILE	fcb	$C5		79-STANDARD (REQ149)
 	fcc	'WHILE'
-	fdb	END
+	fdb	UNTIL
 	RFCS
 	ldx	#IFEX
 	jsr	EMXASXT		Compile "JSR IFEX"
@@ -3827,17 +3821,24 @@ STRSLMD	fcb	5		79-STANDARD (REQ192)
 * Returns the current value of the Sreg register (informational only).
 * This word is either called (JSROPC) or jumped to (JMPOPC), as a result
 * of the tail call optimization process. There is no way to tell the
-* difference. Here we assume that it is called and return Sreg+2.
+* difference. Here we assume that it is called and return Sreg.
 SYSSTK	fcb	1		Non-standard
 	fcc	'S'
 	fdb	STRSLMD
 	RFCS
-	leax	2,s
+	tfr	s,x
+	jmp	NPUSH
+
+SYSSTAT	fcb	2
+	fcc	'S@'
+	fdb	SYSSTK
+	RFCS
+	ldx	,s
 	jmp	NPUSH
 
 PAYLOAD	fcb	7		Non standard
 	fcc	'PAYLOAD'	( -- len ) where len is the code payload
-	fdb	SYSSTK		of the word located by FIND (or NULL)
+	fdb	SYSSTAT		of the word located by FIND (or NULL)
 	RFCS
 	ldx	FNDPLD		Code payload reported by FIND
 	jmp	NPUSH
@@ -4380,7 +4381,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth 6309/I FORTH-79 Standard Sub-set'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20220629 Copyright Francois Laagel (2019)'
+	fcc	'20220707 Copyright Francois Laagel (2019)'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'

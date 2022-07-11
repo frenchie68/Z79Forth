@@ -1,0 +1,10 @@
+.BEGIN
+  .INTEGER X ., 
+  0 = X .,
+  .UNTIL X .= 30 .DO .BEGIN
+     EDIT (X*X / 10 + 1, '*') .,
+     PRINT.,
+     X + 1 = X
+  .END
+.END
+

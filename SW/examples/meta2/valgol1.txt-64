@@ -1,0 +1,40 @@
+.SYNTAX VALGOLI
+  .RULE EXP
+    .RULE PRIMARY .BEGIN .ID .OUT(* '@') / .NUMBER .OUT(*) /
+      '(' EXP ')'
+    .END PRIMARY
+    .RULE TERM .BEGIN PRIMARY $(('*' PRIMARY .OUT('*')) /
+      ('/' PRIMARY .OUT('/')))
+    .END TERM
+    .RULE EXP1 .BEGIN TERM $('+' TERM .OUT('+') /
+      '-' TERM .OUT('-') )
+    .END EXP1
+    .BEGIN EXP1 ( '.=' EXP1 .OUT('=') / .EMPTY)
+  .END EXP
+  .RULE ASSIGNST .BEGIN EXP '=' .ID .OUT(* '!')
+  .END ASSIGNST
+  .RULE ST
+    .RULE UNTILST .BEGIN '.UNTIL' .OUT('BEGIN') EXP '.DO'
+      .OUT('NOT WHILE') ST .OUT('REPEAT')
+    .END UNTILST
+    .RULE CONDITIONALST .BEGIN '.IF' EXP '.THEN' .OUT('IF')
+      ST '.ELSE' .OUT('ELSE') ST .OUT('THEN')
+    .END CONDITIONALST
+    .RULE IOST .BEGIN 'EDIT' '(' EXP ',' .OUT('SPACES')
+      .STRING .OUT(* 'TYPE') ')' / 'PRINT' .OUT('CR')
+    .END IOST
+    .RULE IDSEQ1 .BEGIN .ID .OUT('VARIABLE' *)
+    .END IDSEQ1
+    .RULE IDSEQ .BEGIN IDSEQ1 $(','  IDSEQ1)
+    .END IDSEQ
+    .RULE DEC .BEGIN '.INTEGER' IDSEQ
+    .END DEC
+    .RULE BLOCK .BEGIN '.BEGIN' (DEC '.,' / .EMPTY )
+      ST $('.,' ST) '.END'
+    .END BLOCK
+    .BEGIN IOST / ASSIGNST / UNTILST / CONDITIONALST / BLOCK
+  .END ST
+  .BEGIN '.BEGIN' (DEC '.,' / .EMPTY ) .OUT(': RUN') ST $('.,'
+    ST) '.END' .OUT(';')
+.END VALGOLI
+
