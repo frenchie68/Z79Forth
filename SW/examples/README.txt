@@ -9,6 +9,9 @@ Example		Author		Notes
 				challenge. The file has to be sourced from
 				the console.
 
+bernd-oof.4th	Bernd Paysan	Bernd's mini objectr oriented Forth. This must
+				be sourced from the console.
+
 blkins.4th	Francois Laagel	Inserts one blank clock in front of a specified
 				block range. Absolutely not guaranteed to do
 				the right thing.
@@ -25,7 +28,7 @@ coop-mtask.4th	Matthias Koch	A sample cooperative multitasker. A sample
 dis.4th		Francois Laagel	The standard disassembler. It is normally loaded
 				automatically from CompactFlash when the
 				system comes up. Standard invokation is via:
-				DIS <word>
+				SEE <word>
 
 dump.4th	Francois Laagel	An hexadecimal DUMP utility. It can be loaded
 				from CF by resorting to DUMPLOAD
@@ -46,6 +49,22 @@ fsformat.4th	F+L		A Forth source code formatter. This comes from
 				the archives of "Forth Dimension" that can be
 				reached at http://forth.org/fd/FDcover.html
 				The code has to be sourced from the console.
+
+fsh.4th		Francois Laagel	An alternative interpreter based on Peter
+				Jakacki's Tachyon Forth "COMPEX CLI" concept.
+				After INTERP is invoked, one will enter a
+				subshell which allows the user to invoke
+				constructs that are normally available in
+				compilation mode only, loops and conditionals
+				fall under this category. Return stack contents
+				may also be accessed interactively. The feature
+				supports input spread across multiple lines.
+				However, please be aware that this shell will
+				be aborted on the the first error encountered.
+				WARNING: INTERP has to be invoked on a single
+				command line, words following it will be
+				ignored. The code has to be sourced from the
+				console.
 
 hanoi.4th	Peter Midnight	The classic towers of Hanoi recursion demo.
 				This also comes from the archives of "Forth

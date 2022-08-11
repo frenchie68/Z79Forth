@@ -9,9 +9,9 @@
 * Also credited for their help: Justin Poirier (seminal HW design), Daniel
 * Tufvesson (original CompactFlash interface), Peter Minuth (general Forth
 * guruness), Paul E. Bennett (ANSI compatibility advice); Michel Jean, Bill
-* Ragsdale, Pablo Hugo Reda and Demitri Peynado for contributed application
-* level code; Carsten Strotmann for most of the benchmarking code (see
-* https://theultimatebenchmark.org/); Gerry Jackson and Steve R. Palmer
+* Ragsdale, Pablo Hugo Reda, Demitri Peynado and Bernd Paysan for contributed
+* application level code; Carsten Strotmann for most of the benchmarking code
+* (see https://theultimatebenchmark.org/); Gerry Jackson and Steve R. Palmer
 * (see https://github.com/gerryjackson/forth2012-test-suite) for selected
 * bits and pieces of the Forth2012 test suite (see https://forth-standard.org/).
 *
@@ -1351,14 +1351,15 @@ ERRHD1	jsr	PUTCR		GNU Forth does this in its exception handler
 @errdon	lds	#RAMSTRT+RAMSIZE
 	lda	USTATE+1	We do ignore the upper byte
 	beq	@erdon2		No pointers to restore if we were interpreting
-* Compiling: clear STATE, RSP and restore LSTWAD, DICEND.
-	clr	USTATE+1	Switch back to interpretation mode
-	RFXT	jsr,RCLR+7	XT for RCLR
+* Compiling: clear STATE and restore LSTWAD, DICEND.
+	clrd
+	std	USTATE		Switch back to interpretation mode
 	ldx	BDICEND		Restore essential pointers from backups
 	stx	DICEND		Restore HERE
 	ldx	BLSTWAD
 	stx	LSTWAD		Restore LAST
-@erdon2	RFXT	jsr,DECIMAL+10	Back to decimal BASE, for one's sanity's sake!
+@erdon2	RFXT	jsr,RCLR+7	XT for RCLR
+	RFXT	jsr,DECIMAL+10	Back to decimal BASE, for one's sanity's sake!
 	jmp	INTERP
 
 * Push X to the data stack (boundary is checked).
@@ -2516,7 +2517,6 @@ ABORT	fcb	5		79-STANDARD (REQ101)
 	fdb	QUIT
 	RFCS
 	RFXT	jsr,NCLR+7	XT for NCLR
-	RFXT	jsr,RCLR+7	XT for RCLR
 	ldb	#3
 	jsr	ERRHDLR		No return
 
@@ -4381,7 +4381,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth 6309/I FORTH-79 Standard Sub-set'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20220707 Copyright Francois Laagel (2019)'
+	fcc	'20220809 Copyright Francois Laagel (2019)'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'

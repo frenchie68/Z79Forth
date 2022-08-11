@@ -73,3 +73,5 @@ MONITOR
     DROP
   LOOP ;
 
+: see dis ;
+

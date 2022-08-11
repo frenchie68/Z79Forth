@@ -1,7 +1,7 @@
 \ Meta-II: a syntax directed compiler generator for ValgolI.
 \ Original code by Demitri Peynado: May 13, 2021.
 
-\ begin{Z79Forth glue code}
+\ begin Z79Forth glue code.
 : ABORT" POSTPONE IF
   POSTPONE ."
   POSTPONE ABORT
@@ -31,18 +31,13 @@
 \   REPEAT
 \   DROP ;
 
-VARIABLE curblk  \ Init'ed by reset-input, updated by advance
--1 CONSTANT true
-0 CONSTANT false
-
-\ Experimental material. An error in an anonymous word
-\ will result in a loss of dictionary space because : never
-\ was actually involved. Please note that the tail call
-\ optimization is bypassed in anonymous words. Also anon words
-\ cannot resort to RECURSE.
-VARIABLE isanon
-0 isanon !
+\ :NONAME support. WARNING: because this is an application
+\ level implementation, any error in a :NONAME definition
+\ will cause the last named word to be forgotten!
+\ Nested anonymous definitions are not supported.
+VARIABLE isanon   0 isanon !
 VARIABLE anonep         \ Execution token returned by :NONAME
+
 : :NONAME HERE anonep !
   1 DUP STATE ! isanon ! ;
 
@@ -55,7 +50,11 @@ VARIABLE anonep         \ Execution token returned by :NONAME
   anonep @              \ Return the execution token
 ; IMMEDIATE RESTRICT
 
-\ end{Z79Forth glue code}
+VARIABLE curblk  \ Init'ed by reset-input, updated by advance
+-1 CONSTANT true
+0 CONSTANT false
+
+\ end Z79Forth glue code.
 
 CREATE tmp 50 ALLOT
 VARIABLE input

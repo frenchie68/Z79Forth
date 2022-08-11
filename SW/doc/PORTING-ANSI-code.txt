@@ -8,11 +8,11 @@ There are a number of gotchas when porting ANSI code to Z79Forth.
   on the basis of a byte count; 79-STANDARD operates on cells. An ANSI
   compliant MOVE can be defined with:
 
-	: MOVE ( addr1 addr2 u -- )
-          DUP 2OVER                       \ addr1 addr2 u u addr1 addr2
-          SWAP -                          \ addr1 addr2 u u addr2-addr1
-          SWAP                            \ addr1 addr2 u addr2-addr1 u
-          U< IF CMOVE> ELSE CMOVE THEN ;
+: MOVE ( addr1 addr2 u -- )
+  DUP 2OVER                      \ addr1 addr2 u u addr1 addr2
+  SWAP -                         \ addr1 addr2 u u addr2-addr1
+  SWAP                           \ addr1 addr2 u addr2-addr1 u
+  U< IF CMOVE> ELSE CMOVE THEN ;
 
 - The value returned by predicates for <TRUE> is different. ANSI and FORTH-83
   have -1, whereas 79-STANDARD has 1.
@@ -32,10 +32,10 @@ the 79-STANDARD version of true, i.e. 1. When porting code originally designed
 for an ANSI environment, the ANSI true can be implemented by simply having the
 following definitions:
 
-        : 0<> IF -1 ELSE 0 THEN ;
-        : KEY? KEY? 0<> ;
-        : WITHIN WITHIN 0<> ;
-        : U> U> 0<> ;
+: 0<> IF -1 ELSE 0 THEN ;
+: KEY? KEY? 0<> ;
+: WITHIN WITHIN 0<> ;
+: U> U> 0<> ;
 
 This can be useful when dealing with code that has "environmental
 dependencies."
@@ -198,7 +198,7 @@ such a feature is considered desirable, : can be redefined as:
   :
 ;
 
-Caution: this will not cover CREATEd word, VARIABLE or CONSTANT entities.
+Caution: this will not cover CREATEd words, VARIABLE or CONSTANT entities.
 
 ###############################################################################
 examples/meta2/meta2.4th is a compiler generator based on a BNF (Backus-Naur
@@ -206,7 +206,8 @@ Form) language syntax specification that is expected to be stored in blocks
 600-602. The target language is ValgolI: an Algol 60 derivative.
 
 A sample ValgolI program also is expected to be resident at block 603. This
-requires the CompactFlash image supplied in util/*.img to have been installed.
+requires the CompactFlash image supplied in SW/util/*.img to have been
+installed.
 
 This is a conceptually very advanced program. Understanding its implementation
 will require some degree of familiarity with compilation techniques.
@@ -216,6 +217,26 @@ support for anynymous primitives (:NONAME in ANSI parlance).
 
 :NONAME words are tricky because, as implemented here, they simply flip the
 interpreter into compilation mode without actually invoking : Tail call
-optimization will not apply and anonymous definitions are not allowed to
-RECURSE. Yet, the whole thing works!
+optimization will not apply, checks for unbalanced contructs will not apply and
+anonymous definitions may only RECURSE in very specific conditions, for
+instance:
+
+DEFER fact
+:NONAME ?DUP IF DUP 1- RECURSE * EXIT THEN 1 ; IS fact
+
+will work because RECURSE will compile a call to the last named dictionary
+entry, i.e. 'fact'.
+
+###############################################################################
+A useful trick for handling NUL terminated strings, such as those operated
+on by EXPECT:
+
+: cstrtype ( addr -- ) 
+  BEGIN 
+    DUP C@ UNLESS 
+      DROP EXIT 
+    THEN 
+    DUP C@ EMIT 
+    1+ 
+  AGAIN ;
 
