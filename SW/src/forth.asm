@@ -2765,17 +2765,17 @@ WORD	fcb	4		79-STANDARD (REQ181)
 	ldy	DICEND		The counted string returned is stored at HERE
 	pshs	y
 	clr	,y+		Initialize its length
-	jsr	BKIN2PT		Derive input stream pointer from BLK, >IN
-	tst	,x		EOL reached?
-	bne	@word1		No, proceed
-@word0	puls	x
-	UCNPUSH			Push back HERE
-	rts
-@word1	leax	1,x		Skip space character after WORD or leading delim
-	lda	,x
-	beq	@word5		EOL reached, this is the end
+	jsr	BKIN2PT		Derive X from BLK, >IN
+	lda	,x+		>IN @
+	cmpa	#SP		BL
+	beq	@word1		Skip initial blank if there is one
+	leax	-1,x		Go back one char.
+@word1	lda	,x+
+	beq	@word4		EOL reached, this is the end
 	cmpr	f,a		Leading delimiter matched?
-	beq	@word1		Yes
+	beq	@word2		Yes, skip it
+* There was no leading delimiter. Go back one char.
+	leax	-1,x
 @word2	lda	,x+		Acquire next character from the input stream
 @word3	sta	,y+
 	beq	@word4		EOL reached
@@ -2786,7 +2786,9 @@ WORD	fcb	4		79-STANDARD (REQ181)
 @word4	leax	-1,x		EOL reached
 @word5	tfr	x,d		Pointing one char after the delimiter or to NUL
 	jsr	U2INFRD		Derive >IN from D
-	bra	@word0
+	puls	x
+	UCNPUSH			Push back HERE
+	rts
 
 LPAR	fcb	$81		79-STANDARD (REQ122)
 	fcc	'('
@@ -4381,7 +4383,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth 6309/I FORTH-79 Standard Sub-set'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20220809 Copyright Francois Laagel (2019)'
+	fcc	'20220826 Copyright Francois Laagel (2019)'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
