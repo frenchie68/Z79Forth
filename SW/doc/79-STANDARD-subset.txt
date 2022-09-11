@@ -114,9 +114,21 @@ INTERPRET K LAST LINE MS OCTAL PAGE SHIFT THRU U.R VLIST
 Note1:
 DUMP is offered as Forth source code (see examples/DUMP.4th). If the supplied
 CompactFlash image had been installed on the target medium, it will be available
-by invoking DUMPLOAD
+by invoking DUMPLOAD.
 
-Note2:
+Note2: LINE and INDEX will be automatically loaded from CompactFlash is the
+image supplied in SW/util/*.img has been installed. Otherwise they will not
+be available. They still can be defined interactively as:
+
+: LINE ( n -- addr ) 6 SHIFT SCR @ BLOCK + ;
+: INDEX ( n1 n2 -- ) 1+ SWAP DO
+    CR   I SCR !
+    0 LINE 64 TYPE
+  LOOP ;
+
+One way or the other LINE is required by the LWVI editor.
+
+Note3:
 FLUSH is implemented as a straight alias to SAVE-BUFFERS (i.e. the 79-STANDARD
 way), which means that the buffers remain assigned to blocks. However, the
 ANSI semantics of FLUSH mandate that all buffers should be unassigned. If this
@@ -226,6 +238,12 @@ TICKS	( -- tickslow tickshigh ) Stacks up a double cell containing the
 	number of ticks since boot time. There are 64 ticks per second.
 UNLESS	Perl inspired. Functionally equivalent to:
 	: UNLESS ['] 0= COMPILE, POSTPONE IF ; IMMEDIATE RESTRICT
+UNMONITOR ( -- ) If the running EEPROM image was compiled with a non-zero
+	RELFEAT (see constants.asm), newly created CONSTANTs will automatically
+	be monitored (see MONITOR above). However, ANSI VALUEs are nothing
+	than CONSTANTs which value can be altered. Invoking UNMONITOR
+	immediately after having created a CONSTANT (or any : definition) will
+	cause that object's payload not to be included for integrity check.
 
 9 Extra (non-standard) Features
 -------------------------------

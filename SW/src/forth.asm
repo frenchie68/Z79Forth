@@ -1586,50 +1586,9 @@ SCR	fcb	3
 	ldx	#USCR
 	jmp	NPUSH
 
-* Functionally: : LINE 6 SHIFT SCR @ BLOCK + ;
-LINE	fcb	4		79-STANDARD (REF)
-	fcc	'LINE'
-	fdb	SCR
-	RFCS
-	ldx	#6
-	jsr	NPUSH
-	RFXT	jsr,SHIFT+8	XT for SHIFT
-	ldx	USCR
-	jsr	NPUSH
-	RFXT	bsr,BLOCK+8	XT for BLOCK
-	RFXT	jmp,PLUS+4	XT for +
-
-* Functionally:
-* : INDEX 1+ SWAP DO
-*     CR   I SCR !
-*     0 LINE 64 TYPE
-*   LOOP ;
-INDEX	fcb	5		79-STANDARD (REF)
-	fcc	'INDEX'		( n1 n2 -- )
-	fdb	LINE
-	RFCS
-	jsr	NPOP		N2 to X
-	leax	1,x		1+
-	tfr	x,y		Y has the limit (not reached)
-	jsr	NPOP		X has the index (N1)
-@indlop	jsr	PUTCR		CR
-	stx	USCR		I SCR !
-	pshs	y,x
-	tfr	0,x
-	jsr	NPUSH
-	RFXT	bsr,LINE+7	XT for LINE
-	ldx	#64
-	jsr	NPUSH
-	RFXT	jsr,TYPE+7	XT for TYPE
-	puls	x,y		Restore loop parameters
-	leax	1,x
-	cmpr	x,y
-	bne	@indlop
-	rts
-
 TICKS	fcb	5		Non-standard
 	fcc	'TICKS'		( -- tickslow tickshigh )
-	fdb	INDEX
+	fdb	SCR
 	RFCS
 	IFNE	RTCFEAT
 	pshs	cc
@@ -1879,16 +1838,36 @@ MONITOR	fcb	7
 	fdb	RSTRCT
 	RFCS
 	IFNE	RELFEAT
-	ldx	LSTWAD		Last word header address
+	lda	#1		Set MONFLM in the word 'flags' header field
+	pshs	a
+MONIT1	ldx	LSTWAD		Latest defined word header address
 	lda	,x
-	ora	#MONFLM		Set the monitored flag in the attribute field
-	sta	,x
+	tst	,s		Should we set or clear MONFLM?
+	bne	@setflg
+	anda	#^MONFLM	Clear MONFLM in the word's attribute field
+	bra	@cont
+@setflg	ora	#MONFLM		Set MONFLM in the word's attribute field
+@cont	sta	,x
 	bsr	HDRSKIP		Skip the header (XT to X), clear A
 	ldy	DICEND		The upper code section limit (excluded)
 	bsr	HDRCSUM		Current word's definition's checksum to A
 	sta	-1,x		Store the computed checksum into the header
+	leas	1,s		Drop one byte from the system stack
 	ENDC			RELFEAT
 	rts
+
+* Added for better support of ANSI VALUEs.
+UNMON	fcb	9
+	fcc	'UNMONITOR'	( -- )
+	fdb	MONITOR
+	RFCS
+	IFNE	RELFEAT
+	clra
+	pshs	a
+	bra	MONIT1
+	ELSE
+	rts
+	ENDC			RELFEAT
 
 	IFNE	RELFEAT
 * On entry, X has a word's header address. On return X has the compilation
@@ -1923,7 +1902,7 @@ CSUMFLM	fcn	'integrity check failed'
 * the form of a diagnostic message printed to the console.
 ICHECK	fcb	6
 	fcc	'ICHECK'	( -- )
-	fdb	MONITOR
+	fdb	UNMON
 	RFCS
 	IFNE	RELFEAT
 	ldy	DICEND		Upper bound for the code of the last word (exc.)
@@ -2771,20 +2750,20 @@ WORD	fcb	4		79-STANDARD (REQ181)
 	beq	@word1		Skip initial blank if there is one
 	leax	-1,x		Go back one char.
 @word1	lda	,x+
-	beq	@word4		EOL reached, this is the end
+	beq	@word3		EOL reached, this is the end
 	cmpr	f,a		Leading delimiter matched?
-	beq	@word2		Yes, skip it
-* There was no leading delimiter. Go back one char.
+	beq	@word1		Yes, skip it (it might be repeated)
+* Either there was no leading delimiter or we went past the leading repetitions.
 	leax	-1,x
 @word2	lda	,x+		Acquire next character from the input stream
-@word3	sta	,y+
-	beq	@word4		EOL reached
+	beq	@word3		EOL reached
 	cmpr	f,a		Trailing delimiter?
-	beq	@word5
+	beq	@word4
+	sta	,y+
 	inc	[,s]		Increment string length
 	bra	@word2
-@word4	leax	-1,x		EOL reached
-@word5	tfr	x,d		Pointing one char after the delimiter or to NUL
+@word3	leax	-1,x		EOL reached
+@word4	tfr	x,d		Pointing one char after the delimiter or to NUL
 	jsr	U2INFRD		Derive >IN from D
 	puls	x
 	UCNPUSH			Push back HERE
@@ -4383,7 +4362,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth 6309/I FORTH-79 Standard Sub-set'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20220826 Copyright Francois Laagel (2019)'
+	fcc	'20220911 Copyright Francois Laagel (2019)'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
