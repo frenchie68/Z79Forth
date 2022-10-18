@@ -25,6 +25,10 @@ RELFEAT	set	0		HVNMI and HVNMI2 disable RELFEAT
 	ENDC			HVNMI
 	ENDC			RTCFEAT
 
+* Control flow stack implemented on the top of the data stack.
+CSPUSH	EQU	NPUSH  
+CSPOP	EQU	NPOP
+
 * Memory map.
 RAMSTRT	equ	$0000
 RAMSIZE	equ	$8000

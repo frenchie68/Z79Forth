@@ -19,37 +19,6 @@
   THEN
 ; IMMEDIATE
 
-\ This is extremely useful for debugging call stacks.
-\ It may not work properly if bytes are on the system
-\ stack of the 6309 though!
-\ : sysstkdump S
-\   BEGIN
-\     DUP $8000 U<
-\   WHILE  
-\     CR DUP @ .'  
-\     1 CELLS + 
-\   REPEAT
-\   DROP ;
-
-\ :NONAME support. WARNING: because this is an application
-\ level implementation, any error in a :NONAME definition
-\ will cause the last named word to be forgotten!
-\ Nested anonymous definitions are not supported.
-VARIABLE isanon   0 isanon !
-VARIABLE anonep         \ Execution token returned by :NONAME
-
-: :NONAME HERE anonep !
-  1 DUP STATE ! isanon ! ;
-
-: ; isanon @ UNLESS     \ UNLESS is a shortcut for 0= IF
-    ['] ; EXECUTE
-    EXIT
-  THEN
-  0 DUP isanon ! STATE !
-  $39 C,                \ Emit an RTS instruction
-  anonep @              \ Return the execution token
-; IMMEDIATE RESTRICT
-
 VARIABLE curblk  \ Init'ed by reset-input, updated by advance
 -1 CONSTANT true
 0 CONSTANT false

@@ -53,7 +53,7 @@ TO. For instance:
 
 This can be achieved (in a very implementation specific way) in Z79Forth with:
 
-: VALUE CONSTANT ;
+: VALUE CONSTANT UNMONITOR ;
 : TO ( inputstream: <symbol> -- ) ( execution: nn -- )
   >IN @                       \ symSrcStartAddress
   FIND  ?DUP  IF              \ symSrcStartAddress\xt
@@ -66,9 +66,9 @@ This can be achieved (in a very implementation specific way) in Z79Forth with:
     >IN !                     \ Symbol not found
   THEN ; IMMEDIATE
 
-However, if the reliability feature is configured, ICHECK will report a code
-integrity check failure, should the original value of the constant ever be
-altered.
+Please note the reference to UNMONITOR in the definition of VALUE. This will
+cause the reliability feature to ignore changes to the constant's value after
+its original definition.
 
 See https://forth-standard.org/standard/testsuite#test:core:VALUE for test
 patterns. This particular implementation passes the test patterns but the

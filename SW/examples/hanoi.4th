@@ -40,18 +40,18 @@ CREATE RING  N 2+  ALLOT               ( array[1..N] of bytes )
 
 : PRESENCE ( tower ring -- flag )
   RING +  C@  = ;
-: LINE ( tower line -- display_line_of_top )
+: HLINE ( tower line -- display_line_of_top )
   4 SWAP  N 0 DO
     DUP I PRESENCE 0= ( ABS ) ROT + SWAP
   LOOP DROP ;
 
 : RAISE ( size tower -- )
-  DUP  POS  SWAP  LINE  2  SWAP  DO
+  DUP  POS  SWAP  HLINE  2  SWAP  DO
     2DUP I BL DISPLAY  2DUP  I 1- COLOR DISPLAY
   -1 +LOOP  2DROP ;
 
 : LOWER ( size tower -- )
-  DUP  POS  SWAP  LINE 1+ 2 DO
+  DUP  POS  SWAP  HLINE 1+ 2 DO
     2DUP  I 1-  BL DISPLAY
     2DUP I COLOR DISPLAY
   LOOP 2DROP ;  

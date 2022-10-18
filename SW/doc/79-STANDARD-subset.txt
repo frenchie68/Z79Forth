@@ -168,8 +168,8 @@ the 79-STANDARD specification.
 
 5 1994 ANSI draft 6 Words
 -------------------------
-['] .S ACCEPT CELLS CHAR [CHAR] COMPILE, INVERT KEY? NIP POSTPONE S>D S"
-SOURCE U> TUCK UNLOOP WITHIN
+['] .S ACCEPT AHEAD CELLS CHAR [CHAR] COMPILE, INVERT KEY? NIP POSTPONE S>D S"
+SOURCE U> TUCK UNLOOP WITHIN :NONAME
 
 Note: KEY? U> and WITHIN return the 79-STANDARD version of true, i.e. 1.
 When porting code originally designed for an ANSI environment, the ANSI true
@@ -241,7 +241,7 @@ UNLESS	Perl inspired. Functionally equivalent to:
 UNMONITOR ( -- ) If the running EEPROM image was compiled with a non-zero
 	RELFEAT (see constants.asm), newly created CONSTANTs will automatically
 	be monitored (see MONITOR above). However, ANSI VALUEs are nothing
-	than CONSTANTs which value can be altered. Invoking UNMONITOR
+	other than CONSTANTs which value can be altered. Invoking UNMONITOR
 	immediately after having created a CONSTANT (or any : definition) will
 	cause that object's payload not to be included for integrity check.
 
