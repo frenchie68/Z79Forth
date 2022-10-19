@@ -3,8 +3,9 @@ This project has a hardware component and a software component.
 
 - hardware: an Hitachi 63C09 based single board computer, aka the "Z79Forth
   Reference Board."
-- software: a 79-STANDARD sub-set implementation entirely written in assembly
-  language.
+- software: an ANS94 full core word set implementation entirely written in
+  assembly language. Some primitives of the "Core ext" word set are also
+  supplied.
 
 Additionally, some sample application programs and benchmarks are provided.
 Please note that the GPL version 3 only applies to the assembly code. The
