@@ -6,15 +6,6 @@
 
 : /string DUP >R - SWAP R> + SWAP ;
 : cell 1 CELLS ;
-: cell+ cell + ;
-: ' FIND ;
-: >body ( xt -- a-addr ) 9 + ; \ Data addr for a CREATEd word
-\ The ANSI MOVE.
-: MOVE ( addr1 addr2 u -- )
-  DUP 2OVER                \ addr1 addr2 u u addr1 addr2
-  SWAP -                   \ addr1 addr2 u u addr2-addr1
-  SWAP                     \ addr1 addr2 u addr2-addr1 u
-  U< IF CMOVE> ELSE CMOVE THEN ;
 
 \ end Z79Forth glue code.
 
@@ -23,7 +14,7 @@
 
 : method ( m v -- m' v )
   CREATE
-    OVER , SWAP cell+ SWAP
+    OVER , SWAP CELL+ SWAP
   DOES> ( ... o -- ... )
     @ OVER @ + @ EXECUTE ;
 
@@ -47,7 +38,7 @@ CREATE object cell , 2 CELLS ,
       ['] noop , cell
     +LOOP
   THEN
-  cell+ DUP cell+ R> ROT @
+  CELL+ DUP CELL+ R> ROT @
   2 CELLS /string move ;
 
 : defines ( xt class -- ) ' >body @ + ! ;

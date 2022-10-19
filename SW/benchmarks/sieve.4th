@@ -27,10 +27,11 @@ VARIABLE FLAGS SIZE 1+ ALLOT
     THEN
   LOOP DROP ;
 
-FIND DO-PRIME 50 BENCHME
-\ @ 3 MHz native: 3m45s--4.3s per round
-\ @ 4 MHz native: 2m49s--3.4s per round
-\ @ 5 MHz native: 2m15s--2.7s per round
-
+\ FIND DO-PRIME 50 BENCHME ( 79-STANDARD )
+\ ' DO-PRIME 50 BENCHME ( ANS94 )
+\ Z79-STANDARD @ 3 MHz native: 3m45s--4.3s per round
+\ Z79-STANDARD @ 4 MHz native: 2m49s--3.4s per round
+\ Z79-STANDARD @ 5 MHz native: 2m15s--2.7s per round
+\ ANS94 @ 4 MHz native: 2m45--3.3s per round
 \ -------------------------------------------------------------
 

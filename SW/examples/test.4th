@@ -42,6 +42,14 @@ DECIMAL
   LOOP SPACE ;
 
 \ -------------------------------------------------------------
+\ RECURSE validation in :NONAME context.
+
+DEFER fp  ok
+:NONAME ?DUP IF DUP 1- RECURSE * EXIT THEN 1 ; IS fp
+7 fp . \ 5040 is printed
+5 fp . \ 120 is printed
+
+\ -------------------------------------------------------------
 \ Pictured numbers demo.
 
 DECIMAL
@@ -65,6 +73,7 @@ DECIMAL
 8 4 * 7 + CONSTANT B32LEN ( data + delimiters )
 CREATE B32BUF B32LEN ALLOT
 VARIABLE B32PTR
+: -! SWAP NEGATE SWAP +! ;
 : 1-! 1 SWAP -! ;
 : B32EMIT B32PTR @ C! B32PTR 1-! ;
 : BIN32 B32BUF B32LEN BL FILL 2DUP
@@ -117,11 +126,35 @@ DECIMAL
 \ Leave validation
 
 DECIMAL
-: FOO 10 0 DO
-    I DUP . 7 = IF
-      LEAVE
-    THEN
+: FOO
+  [CHAR] F [CHAR] A DO
+    CR 10 0 DO
+      I 7 = IF LEAVE THEN
+      I .
+    LOOP
+    I [CHAR] C = IF LEAVE THEN
+    I EMIT
   LOOP ;
+\ Expected output:
+0 1 2 3 4 5 6 A 
+0 1 2 3 4 5 6 B 
+0 1 2 3 4 5 6  ok
+
+$C7 0 C!                 \ Plant illegal opcode at address zero
+: BAR
+  [CHAR] F [CHAR] A DO
+    CR
+    I [CHAR] C = IF LEAVE THEN
+    I EMIT SPACE
+    10 0 DO
+      I 7 = IF LEAVE THEN
+      I .
+    LOOP
+  LOOP ;
+\ Expected output:
+A 0 1 2 3 4 5 6 
+B 0 1 2 3 4 5 6
+Illegal opcode near 0001
 
 \ -------------------------------------------------------------
 \ From Alain Pinaud's "Programmer en Forth"
@@ -130,7 +163,7 @@ DECIMAL
   SWAP 1+
   * 2* ALLOT
   DOES>
-    ROT OVER @ * ROT + 2* + 2+ ;
+    ROT OVER @ * ROT + 2* + 2 + ;
 8 4 2DARR DUMMY
 
 \ -------------------------------------------------------------
@@ -139,7 +172,7 @@ DECIMAL
 : CHARS CREATE
   DUP , ALLOT
   DOES>
-    DUP 2+ SWAP @ ;
+    DUP 2 + SWAP @ ;
 20 CHARS TOTO
 
 \ -------------------------------------------------------------
@@ -186,7 +219,7 @@ TYPE 4.294.967.295 OK
 \ BEGIN/AGAIN testing
 : TRUC BEGIN DUP 7 > IF DROP EXIT ELSE DUP . 1+ THEN AGAIN ;
 0 TRUC .S
-# Expedted output is
+# Expected output is
 0 TRUC .S 0 1 2 3 4 5 6 7  OK
 
 \ -------------------------------------------------------------

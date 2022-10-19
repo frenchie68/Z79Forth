@@ -6,20 +6,16 @@ DECIMAL
 : E.MARKER ;  ( Allow editor's code memory to be disposed of )
 
 ( GNU Forth specific material )
-( : BLANKS BL FILL ; )
-( : 2+ 2 + ; )
-( : 1+! DUP @ 1+ SWAP ! ; )
-( : -! SWAP NEGATE SWAP +! ; )
 ( : NOT 0= ; )
-( : FIND ' ;    ( This overrides the ANSI FIND... )
-( : E.64* 64 * ; )
 ( : UNLESS ['] 0= COMPILE, POSTPONE IF ; IMMEDIATE RESTRICT )
 ( : MONITOR ; )
 
-( Z79Forth specific material )
-: E.64* 6 SHIFT ;
-
 ( Generic part of the implementation )
+: E.64* 6 LSHIFT ;
+: 2+ 2 + ;
+: 1+! DUP @ 1+ SWAP ! ;
+: -! SWAP NEGATE SWAP +! ;
+
 CHAR 0 CONSTANT E.ASC.0
 CHAR $ CONSTANT E.ASC.$
     27 CONSTANT E.ASC.ESC
@@ -60,7 +56,7 @@ VARIABLE E.CMD.COUNT VARIABLE E.CMD.SUBCOUNT
 VARIABLE E.MINICOM.BUG.WORKAROUND
 
 : SCR1 SCR @ BLOCK ;
-: WIPE ( -- ) SCR1 1024 BLANKS UPDATE FLUSH ;
+: WIPE ( -- ) SCR1 1024 BLANK UPDATE FLUSH ;
 
 : E.ISDIGIT ( n -- f ) E.ASC.0 [CHAR] 9 1+ WITHIN ;
 : E.CMD.COUNT.CLR 0 E.CMD.COUNT ! ;
@@ -298,22 +294,26 @@ VARIABLE E.MINICOM.BUG.WORKAROUND
 ( An associative array of sorts )
 ( A poor man's replacement for a CASE primitive )
 CREATE E.CMD.JUMPTBL
-CHAR l , FIND E.CUF ,          CHAR h , FIND E.CUB ,
-CHAR j , FIND E.CUD ,          CHAR k , FIND E.CUU ,
-CHAR i , FIND E.SW2INS ,       CHAR R , FIND E.SW2RPL ,
-CHAR 0 , FIND E.SOL ,          CHAR $ , FIND E.EOL ,
-CHAR x , FIND E.DCH ,          CHAR r , FIND E.RPL.1CHAR ,
-CHAR a , FIND E.APPEND ,       7      , FIND E.SITREP ,
-CHAR X , FIND E.DCH.BACK ,     CHAR f , FIND E.CHAR.FIND ,
-CHAR w , FIND E.WORD.FWD ,     CHAR W , FIND E.WORD.FWD ,
-CHAR b , FIND E.WORD.BCK ,     CHAR B , FIND E.WORD.BCK ,
-CHAR G , FIND E.LINE.GO ,      E.ASC.CR , FIND E.LINE.DOWN ,
-CHAR + , FIND E.LINE.DOWN ,    CHAR - , FIND E.LINE.UP ,
-CHAR d , FIND E.DELETE ,
-0      ,             MONITOR   ( End of table marker )
+CHAR l , ' E.CUF ,        CHAR h   , ' E.CUB ,
+CHAR j , ' E.CUD ,        CHAR k   , ' E.CUU ,
+CHAR i , ' E.SW2INS ,     CHAR R   , ' E.SW2RPL ,
+CHAR 0 , ' E.SOL ,        CHAR $   , ' E.EOL ,
+CHAR x , ' E.DCH ,        CHAR r   , ' E.RPL.1CHAR ,
+CHAR a , ' E.APPEND ,     7        , ' E.SITREP ,
+CHAR X , ' E.DCH.BACK ,   CHAR f   , ' E.CHAR.FIND ,
+CHAR w , ' E.WORD.FWD ,   CHAR W   , ' E.WORD.FWD ,
+CHAR b , ' E.WORD.BCK ,   CHAR B   , ' E.WORD.BCK ,
+CHAR G , ' E.LINE.GO ,    E.ASC.CR , ' E.LINE.DOWN ,
+CHAR + , ' E.LINE.DOWN ,  CHAR -   , ' E.LINE.UP ,
+CHAR d , ' E.DELETE ,
+0      ,                  MONITOR   ( End of table marker )
 
 : E.COMMAND ( -- ) KEY DUP [CHAR] : = IF ( : handling )
-    DROP KEY [CHAR] q = IF E.SW2QUT KEY DROP THEN EXIT THEN
+    DROP KEY [CHAR] q = IF
+      E.SW2QUT KEY DROP
+    THEN
+    EXIT
+  THEN
   ( 0 is not considered digit count unless E.CMD.COUNT is NZ )
   DUP E.ASC.0 = E.CMD.COUNT @ 0= AND UNLESS
     DUP E.ISDIGIT IF        ( Update the command count prefix )
@@ -321,13 +321,18 @@ CHAR d , FIND E.DELETE ,
     THEN
   THEN
   E.CMD.JUMPTBL BEGIN
-    DUP @ 0= IF 2DROP E.CMD.COUNT.CLR EXIT THEN
-    2DUP @ = IF NIP 1 CELLS + @ EXECUTE E.CMD.COUNT.CLR EXIT
+    DUP @ 0= IF
+      2DROP E.CMD.COUNT.CLR EXIT
+    THEN
+    2DUP @ = IF
+      NIP 1 CELLS + @ EXECUTE E.CMD.COUNT.CLR EXIT
     THEN
     2 CELLS +
   AGAIN ;
 
-: E.INS.CR.HANDLE ( -- ) E.LIN# @ 15 = IF EXIT THEN
+: E.INS.CR.HANDLE ( -- ) E.LIN# @ 15 = IF
+    EXIT
+  THEN
   0 E.LIN# @ 1+ E.SCR-ADDR.GET
     DUP 64 +
     14 E.LIN# @ - E.64*
@@ -336,8 +341,8 @@ CHAR d , FIND E.DELETE ,
     0 E.LIN# @ 1+ E.SCR-ADDR.GET DUP >R
     64 E.COL# @ - DUP >R
     CMOVE
-  E.CUR-ADDR.GET I BLANKS
-  I' I + E.COL# @ BLANKS
+  E.CUR-ADDR.GET I BLANK
+  I' I + E.COL# @ BLANK
   R> E.VT100.DCH R> DROP
   0 E.COL# ! E.LIN# 1+!
   E.CUR.STATUS.CUP E.VT100.ED$
@@ -371,7 +376,9 @@ CHAR d , FIND E.DELETE ,
   THEN  E.COL# 1+! ;
 
 ( We wrap from col #63 to the first col on the next line )
-: E.RPL.1CHAR.HANDLE ( c -- ) DUP E.ASC.TAB = IF DROP EXIT THEN
+: E.RPL.1CHAR.HANDLE ( c -- ) DUP E.ASC.TAB = IF
+    DROP EXIT
+  THEN
   DUP E.CUR-ADDR.GET C!  EMIT
   E.COL# @ 63 <> IF
     E.COL# 1+!
@@ -383,7 +390,7 @@ CHAR d , FIND E.DELETE ,
   THEN ;
 
 : E.TO-EOL.BLANK ( -- )
-  64 E.COL# @ - E.CUR-ADDR.GET OVER BLANKS  SPACES ;
+  64 E.COL# @ - E.CUR-ADDR.GET OVER BLANK  SPACES ;
 : E.RPL.CR.HANDLE ( -- ) E.TO-EOL.BLANK
   E.LIN# @ 15 <> IF
     0 E.COL# !  E.LIN# 1+!  E.TO-EOL.BLANK

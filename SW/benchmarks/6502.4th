@@ -89,7 +89,8 @@ CREATE TESTCODE
     INIT-VM 6502 6502EMU [CHAR] . EMIT
   LOOP SPACE ;
 
-\ @ 3 MHz native: 1 round: about 13m15s
-\ @ 4 MHz native: 1 round: about 9m56s
-\ @ 5 MHz native: 1 round: about 7m57s
+\ 79-STANDARD @ 3 MHz native: 1 round: about 13m15s
+\ 79-STANDARD @ 4 MHz native: 1 round: about 9m56s
+\ 79-STANDARD @ 5 MHz native: 1 round: about 7m57s
+\ ANS94 @ 4 MHz native: 1 round: about 9m50s
 

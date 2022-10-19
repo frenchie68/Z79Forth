@@ -1,15 +1,7 @@
 \ Z79Forth specific code by Francois Laagel: June 28, 2022.
 
 \ Begin Z79Forth specific code.
-\ We resort to -1 as a scratch BLOCK here so as to be able to
-\ use FIND. Please note that BUFFER would not do it since
-\ FIND insists on the buffer being mapped (read from CF).
-: isvalidword ( -- flag )
-  >IN @ >R BLK @ >R        \ Save >IN, BLK
-  HERE COUNT 1+            \ nameaddr\1+namebcount
-  -1 BLOCK SWAP CMOVE
-  0 >IN ! -1 BLK ! FIND    \ FORTH-83/ANSI would have ' here
-  R> BLK ! R> >IN ! ;      \ Restore BLK, >IN
+: isvalidword ( -- flag ) HERE FIND NIP 0<> ;
 
 : wordlen ( hdraddr -- wordlen ) C@ $1F AND ;
 
@@ -21,16 +13,14 @@
   DUP HERE C!              \ flagsaddr\wordlen
   SWAP 1+ SWAP             \ nameaddr\wordlen
   HERE 1+ SWAP CMOVE
-  HERE COUNT               \ stringbaseaddr\stringbcount
-  2DUP + BL SWAP C! ;      \ Add trailing space for FIND
+  HERE COUNT ;             \ stringbaseaddr\stringbcount
 
 \ Find out if RELFEAT was enabled in the running EEPROM image.
-FIND ICHECK DROP PAYLOAD 1 <>
-3 + CONSTANT minhdroverhead
+' ICHECK DROP PAYLOAD 1 <> ABS 3 + CONSTANT minhdroverhead
 
 \ WORDBYADDR (Forthwin): Retrieve word name as a counted
 \ string that can be passed to TYPE. The word we lookup is
-\ assumed to have been CREATEd, i.e. xxx returns FIND xxx 9 +.
+\ assumed to have been CREATEd, i.e. xxx returns ' xxx 9 +.
 \ Minimal header overhead is 4 bytes (3 if RELFEAT has been
 \ disabled).
 : wordbyaddr ( addr -- cstringaddr cstringbcount )
@@ -48,19 +38,14 @@ FIND ICHECK DROP PAYLOAD 1 <>
     I + minhdroverhead + I' = IF
       I hdraddr>cstring
       isvalidword IF
-        R> R> 2DROP EXIT
+        UNLOOP EXIT
       THEN
       2DROP
     THEN
     R> 1-
   AGAIN ;
 
-: cell+ 1 CELLS + ;
 : cell- 1 CELLS - ;
-\ Redefine = and 0= for ANSI semantics (true is -1).
-: = = IF -1 ELSE 0 THEN ;
-: 0= 0 = ;
-: 0<> 0= INVERT ;
 \ End Z79Forth specific code.
 
 : question: CREATE

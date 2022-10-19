@@ -1,5 +1,5 @@
+MARKER pal.marker
 : num>str ( n -- addr bytecount ) S>D <# #S #> ;
-
 : lasteqfirst? ( addr offsetlast -- flag )
   OVER + C@ SWAP C@ = ;
 
@@ -16,4 +16,4 @@
       TYPE SPACE
     ELSE 2DROP THEN
     1+ DUP 50000 =
-  UNTIL DROP ;            pal FORGET num>str
+  UNTIL DROP ;            pal pal.marker

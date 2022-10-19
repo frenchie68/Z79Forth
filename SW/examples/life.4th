@@ -35,12 +35,9 @@ DECIMAL
 \ Glue Code
 \ *************************************************************
 : OFF 0 SWAP ! ;
-: 0<> IF -1 ELSE 0 THEN ;
-\ Add ANSI flag semantics to the builtin WITHIN
-: WITHIN WITHIN 0<> ;
-: 2R@ I' I ;
-: 2R> R> R> SWAP ;
-: 2>R SWAP >R >R ;
+\ : 2R@ I' I ;
+\ : 2R> R> R> SWAP ;
+\ : 2>R SWAP >R >R ;
 \ Test code for the above double primitives.
 \ : test 1 2 2>R   2R@ .S 2DROP CR   2R> .S 2DROP ;
 

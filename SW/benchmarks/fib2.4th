@@ -17,10 +17,12 @@ DECIMAL
     I FIB2 DROP
   LOOP ;
 
-FIND FIB2-BENCH 10 BENCHME
-\ @ 3 MHz native: 11m55s for 10 rounds--1m11.5s per round
-\ @ 4 MHz native: 8m57s for 10 rounds--53.7s per round
-\ @ 5 MHz native: 7m09s for 10 rounds--42.9s per round
+\ FIND FIB2-BENCH 10 BENCHME
+' FIB2-BENCH 10 BENCHME
+\ 79-STANDARD @ 3 MHz native: 11m55s for 10 rounds--1m11.5s per round
+\ 79-STANDARD @ 4 MHz native: 8m57s for 10 rounds--53.7s per round
+\ 79-STANDARD @ 5 MHz native: 7m09s for 10 rounds--42.9s per round
+\ ANS94 @ 4 MHz native: 9m57s for 10 rounds--59.7s per round
 
 \ -------------------------------------------------------------
 

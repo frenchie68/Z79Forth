@@ -2,26 +2,24 @@
 \ Original code by Demitri Peynado: May 13, 2021.
 
 \ begin Z79Forth glue code.
-: ABORT" POSTPONE IF
-  POSTPONE ."
-  POSTPONE ABORT
-  POSTPONE THEN ; IMMEDIATE RESTRICT
 
-: DEFER ( "name" -- )
-  CREATE ['] ABORT ,
-  DOES> ( ... -- ... )
-    @ EXECUTE ;
-: DEFER! ( xt1 xt2 -- ) 9 + ! ;         \ Z79Forth specific
-: IS ( xt "<spaces>name" -- ) STATE @ IF
-    POSTPONE [']   POSTPONE DEFER!
-  ELSE
-    FIND DEFER!
-  THEN
-; IMMEDIATE
+\ This is extremely useful for debugging call stacks.
+\ It may not work properly if bytes are on the system
+\ stack of the 6309 though!
+\ : sysstkdump S
+\   BEGIN
+\     DUP $8000 U<
+\   WHILE  
+\     CR DUP @ .'  
+\     1 CELLS + 
+\   REPEAT
+\   DROP ;
 
 VARIABLE curblk  \ Init'ed by reset-input, updated by advance
 -1 CONSTANT true
 0 CONSTANT false
+
+: 1+! DUP @ 1+ SWAP ! ;
 
 \ end Z79Forth glue code.
 
@@ -38,9 +36,9 @@ VARIABLE copy-len
     EXIT
   THEN
   \ End of block detected. Switch to the next one.
-  \ blocks 600-602 have the BNF syxtax description for the
-  \ ValgolI language. Block 603 has a sample program.
-  curblk @ 603 U> ABORT" Read beyond block 603!"
+  \ blocks 790-792 have the BNF syxtax description for the
+  \ ValgolI language. Block 793 has a sample program.
+  curblk @ 793 U> ABORT" Read beyond block 793!"
   curblk 1+!
   reset-input ;
 
@@ -145,7 +143,7 @@ VARIABLE copy-len
   THEN ;
 
 \ Input
-: bnfload 600 curblk !   \ Syntax spec. lives at blk 600-602
+: bnfload 790 curblk !   \ Syntax spec. lives at blk 790-792
   reset-input ;
 
 \ Meta II Meta Compiler Bootstrap
@@ -289,9 +287,9 @@ DEFER rule
 bnfload                        \ Load 1st block of syntax def.
 program                        \ Generate compiler source code
 \ The generated code has to be sourced from the console input.
-603 LIST                       \ Sample ValgolI program
-false valgoli DROP             \ Load the sample program
+793 LIST                       \ Sample ValgolI program
+false CR valgoli DROP          \ Load the sample program
 \ Cut and paste the output and invoke the sample program
 CR run                         \ Run the sample program
-dis run                        \ Showing off!
+see run                        \ Showing off!
 

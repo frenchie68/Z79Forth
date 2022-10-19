@@ -64,5 +64,5 @@ VARIABLE asciib $E ALLOT  \ Buffer for the ASCII character dump
     THEN
   AGAIN ;
 
-\ FIND DOES> PAYLOAD dump
+\ ' DOES> PAYLOAD dump
 

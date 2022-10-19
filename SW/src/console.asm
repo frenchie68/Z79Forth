@@ -131,13 +131,10 @@ _BS	lda	#BS
 
 * Receive CR terminated string and store it to X.
 * Upon entry B contains the receiving buffer length.
-* (excluding the NUL terminator). On exit, B will
-* contain the number of characters entered (excluding
-* the trailing NUL). A and X are preserved. B will
-* have the actual number of characters entered.
-* Implementation of $05D9 in the TRS-80 Level II ROM.
-GETS	cmpb	#2
-	bhs	@gets0		B must be 2 or more
+* On exit, B will contain the number of characters
+* entered. A and X are preserved.
+GETS	tstb
+	bne	@gets0		If B is zero, do nothing
 	rts
 @gets0	pshs	x,d
 @gets1	bsr	GETCH
@@ -164,11 +161,9 @@ GETS	cmpb	#2
 	bsr	PUTCH
 	sta	,x+
 	decb
-	cmpb	#1		End of buffer reached?
 	bne	@gets1
-@gets6	lda	#SP
+@gets6	lda	#SP		End of buffer reached or CR entered
 	bsr	PUTCH
-	clr	,x
 	tfr	x,d
 	subd	2,s		Actual number of characters entered
 	stb	1,s		Stored to B (through the system stack).		

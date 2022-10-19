@@ -29,10 +29,12 @@ DECIMAL
     LOOP
   LOOP ;
 
-FIND GCD3-BENCH 10 BENCHME
-\ @ 3 MHz native: 1m1s for 10 rounds--6.1s per round
-\ @ 4 MHz native: 46s for 10 rounds--4.6s per round
-\ @ 5 MHz native: 37s for 10 rounds--3.7s per round
+\ FIND GCD3-BENCH 10 BENCHME
+' GCD3-BENCH 10 BENCHME
+\ 79-DTANDARD @ 3 MHz native: 1m1s for 10 rounds--6.1s per round
+\ 79-STANDARD @ 4 MHz native: 46s for 10 rounds--4.6s per round
+\ 79-STANDARD @ 5 MHz native: 37s for 10 rounds--3.7s per round
+\ ANS94 @ 4 MHz native: 58s for 10 rounds--5.8s per round
 
 \ -------------------------------------------------------------
 

@@ -3,6 +3,10 @@
 CSSNTVE	equ	0		Words and HEX numbers are case sensitive if NZ
 SSDFEAT	equ	1		Set to 1 to enable the symbolic stack dump feat.
 RELFEAT	set	1		Set to 1 to enable the reliability feature
+
+* Ultimately, this one should just go and become the only available option.
+ANSFEAT	set	1		Set to 1 to enable the ANS94 Core feature set
+
 *				Caution: when this is enabled, you can no
 *				longer fit a DEBUG image into an 8 KB EEPROM
 RTCFEAT	equ	0		Cool but the reliability feature must go...
@@ -25,8 +29,12 @@ RELFEAT	set	0		HVNMI and HVNMI2 disable RELFEAT
 	ENDC			HVNMI
 	ENDC			RTCFEAT
 
+	IFNE	ANSFEAT
+RELFEAT	set	0
+	ENDC
+
 * Control flow stack implemented on the top of the data stack.
-CSPUSH	EQU	NPUSH  
+CSPUSH	EQU	NPUSH
 CSPOP	EQU	NPOP
 
 * Memory map.
@@ -175,7 +183,7 @@ RSTKSZ	equ	128		Expressed in bytes
 CMDBFSZ	equ	132		Command line entry buffer
 HEXBFSZ	equ	80
 TBUFSZ	equ	72		Used by VLIST to print word name and CVNSTR
-PADBSZ	equ	1+80		79-STANDARD mandates a minimum of 64 bytes
+PADBSZ	equ	84		79-STANDARD mandates a minimum of 64 bytes
 SERBSZ	equ	64		Serial buffer size. Needs to be a power of 2
 
 * Dictionary flag masks.
@@ -191,6 +199,14 @@ MONFLM	equ	$20		Monitored flag mask. This indicates that the
 *				on variable word contents is guaranteed to
 *				raise ICHECK's attention.
 	ENDC
+
+* Division function codes and options.
+DVFSLMD	equ	0		Function is /MOD
+DVFMOD	equ	1		Function is MOD
+DVFDIV	equ	2		Function is /
+DVOA1D	equ	8		Argument 1 is a double (FM/MOD SM/REM)
+DVOWSYM	equ	16		Want symmetric division (default is floored)
+DVFMASK	equ	7		Mask for extracting function codes
 
 WRLNMSK	equ	$1F		31 character is the maximum word length
 

@@ -1,3 +1,5 @@
+\ Those results were collected using the 79-STANDARD flavor of Z79Forth.
+
 6502	@ 3 MHz native: 1 round: about 13m15s
 6502	@ 4 MHz native: 1 round: about 9m56s
 6502	@ 5 MHz native: 1 round: about 7m57s
@@ -13,15 +15,15 @@ collatz	@ 5 MHz native: 3m30s
 deliano	@ 3 Mhz native: 7m53s for 50 rounds--9.5s per round
 deliano	@ 4 Mhz native: 5m55s for 50 rounds--7.1s per round
 deliano	@ 5 Mhz native: 4m44s for 50 rounds--5.7s per round
-dfib1	@ 3 MHz native: 52s
-dfib1	@ 4 MHz native: 39s
-dfib1	@ 5 MHz native: 31.5s
-dfib1	@ 3 MHz native: 9m37s
-dfib1	@ 4 MHz native: 7m12s
-dfib1	@ 5 MHz native: 5m48s
-dfib1	@ 3 MHz native: 1h46m25s
-dfib1	@ 4 MHz native: 1h19m49s
-dfib1	@ 5 MHz native: 1h03m51s
+dfib1/24@ 3 MHz native: 52s
+dfib1/24@ 4 MHz native: 39s
+dfib1/24@ 5 MHz native: 31.5s
+dfib1/29@ 3 MHz native: 9m37s
+dfib1/29@ 4 MHz native: 7m12s
+dfib1/29@ 5 MHz native: 5m48s
+dfib1/34@ 3 MHz native: 1h46m25s
+dfib1/34@ 4 MHz native: 1h19m49s
+dfib1/34@ 5 MHz native: 1h03m51s
 dupdrop	@ 3 MHz native: 6m03s for 100 rounds--3.63s per round
 dupdrop	@ 4 MHz native: 4m32s for 100 rounds--2.72s per round
 dupdrop	@ 5 MHz native: 3m38s for 100 rounds--1.88s per round

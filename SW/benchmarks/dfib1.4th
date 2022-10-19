@@ -5,29 +5,32 @@ DECIMAL
     2DROP 1 0
   ELSE
     2DUP
-    -1 -1 D+ RECURSE
-    2SWAP -2 -1 D+ RECURSE
+    -1. D+ RECURSE
+    2SWAP -2. D+ RECURSE
     D+
   THEN ;
 
 \ -------------------------------------------------------------
 24 0 dfib1 d.
 \ 75025 is displayed, i.e. fib(25)
-\ @ 3 MHz native: 52s
-\ @ 4 MHz native: 39s
-\ @ 5 MHz native: 31.5s
+\ 79-STANDARD @ 3 MHz native: 52s
+\ 79-STANDARD @ 4 MHz native: 39s
+\ 79-STANDARD @ 5 MHz native: 31.5s
+\ ANS94 @ 4 MHz native: 22s
 
 29 0 dfib1 d.
 \ 832040 is displayed, i.e. fib(30)
-\ @ 3 MHz native: 9m37s
-\ @ 4 MHz native: 7m12s
-\ @ 5 MHz native: 5m48s
+\ 79-STANDARD @ 3 MHz native: 9m37s
+\ 79-STANDARD @ 4 MHz native: 7m12s
+\ 79-STANDARD @ 5 MHz native: 5m48s
+\ ANS94 @ 4 MHz native: 3m57s
 
 34 0 dfib1 d.
 \ 9227465 is displayed, i.e. fib(35)
-\ @ 3 MHz native: 1h46m25s
-\ @ 4 MHz native: 1h19m49s
-\ @ 5 MHz native: 1h03m51s
+\ 79-STANDARD @ 3 MHz native: 1h46m25s
+\ 79-STANDARD @ 4 MHz native: 1h19m49s
+\ 79-STANDARD @ 5 MHz native: 1h03m51s
+\ ANS94 @ 4 MHz native: 43m50s
 
 \ Fact checking source: https://oeis.org/A000045/b000045.txt
 \ -------------------------------------------------------------

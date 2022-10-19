@@ -22,7 +22,7 @@ $C7 C,  0 C,  " illopc"         \ Illegal opcode (debug mode)
 MONITOR
 
 : instr>opsize ( table-addr -- table-addr opsize ) DUP 1+ C@ ;
-: instr>source ( table-addr -- table-addr srcaddr ) DUP 2+ ;
+: instr>source ( table-addr -- table-addr srcaddr ) DUP 2 + ;
 
 : opcode-lookup ( opcode -- table-addr )
   >R opc-table BEGIN
@@ -30,7 +30,7 @@ MONITOR
     OVER C@ R@ = OR IF          \ Opcode match?
       R> DROP EXIT
     THEN
-    2+ DUP C@ 1+ +              \ Point to the next record
+    2 + DUP C@ 1+ +              \ Point to the next record
   AGAIN ;
 
 : hdmp ( value nbytes -- ) BASE @ >R HEX
@@ -38,12 +38,8 @@ MONITOR
 : .tab tab EMIT ;
 : .src ( table-addr -- table-addr ) instr>source COUNT TYPE ;
 
-: dis ( nbytes -- )
-  FIND ?DUP UNLESS
-    ." Undefined word" EXIT     \ Target word must exist
-  THEN
-
-  PAYLOAD SWAP DUP ( nbytes\addr\addr ) ROT + SWAP DO
+: see ( nbytes -- )
+  ' PAYLOAD SWAP DUP ( nbytes\addr\addr ) ROT + SWAP DO
     CR I 2 hdmp SPACE           \ Hex dump the address
     I C@ 1 hdmp                 \ Opcode hex dump
 
@@ -57,13 +53,13 @@ MONITOR
         I 1+ @ 2 hdmp  .tab     \ Operand hex dump
         .src  .tab
         I 1+ @ .'               \ Dump the operand through .'
-        R> 2+ >R                \ Skip the two byte operand
+        R> 2 + >R               \ Skip the two byte operand
       ELSE
         instr>opsize 1 = IF     \ Relative branch
           I 1+ C@ 1 hdmp  .tab  \ Operand hex dump
           .src  .tab
           \ Dump the byte at I+1 and add 2 to it
-          ." *+" I 1+ C@ 2+ 1 hdmp
+          ." *+" I 1+ C@ 2 + 1 hdmp
           R> 1+ >R              \ Skip the one byte operand
         ELSE                    \ No operand
           .tab  .tab  .src
@@ -72,6 +68,4 @@ MONITOR
     THEN
     DROP
   LOOP ;
-
-: see dis ;
 

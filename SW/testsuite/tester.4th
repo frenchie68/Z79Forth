@@ -8,7 +8,7 @@
 \ SET THE FOLLOWING FLAG TO TRUE FOR MORE VERBOSE OUTPUT;
 \ THIS MAY ALLOW YOU TO TELL WHICH TEST CAUSED YOUR SYSTEM
 \ TO HANG.
-0 CONSTANT FALSE         1 CONSTANT TRUE
+0 CONSTANT FALSE         -1 CONSTANT TRUE
 
 VARIABLE VERBOSE   TRUE VERBOSE !
 VARIABLE #ERRORS   0 #ERRORS !
@@ -16,20 +16,8 @@ VARIABLE #ERRORS   0 #ERRORS !
 HEX
 
 : EMPTY-STACK   ( ... -- ) BEGIN DEPTH WHILE DROP REPEAT ;
-: RSHIFT NEGATE SHIFT ;     : LSHIFT SHIFT ;    : ' FIND ;
-: ALIGN ;                   : ALIGNED ;
-: CHARS ; IMMEDIATE         : CHAR+ 1+ ;
-: CELL+ 1 CELLS + ;
-\ The following two words are needed by the block word set test
-: 2R> R> R> SWAP ;
-: 2>R SWAP >R >R ;
-
-\ An ANSI compatible redefinition of the 79-STANDARD MOVE.
-: MOVE ( addr1 addr2 u -- )
-  DUP 2OVER                      \ addr1 addr2 u u addr1 addr2
-  SWAP -                         \ addr1 addr2 u u addr2-addr1
-  SWAP                           \ addr1 addr2 u addr2-addr1 u
-  U< IF CMOVE> ELSE CMOVE THEN ;
+\ : ALIGN ;                   : ALIGNED ;
+\ : CHARS ; IMMEDIATE         : CHAR+ 1+ ;
 
 : ERROR ( C-ADDR U -- )
   CR TYPE CR \ SOURCE DROP >IN @ 63 COM AND + 64 TYPE

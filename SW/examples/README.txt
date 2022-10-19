@@ -9,10 +9,10 @@ Example		Author		Notes
 				challenge. The file has to be sourced from
 				the console.
 
-bernd-oof.4th	Bernd Paysan	Bernd's mini objectr oriented Forth. This must
+bernd-oof.4th	Bernd Paysan	Bernd's mini object oriented Forth. This must
 				be sourced from the console.
 
-blkins.4th	Francois Laagel	Inserts one blank clock in front of a specified
+blkins.4th	Francois Laagel	Inserts one blank block in front of a specified
 				block range. Absolutely not guaranteed to do
 				the right thing.
 
@@ -26,7 +26,7 @@ coop-mtask.4th	Matthias Koch	A sample cooperative multitasker. A sample
 				to COOPMTLOAD
 
 dis.4th		Francois Laagel	The standard disassembler. It is normally loaded
-				automatically from CompactFlash when the
+		Paul E. Bennett	automatically from CompactFlash when the
 				system comes up. Standard invokation is via:
 				SEE <word>
 
@@ -71,7 +71,7 @@ hanoi.4th	Peter Midnight	The classic towers of Hanoi recursion demo.
 				Dimension", however it also benefits from a
 				bug fix found in the VfxForth distribution.
 				It can be loaded from CF storage by resorting
-				to HANLOAD The application is started by
+				to HANLOAD. The application is started by
 				issuing <nn> TOWERS where nn is a number
 				between 2 and 10
 

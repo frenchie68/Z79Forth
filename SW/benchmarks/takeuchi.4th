@@ -10,9 +10,9 @@
 \ Adapted from FORTH-83 (PICK). NIP is ANSI (and builtin).
 
 DECIMAL
-: 3DUP 3 PICK 3 PICK 3 PICK ;
+: 3DUP 2 PICK 2 PICK 2 PICK ;
 : TAK ( x y z -- t )
-  OVER 4 PICK < NEGATE IF
+  OVER 3 PICK < NEGATE IF
     NIP NIP EXIT
   THEN
   3DUP ROT  1- -ROT RECURSE >R
@@ -26,10 +26,12 @@ DECIMAL
   LOOP
   DROP ;
 
-FIND TAKBENCH 200 BENCHME
-\ @ 3 MHz native: 0m55s for 200 rounds--0.28s per round
-\ @ 4 MHz native: 0m42s for 200 rounds--0.21s per round
-\ @ 5 MHz native: 0m33s for 200 rounds--0.17s per round
+\ FIND TAKBENCH 200 BENCHME ( 79-STANDARD )
+' TAKBENCH 200 BENCHME ( ANS94 )
+\ 79-STANDARD @ 3 MHz native: 0m55s for 200 rounds--0.28s per round
+\ 79-STANDARD @ 4 MHz native: 0m42s for 200 rounds--0.21s per round
+\ 79-STANDARD @ 5 MHz native: 0m33s for 200 rounds--0.17s per round
+\ ANS94 @ 4 MHz native: 0m44s for 200 rounds--0.22s per round
 
 \ -------------------------------------------------------------
 

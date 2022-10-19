@@ -56,7 +56,6 @@
 0 CONSTANT false
 : rdepth $12E C@ ;               \ Release dependent!!!
 : nop ;
-: cell+ ( addr1 -- addr2 ) 1 CELLS + ;
 : cell- ( addr1 -- addr2 ) 1 CELLS - ;
 : DEFER ( "name" -- )
   CREATE ['] ABORT ,
@@ -66,7 +65,7 @@
 : IS ( xt "<spaces>name" -- ) STATE @ IF
     POSTPONE [']   POSTPONE DEFER!
   ELSE
-    FIND DEFER!                  \ F83/ANS would have ' DEFER!
+    ' DEFER!
   THEN
 ; IMMEDIATE
 DEFER PAUSE
@@ -293,8 +292,8 @@ TASK: main-task
   AGAIN
 ;
 
-FIND main-code main-task ACTIVATE
-FIND background-code background-task BACKGROUND
+' main-code main-task ACTIVATE
+' background-code background-task BACKGROUND
 
 MULTITASK   \ Select the scheduling algorithm
 main-code   \ Initiate the main task

@@ -261,11 +261,11 @@ T{ LIMIT-TEST-BLOCK FIRST-TEST-BLOCK
 
 \ Double UPDATE make no difference
 : TUF1-1 ( -- ) UPDATE UPDATE FLUSH ;
-T{ FIND TUF1-1 RND-TEST-BLOCK TUF1 -> TRUE }T
+T{ ' TUF1-1 RND-TEST-BLOCK TUF1 -> TRUE }T
 
 \ Double FLUSH make no difference
 : TUF1-2 ( -- ) UPDATE FLUSH FLUSH ;
-T{ FIND TUF1-2 RND-TEST-BLOCK TUF1 -> TRUE }T
+T{ ' TUF1-2 RND-TEST-BLOCK TUF1 -> TRUE }T
 
 \ FLUSH only saves UPDATEd buffers
 : TUF-D T{ RND-TEST-BLOCK              \ blk
@@ -306,7 +306,7 @@ T{ FIND TUF1-2 RND-TEST-BLOCK TUF1 -> TRUE }T
 : 2= ( x1 x2 x3 x4 -- flag )
     ROT = -ROT = AND ;
 : TUF2-0 ( blk1 blk2 -- blk1 blk2 ) ;   \ no updates
-T{ FIND TUF2-0 2RND-TEST-BLOCKS TUF2    \ run test procedure
+T{ ' TUF2-0 2RND-TEST-BLOCKS TUF2    \ run test procedure
    2SWAP 2DROP 2= -> TRUE }T      \ compare expected and actual
 \ ." TUF2-0 "
 : TUF2-1 ( blk1 blk2 -- blk1 blk2 )     \ update blk1 only
@@ -322,7 +322,7 @@ TUF2-2A \ ." TUF2-2A "
 
 : TUF2-3 ( blk1 blk2 -- blk1 blk2 )     \ update blk1 and blk2
     TUF2-1 TUF2-2 ;
-T{ FIND TUF2-3 2RND-TEST-BLOCKS TUF2    \ run test procedure
+T{ ' TUF2-3 2RND-TEST-BLOCKS TUF2    \ run test procedure
    2DROP 2= -> TRUE }T
 
 \ FLUSH and then UPDATE is ambiguous and untestable

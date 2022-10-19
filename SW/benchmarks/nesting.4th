@@ -22,15 +22,19 @@ DECIMAL
 : 32MILLION   25TH ;
 :  1MILLION   20TH ;
 
-FIND 1MILLION 10 BENCHME
-\ @ 3 MHz native: 0m49s for 10 rounds--4.9s per round
-\ @ 4 MHz native: 0m37s for 10 rounds--3.7s per round
-\ @ 5 MHz native: 0m29s for 10 rounds--2.9s per round
+\ FIND 1MILLION 10 BENCHME ( 79-STANDARD )
+' 1MILLION 10 BENCHME ( ANS94 )
+\ 79-STANDARD @ 3 MHz native: 0m49s for 10 rounds--4.9s per round
+\ 79-STANDARD @ 4 MHz native: 0m37s for 10 rounds--3.7s per round
+\ 79-STANDARD @ 5 MHz native: 0m29s for 10 rounds--2.9s per round
+\ ANS94 @ 4 MHz native: 0m37s for 10 rounds--3.7s per round
 
-FIND 32MILLION 10 BENCHME
-\ @ 3 MHz native: 26m06s for 10 rounds--2m37s per round
-\ @ 4 MHz native: 19m35s for 10 rounds--1m57s per round
-\ @ 5 MHz native: 15m40s for 10 rounds--1m34s per round
+\ FIND 32MILLION 10 BENCHME ( 79-STANDARD )
+' 32MILLION 10 BENCHME ( ANS94 )
+\ 79-STANDARD @ 3 MHz native: 26m06s for 10 rounds--2m37s per round
+\ 79-STANDARD @ 4 MHz native: 19m35s for 10 rounds--1m57s per round
+\ 79-STANDARD @ 5 MHz native: 15m40s for 10 rounds--1m34s per round
+\ ANS94 @ 4 MHz native: 19m35s for 10 rounds--1m57s per round
 
 \ -------------------------------------------------------------
 

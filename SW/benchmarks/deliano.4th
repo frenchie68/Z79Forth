@@ -27,9 +27,11 @@ VARIABLE BVAR
    LOOP ;
 
 DECIMAL
-FIND BENCH 50 BENCHME
+\ FIND BENCH 50 BENCHME
+' BENCH 50 BENCHME
 
-\ @ 3 Mhz native: 7m53s for 50 rounds--9.5s per round
-\ @ 4 Mhz native: 5m55s for 50 rounds--7.1s per round
-\ @ 5 Mhz native: 4m44s for 50 rounds--5.7s per round
+\ 79-STANDARD @ 3 Mhz native: 7m53s for 50 rounds--9.5s per round
+\ 79-STANDARD @ 4 Mhz native: 5m55s for 50 rounds--7.1s per round
+\ 79-STANDARD @ 5 Mhz native: 4m44s for 50 rounds--5.7s per round
+\ ANS94 @ 4 Mhz native: 5m54s for 50 rounds--7.08s per round
 

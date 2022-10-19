@@ -2,7 +2,7 @@
 : cn+1                 ( cn -- cm )
   2 /mod swap                        
   if dup 10922 <       ( kein ueberlauf ? )
-    if 3 * 2+ 
+    if 3 * 2 +
     else drop 0 then
   then
 ;
@@ -42,7 +42,8 @@
 ( Funktionstest, Ergebniss muss die Zahl "126" sein )
 32101 cmax .
 
-\ @ 3 MHz native: 5m51s
-\ @ 4 MHz native: 4m23s
-\ @ 5 MHz native: 3m30s
+\ 79-STANDARD @ 3 MHz native: 5m51s
+\ 79-STANDARD @ 4 MHz native: 4m23s
+\ 79-STANDARD @ 5 MHz native: 3m30s
+\ ANS94 @ 4 MHz native: 4m52s
  

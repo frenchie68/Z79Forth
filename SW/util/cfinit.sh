@@ -19,7 +19,7 @@ fi
 # : lifeload 50 76 THRU ;
 
 ./txt2blk -i ../examples/dis.4th -d $CFDEV -s 90 \
--h '\ Z79Forth 6309 disassembler. FLA, June 6, 2020.'
+-h '\ Z79Forth 6309 disassembler. FLA June 6, 2020.'
 # : disload 90 94 THRU ;
 
 ./txt2blk -i ../examples/palflt.4th -d $CFDEV -s 110 \
@@ -41,7 +41,7 @@ fi
 # : dumpload 150 154 THRU ;
 
 ./txt2blk -i ../examples/rtc.4th -d $CFDEV -s 200 \
--h '\ MC146818 RTC Support primitives. FLA. Nov 26,2021'
+-h '\ MC146818 RTC Support primitives. FLA Nov 26,2021'
 # : rtcload 200 205 THRU ;
 
 ./txt2blk -i ../examples/sapin.4th -d $CFDEV -s 300 \
@@ -54,20 +54,27 @@ fi
 
 ./txt2blk -i ../testsuite/tester.4th -d $CFDEV -s 400 \
 -h "\ Z79Forth test suite. Based on Gerry Jackson's Forth2012."
-./txt2blk -i ../testsuite/core.4th -d $CFDEV -s 405 \
+./txt2blk -i ../testsuite/core.4th -d $CFDEV -s 404 \
 -h "\ Z79Forth test suite. Based on Gerry Jackson's Forth2012."
-./txt2blk -i ../testsuite/blocktest.4th -d $CFDEV -s 466 \
+./txt2blk -i ../testsuite/coreexttest.4th -d $CFDEV -s 473 \
+-h "\ Z79Forth test suite. Based on Gerry Jackson's Forth2012."
+./txt2blk -i ../testsuite/blocktest.4th -d $CFDEV -s 527 \
 -h "\ Z79Forth test suite. Based on Steve R. Palmer's Forth2012."
-./txt2blk -i ../testsuite/doubletest.4th -d $CFDEV -s 505 \
+./txt2blk -i ../testsuite/doubletest.4th -d $CFDEV -s 566 \
 -h "\ Z79Forth test suite. Based on Hayes/Jackson's Forth2012."
 
-# : f12testload 400 404 THRU  \ Test infrastructure setup
-#   405 465 THRU              \ Core word set test
-#   466 504 THRU              \ Block word set test
-#   505 538 THRU              \ Double word set test
+# : f12testload 400 403 THRU  \ Test infrastructure setup
+#   404 472 THRU              \ Core word set test
+#   473 526 THRU              \ Core ext set test
+#   527 565 THRU              \ Block word set test
+#   566 599 THRU              \ Double word set test
 # ;
 
-./txt2blk -i ../examples/expsys.4th -d $CFDEV -s 550 \
+./txt2blk -i ../examples/expsys.4th -d $CFDEV -s 800 \
 -h "\ Simple Forth expert system. Demitri Peynado: May 14, 2022."
-# : expsysload 550 560 THRU ;
+# : expsysload 800 809 THRU ;
+
+./txt2blk -i ../examples/ansiextern.4th -d $CFDEV -s 1000 \
+-h "\ ANSI non-EEPROM resident words. FLA Sep 10, 2022."
+# : ansiload 1000 1008 THRU ;
 

@@ -61,13 +61,13 @@ MONITOR
   2digitsout [CHAR] : EMIT
   2digitsout ."  CET 20" 2digitsout ;
 
+MARKER rtc.marker
 : rtcinitialized? ( -- )
   rtcregb RTC@ $80 AND IF \ the SET bit is NZ in RTCB
     ." Please setup the RTC calendar using rttimeset"
     ."  and rtdateset"
   THEN ;
-
-rtcinitialized? FORGET rtcinitialized?
+rtcinitialized? rtc.marker
 
 \ -------------------------------------------------------------
 : d. <# #S #> TYPE ;

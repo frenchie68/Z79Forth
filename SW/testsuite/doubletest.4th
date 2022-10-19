@@ -79,7 +79,7 @@ MIN-INTD 2/     CONSTANT LO-INT     \ 110...1
 
 \ Inspired by GNU Forth's code for D<
 : d> ( d1 d2 -- flag )
-  3 PICK OVER = IF \ MSCs are equal -- ANS would have 2 PICK
+  2 PICK OVER = IF \ MSCs are equal
     \ Return an unsigned comparison of the LSCs
     DROP NIP U> EXIT
   THEN

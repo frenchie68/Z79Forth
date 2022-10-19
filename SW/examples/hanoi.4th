@@ -2,7 +2,7 @@
 ( Z79Forth adaptations, FLA, 07/14/2020.                      )
 
 DECIMAL
-: H.MARKER ;
+MARKER H.MARKER
 CHAR 0 CONSTANT H.ASC.0
     27 CONSTANT H.ASC.ESC
 
@@ -21,8 +21,8 @@ CHAR 0 CONSTANT H.ASC.0
 VARIABLE (N)  NMAX (N) !  : N (N) @ ;
 
 CHAR + CONSTANT COLOR
-CREATE RING  N 2+  ALLOT               ( array[1..N] of bytes )
-  RING NMAX 2+ 0 FILL
+CREATE RING  N 2 +  ALLOT              ( array[1..N] of bytes )
+  RING NMAX 2 + 0 FILL
 
 : DELAY ( centiseconds -- ) 10 * MS ;
 : HWAIT 10 MS ;
@@ -42,7 +42,7 @@ CREATE RING  N 2+  ALLOT               ( array[1..N] of bytes )
   RING +  C@  = ;
 : HLINE ( tower line -- display_line_of_top )
   4 SWAP  N 0 DO
-    DUP I PRESENCE 0= ( ABS ) ROT + SWAP
+    DUP I PRESENCE 0= ABS ROT + SWAP
   LOOP DROP ;
 
 : RAISE ( size tower -- )
@@ -78,7 +78,7 @@ CREATE RING  N 2+  ALLOT               ( array[1..N] of bytes )
   2DUP  RING + 1- C!  SWAP LOWER ;
 
 : MULTIMOV ( size source dest spare -- )
-  4 PICK  1 =  IF
+  3 PICK  1 =  IF
     DROP TMOVE
   ELSE
     >R >R SWAP 1- SWAP R> R>
@@ -116,5 +116,6 @@ CREATE RING  N 2+  ALLOT               ( array[1..N] of bytes )
   UNTIL KEY DROP
   2DROP 2DROP ;
 
-8 TOWERS
-FORGET H.MARKER
+\ 8 TOWERS
+\ H.MARKER
+

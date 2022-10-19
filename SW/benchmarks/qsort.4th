@@ -8,7 +8,7 @@
 
 DECIMAL
 1 CELLS CONSTANT CELL
-: CELL+ CELL + ;
+\ : CELL+ CELL + ;
 : CELL- CELL - ;
 
 VARIABLE SEED
@@ -56,8 +56,10 @@ CREATE LIST ELEMENTS CELLS ALLOT
   QUICK-SORT
   ( DUMP-LIST ) ;
 
-FIND QUICK-SORT-BENCHMARK 50 BENCHME
-\ @ 3 MHz native: 50 rounds: 4m46s--5.74s per round
-\ @ 4 MHz native: 50 rounds: 3m34s--4.28s per round
-\ @ 5 MHz native: 50 rounds: 2m52s--3.44s per round
+\ FIND QUICK-SORT-BENCHMARK 50 BENCHME ( 79-STANDARD )
+\ ' QUICK-SORT-BENCHMARK 50 BENCHME ( ANS94 )
+\ 79-STANDARD @ 3 MHz native: 50 rounds: 4m46s--5.74s per round
+\ 79-STANDARD @ 4 MHz native: 50 rounds: 3m34s--4.28s per round
+\ 79-STANDARD @ 5 MHz native: 50 rounds: 2m52s--3.44s per round
+\ ANS94 @ 4 MHz native: 50 rounds: 3m28s--4.16s per round
 

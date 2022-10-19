@@ -53,7 +53,7 @@ TO. For instance:
 
 This can be achieved (in a very implementation specific way) in Z79Forth with:
 
-: VALUE CONSTANT UNMONITOR ;
+: VALUE CONSTANT ;
 : TO ( inputstream: <symbol> -- ) ( execution: nn -- )
   >IN @                       \ symSrcStartAddress
   FIND  ?DUP  IF              \ symSrcStartAddress\xt
@@ -66,9 +66,9 @@ This can be achieved (in a very implementation specific way) in Z79Forth with:
     >IN !                     \ Symbol not found
   THEN ; IMMEDIATE
 
-Please note the reference to UNMONITOR in the definition of VALUE. This will
-cause the reliability feature to ignore changes to the constant's value after
-its original definition.
+However, if the reliability feature is configured, ICHECK will report a code
+integrity check failure, should the original value of the constant ever be
+altered.
 
 See https://forth-standard.org/standard/testsuite#test:core:VALUE for test
 patterns. This particular implementation passes the test patterns but the
@@ -129,7 +129,6 @@ two numeral
 Test patterns (this requires SW/testsuite/tester.4th to have been loaded
 previously):
 
-: ' FIND ;
 T{ DEFER defer2 ->   }T
 T{ ' * ' defer2 DEFER! -> }T
 T{   2 3 defer2 -> 6 }T
@@ -147,7 +146,7 @@ specifications are quite different. The definition of a proper mapping from one
 to the other is left as an exercise to the reader.
 
 ###############################################################################
->NUMBER cannot be emulated based on CONVERT.
+>NUMBER is implemented in the EEPROM image based on the 79-STANDARD CONVERT.
 
 ###############################################################################
 FORTH-83/ANSI Floored division support
@@ -184,13 +183,24 @@ Miscellaneous ANSI primitives that can come in handy:
   POSTPONE THEN ; IMMEDIATE RESTRICT
 
 ###############################################################################
+79-STANDARD ' (FIND) based on the ANS94 spec:
+
+: ' BL WORD FIND IF
+    EXIT      \ We leave an xt on the data stack
+  THEN
+  DROP 0 ;
+
+Note: This is integrated into the default EEPROM image. There is no need to
+re-define it.
+
+###############################################################################
 In general, it is a bad idea to redefine standard primitives and, by default,
 Z79Forth will provide no warning when a primitive is redefined. However, if
 such a feature is considered desirable, : can be redefined as:
 
 : :
   >IN @
-  FIND IF
+  ' IF
     DUP >IN ! CR ." WARNING: " BL WORD COUNT TYPE
     ."  is being redefined"
   THEN  
@@ -198,7 +208,17 @@ such a feature is considered desirable, : can be redefined as:
   :
 ;
 
+Note: this is ingrated into the CompactFlah image supplied in SW/util/*img.
 Caution: this will not cover CREATEd words, VARIABLE or CONSTANT entities.
+
+###############################################################################
+GNU Forth ALIAS can be defined as:
+
+: alias : compile, postpone ; ;
+
+Examples:
+' RESTRICT alias compile-only
+' THEN alias endif IMMEDIATE
 
 ###############################################################################
 examples/meta2/meta2.4th is a compiler generator based on a BNF (Backus-Naur
@@ -226,17 +246,4 @@ DEFER fact
 
 will work because RECURSE will compile a call to the last named dictionary
 entry, i.e. 'fact'.
-
-###############################################################################
-A useful trick for handling NUL terminated strings, such as those operated
-on by EXPECT:
-
-: cstrtype ( addr -- ) 
-  BEGIN 
-    DUP C@ UNLESS 
-      DROP EXIT 
-    THEN 
-    DUP C@ EMIT 
-    1+ 
-  AGAIN ;
 

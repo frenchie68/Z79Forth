@@ -14,20 +14,21 @@ VARIABLE IX       \ Temporary storage for the value of >IN.
 34 CONSTANT A"        \ ASCII value of double quote.
 41 CONSTANT RPAREN    \ ASCI value of right parenthesis.
 
-1 CELLS CONSTANT CELL  : CELL+ CELL + ;
-
-FIND \ CONSTANT BSLASH
-FIND ( CONSTANT PAREN
+' \ CONSTANT BSLASH
+' ( CONSTANT PAREN
 
 \ F+L Arrays of pointers to formatting words.
-CREATE QUOTES  1 , FIND ."     ,
-CREATE STARTS  1 , FIND :      ,
-CREATE ENDS    1 , FIND ;      ,
-CREATE OUTS    5 , FIND UNTIL  , FIND LOOP   , FIND +LOOP    ,
-                   FIND THEN   , FIND REPEAT ,
-CREATE INS     4 , FIND IF     , FIND DO     , FIND BEGIN    ,
-                   FIND UNLESS ,
-CREATE IN+OUTS 3 , FIND ELSE   , FIND WHILE  , FIND DOES>    ,
+CREATE QUOTES  1 , ' ."     ,
+CREATE STARTS  1 , ' :      ,
+CREATE ENDS    1 , ' ;      ,
+CREATE OUTS    5 , ' UNTIL  , ' LOOP   ,
+                   ' +LOOP  , ' THEN   ,
+                   ' REPEAT ,
+CREATE INS     4 , ' IF     , ' DO     ,
+                   ' BEGIN  ,
+                   ' UNLESS ,
+CREATE IN+OUTS 3 , ' ELSE   , ' WHILE  ,
+                   ' DOES>  ,
 
 \ F+L SFF >= BELL CR? INDENT OUTDENT NEW-LINE
 \ -- Perform a carriage return (maybe) and a form feed (maybe).
@@ -99,14 +100,14 @@ CREATE IN+OUTS 3 , FIND ELSE   , FIND WHILE  , FIND DOES>    ,
 \ -- Type comment line, round up >IN.
 : TYPE-TO-END-OF-LINE CR? TYPE-IT
   BLK @ BLOCK >IN @ +
-    >IN @ 63 COM AND 64 +
+    >IN @ 63 INVERT AND 64 +
   DUP >R >IN @ - -TRAILING TYPE CR? R> >IN ! ;
 
 \ F+L END
 : F+L ( screenno -- ) F+L-INIT BEGIN
     0 FND !  >IN @ IX !  BL WORD DROP  DONE? NOT
   WHILE
-    IX @ >IN !  FIND
+    IX @ >IN !  '
     QUOTES   ??      IF      A"   TYPE-TO-                THEN
     DUP PAREN =      IF  RPAREN   TYPE-TO-                THEN
     DUP BSLASH =     IF           TYPE-TO-END-OF-LINE     THEN
