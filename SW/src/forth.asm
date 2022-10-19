@@ -199,7 +199,7 @@ BSBFADR	rmb	2		Base buffer address for the input stream
 
 * Global variables.
 UBASE	rmb	2		Base for numbers input and output--BASE
-USTATE	rmb	2		0 if interpreting, -1 if compiling--STATE
+USTATE	rmb	2		0 if interpreting, 255 if compiling--STATE
 ISLEN	rmb	2		Input stream length
 ISEADDR	rmb	2		End of input stream address (included)
 UTOIN	rmb	2		User variable for >IN
