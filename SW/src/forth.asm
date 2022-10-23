@@ -230,6 +230,7 @@ ISNEGF	rmb	1		Number being scanned is negative
 ISDBLF	rmb	1		Number being scanned is a double
 CVISSGN	rmb	1		Flag: should CVNSTR consider numbers as signed
 CURTOKL	rmb	1		Current token length. Set by SWDIC
+SVCTOKL	rmb	1		Saved current token length. Set by NUMCVT
 IMDFLG	rmb	1		Immediate flag
 DEFFLG	rmb	1		Define flag
 RTCAVL	rmb	1		NZ if real time clock is present
@@ -732,13 +733,16 @@ FORTHIN	RFXT	jsr,NCLR+7	XT for NCLR. Set up the normal stack
 ISERCHD	pshs	d
 	ldd	ISEADDR
 	beq	@iseset
-@cont	cmpr	x,d
+@cont	cmpr	x,d		CC = (D - X)
 	puls	d
+	blo	@inpovf
 	rts
 @iseset	ldd	BSBFADR
 	addd	ISLEN
 	std	ISEADDR
 	bra	@cont
+@inpovf	ldb	#18		>IN Out of range
+	jsr	ERRHDLR
 
 * Scan for the next non-space character pointed to by X.
 * Return with ZFLAG set if an end of input stream condition is recognized,
@@ -751,8 +755,9 @@ SCNSTOK	bsr	ISERCHD		End of input stream reached?
 	beq	SCNSTOK
 	leax	-1,x		Backward one character
 * LEA affects ZFLAG but it will remain clear at this point.
-@scstk1	stx	TOKENSP		This affects ZFLAG!!!
-	tsta			Have to test again because LEA affects Z
+@scstk1	tfr	cc,a
+	stx	TOKENSP		This affects ZFLAG!!!
+	tfr	a,cc
 	rts
 
 * Scan for the next white space character as an end of token marker.
@@ -774,7 +779,7 @@ SCNETOK	clrb
 	cmpa	#SP
 	bne	@scetok
 	leax	-1,x		Keep pointing at the trailing space
-	decb			Uncount BL if that was the end of token marker
+	decb			Uncount BL as that was the end of token marker
 @scetk1 tfr	cc,a
 	stx	TOKENEP
 	stb	CURTOKL
@@ -808,7 +813,75 @@ CKNBPFX	ldb	,x		B has a potential base prefix character
 	sta	UBASE+1		Update BASE
 	puls	x
 	leax	1,x		Skip the prefix from the input stream
+	dec	CURTOKL		Dor the sanity of NUMCVT
 	rts
+
+* NUMCVT performs a signed string to number conversion. The input string is
+* acquired from the input stream. Note that this routine always is called
+* after a dictionary lookup (SWDIC), so TOKENEP and CURTOKL are guaranteed
+* to have been set previously. There are two ways out this routine:
+* - redirection to the error handler (Undefined word), or
+* - a converted cell or double cell returned through the data stack.
+*   Upon return, ISDBLF being NZ will indicate a double.
+NUMCVT	bsr	CKBASE		No return if BASE isn't in the [2..36] range
+	clr	ISNEGF		Assume the result is positive
+	clr	ISDBLF		Assume the result is not a double number
+	lda	CURTOKL
+	sta	SVCTOKL		Save CURTOKL's value upon entry
+	ldx	TOKENSP
+	bsr	CKNBPFX		Check for numeric literal BASE prefix
+* Check for optional minus sign.
+	lda	,x
+	cmpa	#'-
+	bne	@ncini
+	dec	CURTOKL
+	inc	ISNEGF		Remember to negate the result before returning
+	leax	1,x		Skip the negativity!
+@ncini	tfr	x,y		Backup input stream pointer
+	tfr	0,x		Initialize the result
+	jsr	NPUSH		LSC
+	jsr	NPUSH		MSC
+	tfr	y,x		Restore the input stream pointer
+	jsr	NPUSH		Base scanning address
+	clra
+	ldb	CURTOKL
+	tfr	d,x		Token length to X (might include a trailing .)
+	jsr	NPUSH
+	RFXT	jsr,TONUMBR+10
+* At this point, at least four cells are on the data stack.
+	UCNPOP
+	tfr	x,d		Number of unconverted characters to D
+	UCNPOP			Address of the last non convertible char to X
+	tstd
+	beq	@ncadj		Not dealing with a double
+	cmpd	#1
+	bne	@ncnogo		At most one character must be unconverted
+	lda	,x
+	cmpa	#'.		Was a double number meant?
+	bne	@ncnogo		No, we do not have a winner...
+	inc	ISDBLF
+* Double cell number adjustments.
+	tst	ISNEGF		Are we dealing with a negative number?
+	beq	RSBSPFX		No. Restore BASE if needed--the end
+	RFXT	jsr,DNEG+10	Acknowledge the negativity
+	bra	RSBSPFX		Restore BASE if needed--the end
+* Single cell number adjustments.
+@ncadj	ldd	,u++		MSC Should be zero
+	beq	@cvsnok
+	ldb	#4		Out of range error if not
+	jsr	ERRHDLR		No return
+@cvsnok	tst	ISNEGF		Are we dealing with a negative number?
+	beq	RSBSPFX		No. Restore BASE if needed--the end
+	RFXT	jsr,NEGATE+9	Acknowledge the negativity
+	bra	RSBSPFX		Restore BASE if needed--the end
+@ncnogo	leau	4,u		Drop two cells from the data stack
+	lda	SVCTOKL
+	sta	CURTOKL		Restore CURTOKL's original value
+	ldx	TOKENSP		Beginning address of the current token
+	ldb	#2		Undefined (X points to the offending word)
+	jsr	ERRHDLR		No return
+NUMCVRA	equ	*		For symbolic stack dump purposes
+	nop
 
 * Restore BASE if a numeric literal BASE prefix was detected.
 * X is to be preserved at all cost!
@@ -827,61 +900,6 @@ CKBASE	lda	UBASE+1		BASE
 @ckbser	ldb	#15		Invalid BASE
 	jsr	ERRHDLR		No return
 CKBASRA	equ	*
-
-* NUMCVT performs a signed string to number conversion. The input string is
-* acquired from the input stream. Note that this routine always is called
-* after a dictionary lookup (SWDIC), so TOKENSP and CURTOKL are guaranteed
-* to have been set previously. There are two ways out this routine:
-* - redirection to the error handler (Undefined word), or
-* - a converted cell or double cell returned through the data stack.
-*   Upon return, ISDBLF being NZ will indicate a double.
-NUMCVT	bsr	CKBASE		No return if BASE isn't in the [2..36] range
-	clr	ISNEGF		Assume the result is positive
-	clr	ISDBLF		Assume the result is not a double number
-	ldx	TOKENSP
-	bsr	CKNBPFX		Check for numeric literal BASE prefix
-* Check for optional minus sign.
-	lda	,x
-	cmpa	#'-
-	bne	@ncini
-	inc	ISNEGF		Remember to negate the result before returning
-	leax	1,x		Skip the negativity!
-@ncini	tfr	x,y		Backup input stream pointer
-	tfr	0,x		Initialize the result
-	jsr	NPUSH		LSC
-	jsr	NPUSH		MSC
-	tfr	y,x		Restore the input stream pointer
-	leax	-1,x
-	jsr	NPUSH		Base scanning address minus 1
-	RFXT	jsr,CONVERT+10
-* Upon return TOS C@ should be BL or . Anything else indicates an error.
-* In any case, at this point, at least three cells are on the data stack.
-	UCNPOP			Address of the last non convertible char to X
-	jsr	ISERCHD
-	beq	@ncadj		End of input stream detected
-	lda	,x
-	cmpa	#SP
-	beq	@ncadj		BL is acceptable
-	cmpa	#'.		Was a double number meant?
-	bne	@ncnogo		No, we do not have a winner...
-	inc	ISDBLF
-* If Z is not set at this point, we are dealing with a double number.
-@ncadj	bne	@ncdadj	
-	UCNPOP			Drop the MSC
-	tst	ISNEGF		Are we dealing with a negative number?
-	beq	RSBSPFX		No. Restore BASE if needed--the end
-	RFXT	jsr,NEGATE+9	Acknowledge the negativity
-	bra	RSBSPFX		Restore BASE if needed--the end
-@ncdadj	tst	ISNEGF		Are we dealing with a negative number?
-	beq	RSBSPFX		No. Restore BASE if needed--the end
-	RFXT	jsr,DNEG+10	Acknowledge the negativity
-	bra	RSBSPFX		Restore BASE if needed--the end
-@ncnogo	leau	4,u		Drop two cells from the data stack
-	ldx	TOKENSP		Beginning address of the current token
-	ldb	#2		Undefined (X points to the offending word)
-	jsr	ERRHDLR		No return
-NUMCVRA	equ	*		For symbolic stack dump purposes
-	nop
 
 * Convert number stored in X to a string (depending on BASE value).
 * Output is stored in the global TBUFF buffer. X is preserved.
@@ -3244,49 +3262,50 @@ TWOFTCH	fcb	2		ANSI (Core)
 	tfr	d,x		Most significant cell goes through standard push
 	jmp	NPUSH
 
-CONVERT	fcb	7		79-STANDARD (REQ195)
-	fcc	'CONVERT'	( d1 addr1 -- d2 addr2 )
+TONUMBR	fcb	7		ANSI (Core)
+	fcc	'>NUMBER'	( ud1 c-addr1 u1 -- ud2 c-addr2 u2 )
 	fdb	TWOFTCH
 	RFCS
-	jsr	MIN3PST		At least 3 cells need to be stacked up
+	jsr	MIN4PST		At least 4 cells need to be stacked up
 	jsr	CKBASE		Check for supported BASE. No return if not
-	ldx	,u		ADDR1 to X
-@cvloop	leax	1,x
-	jsr	ISERCHD		End of input stream reached?
-	beq	@cvoor		Yes--game over
+	ldx	2,u		C-ADDR1 to X
+@cvloop	ldd	,u		Check U1. End of input string reached?
+	beq	@cvdone		Yes--conversion is done
 	ldb	,x
 * B has the ASCII representation of something that may or may not be a valid
 * digit, expressed in BASE (alias (byte)UBASE+1). If it does, multiply D1 by
 * BASE and add that to D1 (aka D2 on exit). Then add DIGIT on the top of it.
 	subb	#'0		Minimal ASCII value condition met?
-	blo	@cvoor		No. Out of range. ,X cannot be a valid digit
+	blo	@cvdone		No. Out of range. ,X cannot be a valid digit
         cmpb    #10
         blo     @cvnolt		No letter in potential BASE
         IFEQ    CSSNTVE
 	cmpb	#'A-'0
-	blo	@cvoor		Greater than 9 but lower than A
+	blo	@cvdone		Greater than 9 but lower than A
         cmpb    #'a-'0
         blo     @cvisuc		Upper case already
         cmpb    #'z-'0
-        bhi     @cvoor		Definitely out of range
+        bhi     @cvdone		Definitely out of range
 	subb    #'a-'A          To upper case
         ENDC			CSSNTVE
 @cvisuc subb    #'A-':          A-Z to number
 @cvnolt	cmpb	UBASE+1 	B has a digit. Make sure it's less than BASE
-	bhs	@cvoor		Number under scrutiny is >= BASE
-	leas	-8,s		Allocate scratch space
-	clra
-	pshs	d
+	bhs	@cvdone		Number under scrutiny is >= BASE
+	leas	-10,s		Allocate scratch space
+	clr	,s
+	stb	1,s
 * System and user stack structures are as follows:
 * ,s	current digit (1 cell)
 * 2,s	D0*B (1 cell)
 * 4,s   D1*B (1 cell)
 * 6,s   D2*B (1 cell)
 * 8,s   D3*B (1 cell)
-* 2,u	D1H most significant cell
-* 4,u	D1L least significant cell
+* ,u	U1 (1 cell)
+* 2,u	C-ADDR1 (1 cell)
+* 4,u	D1H most significant cell
+* 6,u	D1L least significant cell
 	tfr	u,v		Backup U
-	leau	6,u		Point one byte after D1LL
+	leau	8,u		Point one byte after D1LL
 	leay	2,s		Point to D0*B
 	lde	#4		Four products to go through
 @cvmul	lda	,-u
@@ -3296,31 +3315,47 @@ CONVERT	fcb	7		79-STANDARD (REQ195)
 	dece
 	bne	@cvmul
 	tfr	v,u		Restore U
-	lda	3,s
-	sta	5,u		D1LL
-	lda	2,s
-	adda	5,s
-	sta	4,u		D1LH
-	lda	4,s
-	adca	7,s
-	sta	3,u		D1HL
-	lda	6,s
-	adca	9,s
-	sta	2,u		D1HH
-	ldd	4,u		D1L
+*
+	lda	3,s		D0*B.L
+	sta	7,u		D1L.L
+*
+	lda	2,s		D0*B.H
+	adda	5,s		D1*B.L
+	sta	6,u		D1L.H
+*
+	lda	4,s		D1*B.H
+	adca	7,s		D2*B.L
+	sta	5,u		D1H.L
+*
+	lda	6,s		D2*B.H
+	adca	9,s		D3*B.L
+	sta	4,u		D1H.H
+*
+	bcs	@cvovf		Out of range error if carry is set
+	tst	8,s		D3*B.H
+	bne	@cvovf		That one should be zero
+*
+	ldd	6,u		D1L
 	addd	,s		DIGIT
-	std	4,u
-	ldd	2,u		D1H
+	std	6,u
+	ldd	4,u		D1H
 	adcd	#0		Potential carry from lower cell
-	std	2,u
+	std	4,u
 	leas	10,s		Release scratch space
+* Update the count of unconverted characters (ultimately U2)
+	ldd	,u
+	decd
+	std	,u
+	leax	1,x		Point to the next character in the input string
 	bra	@cvloop		Here we go again
-@cvoor	stx	,u		Update ADDR2
+@cvdone	stx	2,u		Set C-ADDR2
 	rts
+@cvovf	ldb	#4		Out of range
+	jsr	ERRHDLR		No return
 
 CVTE	fcb	2		ANSI (Core)
 	fcc	'#>'		( xd -- c-addr u )
-	fdb	CONVERT
+	fdb	TONUMBR
 	RFCS
 	jsr	NPOP
 	jsr	NPOP		Drop 2 cells from the data stack
@@ -3633,36 +3668,9 @@ COUNT	fcb	5		ANSI (Core)
 	tfr	d,x
 	jmp	NPUSH		U to the data stack
 
-DASHTR	fcb	9		79-STANDARD (REQ148)
-	fcc	'-TRAILING'	( addr n1 -- addr n2 )
-	fdb	COUNT
-	RFCS
-	jsr	NPOP		N1 to X
-	tfr	x,d		N1 to D
-	jsr	NPOP		ADDR to X
-	tfr	x,y		Backup to I
-	tstd			Input character count (N1)
-	blt	@invpar		Cannot be < 0
-	leax	d,x		X has ADDR+N1
-	tfr	d,w		W has N1
-@cknxtb	tstw
-	beq	@ckdone
-	lda	,-x
-	decw
-	cmpa	#SP
-	beq	@cknxtb		Iterate over to the previous byte
-	incw
-@ckdone	tfr	y,x
-	UCNPUSH			String base address
-	tfr	w,x
-	UCNPUSH			Updated character count
-	rts
-@invpar	ldb	#13		Invalid parameter
-	jsr	ERRHDLR		No return
-
 ACCEPT	fcb	6		ANSI (Core)
 	fcc	'ACCEPT'	( c-addr +n1 -- +n2 )
-	fdb	DASHTR
+	fdb	COUNT
 	RFCS
 	jsr	NPOP
 	tfr	x,d		Buffer length to B
@@ -4447,14 +4455,14 @@ PICK1	ldd	#NSTBOT
 	lsrd			D has the data stack depth in cells
 	cmpr	d,x		We need to make sure (unsigned) X < D
 	bhs	@pick1
-@pick1	tfr	x,d
+	tfr	x,d
 	lsld			Arg <u> cells byte count to D
 	leax	d,u
 	tfr	x,y		For the sake of ROLL's implementation
 	ldx	,x
 	UCNPUSH
 	rts
-	ldb	#13		Argument is greater than or equal to DEPTH
+@pick1	ldb	#13		Argument is greater than or equal to DEPTH
 	jsr	ERRHDLR		No return
 
 OVER	fcb	4		ANSI (Core)
@@ -4699,7 +4707,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/A  6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20221017 (C) Francois Laagel 2019'
+	fcc	'20221023 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
@@ -4742,6 +4750,7 @@ ERRMTBL	fcn	'Data stack overflow'	Error 0
 	fcn	'Invalid BASE'		Error 15
 	fcn	'Word name too long'	Error 16
 	fcn	'IO error'		Error 17
+	fcn	'>IN Out of range'	Error 18
 
 * A-list used for numeric literal base prefixes.
 BASALST	fcc	'$'		Hexadecimal prefix

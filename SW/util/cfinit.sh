@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # This script remains not entirely comprehensive in that it does not blank the
-# target device or initialize block #1-6 at all.
+# target device or initialize blocks #1-6 at all.
 
 CFDEV=/dev/sdb
 

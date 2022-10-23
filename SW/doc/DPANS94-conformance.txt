@@ -1,0 +1,310 @@
+I, Francois Laagel, hereby testify that to the best of my knowledge, Z79Forth/A
+is an ANS Forth System matching the minimum requirements as stated by
+ANSI-X3.215-1994.
+
+- providing <> .( \ 0<> 0> 2>R 2R> 2R@ AGAIN COMPILE, ?DO ERASE FALSE HEX
+  MARKER NIP :NONAME PAD PICK .R ROLL TO TRUE TUCK U> UNUSED U.R VALUE WITHIN
+  from the Core Extension word set
+- providing the Block word set
+- providing LIST THRU EMPTY-BUFFERS SCR from the Block Extension word set
+- providing D+ D- D0= D< DNEGATE from Double-Number word set
+- providing KEY? PAGE from the Facility word set
+- providing MS from the Facility Extension word set
+- providing the Programming-Tools word set
+- providing AHEAD BYE STATE from the Programming-Tools Extension word set
+- providing -TRAILING BLANK CMOVE CMOVE> from the String word set
+
+4.1.1 Implementation-defined options
+------------------------------------
+- aligned address requirements (3.1.3.3 Addresses):
+  There are no address alignment requirements in this implemenation.
+
+- behavior of 6.1.1320 EMIT for non-graphic characters:
+  The character is output to the terminal over the HD63B50 ACIA.
+
+- character editing of 6.1.0695 ACCEPT and 6.2.1390 EXPECT:
+  The serial line input routine (GETS) offers limited command line editing
+  functions. They are:
+  . <BackSpace> (ASCII byte 8): erase the previously entered character if any
+    and move the cursor backward by one character.
+  . <Kill-Input> (ASCII byte 21): erases all characters already entered and
+    point to the beginning of the buffer.
+
+- character set (3.1.2 Character types, 6.1.1320 EMIT, 6.1.1750 KEY):
+  The character set used by the terminal emulator or terminal device.
+
+- character-aligned address requirements (3.1.3.3 Addresses):
+  There are no alignment requirements for characters.
+
+- character-set-extensions matching characteristics (3.4.2 Finding definition
+  names): a safe character range for dictionary entries is hex 21 to hex 7E.
+  Word names matching is case insensitive.
+
+- conditions under which control characters match a space delimiter
+  (3.4.1.1 Delimiters): carriage return (ASCII 13) is accepted a a space
+  delimiter by WORD.
+
+- format of the control-flow stack (3.2.3.2 Control-flow stack):
+  Control flow constructs have been re-implemented based on Wonyong Koh's
+  hForth for the 8086. The original code can be consulted at
+  https://github.com/nealcrook/hForth. Of particular interest is
+  8086/HF86RAM.ASM. Entries on the control flow stack (implemented on the
+  data stack here) are two cell entities that consist of a parameter
+  (an address), on the top of which a tag identifying the type of address
+  is pushed. They are:
+ 
+  Control-flow stack item    Representation (parameter and type)
+  -----------------------    -------------------------------------
+  dest                       control-flow destination      0
+  orig                       control-flow origin           1
+  of-sys                     OF origin                     2
+  case-sys                   x (any value)                 3
+  do-sys                     ?DO origin                    DO destination
+  colon-sys                  xt of current definition     -1 [1]
+ 
+  [1] Not implemented in Z79Forth/A.
+ 
+  This mechanism allows for verification of balanced control flow constructs.
+
+- conversion of digits larger than thirty-five (3.2.1.2 Digit conversion):
+  The valid range for BASE is 2 .. 36. There is no possible representation
+  for a digit larger than 35.
+
+- display after input terminates in 6.1.0695 ACCEPT and 6.2.1390 EXPECT:
+  The cursor is moved to the end of the entered string. If the input is
+  terminated using the Enter key, a space is typed.
+
+- exception abort sequence (as in 6.1.0680 ABORT"): the string passed as an
+  argument is displayed to the terminal and the error handler is invoked with
+  the error code 3 (User ABORT). Please note that exceptions are not supported.
+
+- input line terminator (3.2.4.1 User input device): CarriageReturn (ASCII 13)
+  is the input line terminator.
+
+- maximum size of a counted string, in characters (3.1.3.4 Counted strings,
+  6.1.2450 WORD): 255 characters.
+
+- maximum size of a parsed string (3.4.1 Parsing): The command line buffer
+  size is defined via CMDBFSZ in constants.asm. The current value is 132.
+
+- maximum size of a definition name, in characters (3.3.1.2 Definition names):
+  31 characters.
+
+- maximum string length for 6.1.1345 ENVIRONMENT?, in characters: ENVIRONMENT?
+  always returns false.
+
+- method of selecting 3.2.4.1 User input device: the input device always is
+  the ACIA wired at address DEV6 ($D800 as defined in constants.asm).
+
+- method of selecting 3.2.4.2 User output device: the output device always is
+  the ACIA wired at address DEV6 ($D800 as defined in constants.asm).
+
+- methods of dictionary compilation (3.3 The Forth dictionary): native HD6309
+  code is generated. There is no virtual machine involved.
+
+- number of bits in one address unit (3.1.3.3 Addresses): there are 8 bits per
+  byte.
+
+- number representation and arithmetic (3.2.1.1 Internal number representation):
+  One cell is two bytes long. It is stored in memory with the most signficant
+  byte first, in binary two’s complement form.
+
+- ranges for n, +n, u, d, +d, and ud (3.1.3 Single-cell types,
+  3.1.4 Cell-pair types):
+
+  Symbol  Data type                        Cells  Range
+  ------  ---------                        -----  -----
+  n       signed number                    1      -32,768..32,767
+  +n      non-negative number              1      0..32,767
+  u       unsigned number                  1      0..65,535
+  d       double-cell signed number        2      -2,147,483,648..2,147,483,647
+  +d      double-cell non-negative number  2      0..2,147,483,647
+  ud      double-cell unsigned number      2      0..4,294,967,295
+
+- read-only data-space regions (3.3.3 Data space): this is a ROM resident
+  implementation. Data at addresses between $E000 and $FFFF is not modifiable.
+  Words between @ and EMPTY-BUFFERS (in dictionary search order) may not be
+  forgotten.
+
+- size of buffer at 6.1.2450 WORD (3.3.3.6 Other transient regions): a parsed
+  string length may never exceed the maximum size of a counted string, if
+  entered from the interpreter. WORD itself does not check for overflow.
+
+- size of one cell in address units (3.1.3 Single-cell types): a cell is two
+  bytes long.
+
+- size of one character in address units (3.1.2 Character types): a character
+  is one byte long.
+
+- size of the keyboard terminal input buffer (3.3.3.5 Input buffers):
+  The command line buffer size is defined via CMDBFSZ in constants.asm.
+  The current value is 132.
+
+- size of the pictured numeric output string buffer (3.3.3.6 Other transient
+  regions): PADBSZ (defined in constants.asm) is currently 84. 
+
+- size of the scratch area whose address is returned by 6.2.2000 PAD
+  (3.3.3.6 Other transient regions): PADBSZ (defined in constants.asm) is
+  currently 84.
+
+- system case-sensitivity characteristics (3.4.2 Finding definition names):
+  the system is case insensitive by default. This behaviour can be changed
+  by re-compiling the EEPROM image with CSSNTVE set to a non-zero value
+  (see constants.asm).
+
+- system prompt (3.4 The Forth text interpreter, 6.1.2050 QUIT): there is no
+  system prompt. The OK feedback string is " ok" in case insensitive mode,
+  " OK" in case sensitive mode. There is no feedback whatsoever when compiling.
+
+- type of division rounding (3.2.2.1 Integer division, 6.1.0100 */, 6.1.0110
+  */MOD, 6.1.0230 /, 6.1.0240 /MOD, 6.1.1890 MOD): floored division is used.
+
+- values of 6.1.2250 STATE when true: 255.
+
+- values returned after arithmetic overflow (3.2.2.2 Other integer operations):
+  when arithmetic overflows occur and are detected, control is transferred to
+  the error handler under error code 4 ('OoR error'). No value is returned to
+  the application.
+
+- whether the current definition can be found after 6.1.1250 DOES> (6.1.0450 :):
+  no. 
+
+4.1.2 Ambiguous conditions
+--------------------------
+Generic error conditions:
+
+- a name is neither a valid definition name nor a valid number during text
+  interpretation (3.4 The Forth text interpreter): control is transferred to
+  the error handler under error code 2 ('?').
+
+- a definition name exceeded the maximum length allowed (3.3.1.2 Definition
+  names): control is transferred to the error handler under error code 16
+  ('Word name too long').
+
+- addressing a region not listed in 3.3.3 Data Space: may result in
+  unpredictable outcomes.
+
+- argument type incompatible with specified input parameter, e.g., passing a
+  flag to a word expecting an n (3.1 Data types): this will most likely go
+  undetected and lead to erratic behaviour of the system. The control flow
+  stack offers some limited data type management but only to the extent
+  necessary to ensure the sanity of control flow constructs used by a program.
+
+- attempting to obtain the execution token, (e.g., with 6.1.0070 ',
+  6.1.1550 FIND, etc.) of a definition with undefined interpretation semantics:
+  will result in the actual execution being returned, regardless of the state
+  of the 'compilation only' flag. Applying EXECUTE to such a token will cause
+  thge word to be execute regardless of the 'compilation only' flag.
+
+- dividing by zero (6.1.0100 */, 6.1.0110 */MOD, 6.1.0230 /, 6.1.0240 /MOD,
+  6.1.1561 FM/MOD, 6.1.1890 MOD, 6.1.2214 SM/REM, 6.1.2370 UM/MOD,
+  8.6.1.1820 M*/):
+  + */ */MOD / /MOD and MOD: a 6309 division by zero trap occurs. Control will
+    be transferred to the error handler under error code 3 ("User ABORT').
+  + FM/MOD SM/REM and UM/MOD: Control will
+    be transferred to the error handler under error code 4 ("OoR error').
+  + M*/ is unsupported.
+
+- insufficient data-stack space or return-stack space (stack overflow):
+  + data stack: the error handler is invoked with error code 0 ('Data stack
+    overflow').
+  + return stack: the error handler is invoked with error code 7 ('Return stack
+    overflow').
+
+- insufficient space for loop-control parameters: a return stack overflow
+  condition is triggered (see above).
+
+- insufficient space in the dictionary: this will go undetected leading to
+  a complete system failure due to an inconsistent dictionary state.
+
+- interpreting a word with undefined interpretation semantics: if this happens
+  via the interpreter, control will be transferred to the error handler with
+  error code 6 ('Incorrect STATE'). However this can also achieved by using '
+  and applying EXECUTE to the execution token returned, in which case no
+  error condition will be detected but unexepected system behaviour is likely
+  to emerge.
+
+- modifying the contents of the input buffer or a string literal
+  (3.3.3.4 Text-literal regions, 3.3.3.5 Input buffers): These are located in
+  writable memory and can be modified.
+
+- overflow of a pictured numeric output string: this is unlikely to ever happen
+  in the real world. The output buffer for pictured numeric output strings
+  offers 83 bytes of user data, which seems adequate even under the worst
+  possible use case.
+
+- parsed string overflow: this condition may occur when parsing from blocks.
+  It will be undetected. WORD does not check for overflow.
+
+- producing a result out of range, e.g., multiplication (using *) results in a
+  value too big to be represented by a single-cell integer (6.1.0090 *,
+  6.1.0100 */, 6.1.0110 */MOD, 6.1.0570 >NUMBER, 6.1.1561 FM/MOD,
+  6.1.2214 SM/REM, 6.1.2370 UM/MOD, 6.2.0970 CONVERT, 8.6.1.1820 M*/);
+  + * will not detect overflow conditions. If reliable artithmetic is needed
+    M* should be used instead.
+  + */ and */MOD do not generate overflow conditions.
+  + >NUMBER will transfer control to the error handler under error code
+    4 ("OoR error').
+  + FM/MOD SM/REM UM/MOD may or may not detect overflow conditions. Should this
+    happen, control would be transferred to the error handler under error code
+    4 ("OoR error').
+  + CONVERT and M*/ are not unsupported.
+
+- reading from an empty data stack or return stack (stack underflow);
+  + data stack: the error handler is invoked with error code 1 ('Data stack
+    underflow').
+  + return stack: the error handler is invoked with error code 8 ('Return stack
+    underflow').
+
+- unexpected end of input buffer, resulting in an attempt to use a zero-length
+  string as a name: control is transferred to the error handler under error
+  code 5 ('Missing word name'). This applies to : CREATE VARIABLE and CONSTANT.
+
+Word specific error conditions:
+- >IN greater than size of input buffer (3.4.1 Parsing): control will be
+  transferred to the error handler under error code 18 ('>IN Out of range').
+
+- 6.1.2120 RECURSE appears after 6.1.1250 DOES>: this condition is undetected.
+  RECURSE will simply issue a call to the word being defined (in DOES> context).
+
+- argument input source different than current input source for 6.2.2148
+  RESTORE-INPUT: not applicable as RESTORE-INPUT is not supported.
+
+- data space containing definitions is de-allocated (3.3.3.2 Contiguous
+  regions): only MARKER (and ALLOT with a negative byte count) provide a way
+  of de-allocating dictionary space. MARKER is safe whereas ALLOT could lead
+  to situations where existing dictionary header entries exist past the
+  current value of HERE. Should this happen, chaos is guaranteed to ensue.
+
+- data space read/write with incorrect alignment (3.3.3.1 Address alignment):
+  there are no alignment requirements.
+
+- data-space pointer not properly aligned (6.1.0150 ,, 6.1.0860 C,): there are
+  no alignment requirements.
+
+- less than u+2 stack items (6.2.2030 PICK, 6.2.2150 ROLL); XXX
+  A bug exists here!!!!
+
+- loop-control parameters not available ( 6.1.0140 +LOOP, 6.1.1680 I, 6.1.1730 J, 6.1.1760 LEAVE, 6.1.1800 LOOP, 6.1.2380 UNLOOP);
+
+- most recent definition does not have a name (6.1.1710 IMMEDIATE);
+
+- name not defined by 6.2.2405 VALUE used by 6.2.2295 TO;
+
+- name not found (6.1.0070 ', 6.1.2033 POSTPONE, 6.1.2510 ['], 6.2.2530 [COMPILE]);
+
+- parameters are not of the same type (6.1.1240 DO, 6.2.0620 ?DO, 6.2.2440 WITHIN);
+
+- 6.1.2033 POSTPONE or 6.2.2530 [COMPILE] applied to 6.2.2295 TO;
+
+- string longer than a counted string returned by 6.1.2450 WORD;
+
+- u greater than or equal to the number of bits in a cell (6.1.1805 LSHIFT, 6.1.2162 RSHIFT);
+
+- word not defined via 6.1.1000 CREATE (6.1.0550 >BODY, 6.1.1250 DOES>);
+
+- words improperly used outside 6.1.0490 <# and 6.1.0040 #> (6.1.0030 #, 6.1.0050 #S, 6.1.1670 HOLD, 6.1.2210 SIGN).
+
+4.1.3 Other system documentation
+--------------------------------
+
