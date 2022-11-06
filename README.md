@@ -21,3 +21,5 @@ Known shortcomings of the current repository are as follows:
   
 Please note that it is not recommend to clone master directly, as the software
 may not match the schematics. The recommended approach is to clone a release.
+
+WARNING: the REL-ANS94 is not ready for public consumption yet!
