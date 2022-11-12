@@ -22,4 +22,5 @@ Known shortcomings of the current repository are as follows:
 Please note that it is not recommend to clone master directly, as the software
 may not match the schematics. The recommended approach is to clone a release.
 
-WARNING: the REL-ANS94 is not ready for public consumption yet!
+The master branch has the 79-STANDARD implementation. The REL-ANS94 branch
+has a full Core word set implementation of the ANS 1994 standard specification.
