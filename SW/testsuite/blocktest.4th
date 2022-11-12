@@ -372,9 +372,11 @@ TESTING LOAD%
 : TUF3 T{ RND-TEST-BLOCK DUP BLANK-BUFFER DROP UPDATE FLUSH
   LOAD -> }T ;
 TUF3 \ ." TUF3 "
+
 : TUF4 T{ BLK @ RND-TEST-BLOCK DUP BLANK-BUFFER DROP UPDATE
   FLUSH LOAD BLK @ = -> TRUE }T ;
 TUF4 \ ." TUF4 "
+
 : WRITE-BLOCK ( blk c-addr u -- )
   ROT BLANK-BUFFER SWAP CHARS CMOVE UPDATE FLUSH ;
 
@@ -383,12 +385,17 @@ TUF4 \ ." TUF4 "
   SWAP 0 <# #S #> WRITE-BLOCK ;
 : TUF5 T{ BLOCK-RND RND-TEST-BLOCK 2DUP TL1 LOAD =
   -> TRUE }T ;
+
 \ Boundary Test: FIRST-TEST-BLOCK
 : TUF6 T{ BLOCK-RND FIRST-TEST-BLOCK 2DUP TL1 LOAD =
-  -> TRUE }T ;              TUF6 \ ." TUF6 "
+  -> TRUE }T ;
+TUF6 \ ." TUF6 "
+
 \ Boundary Test: LIMIT-TEST-BLOCK-1
 : TUF7 T{ BLOCK-RND LIMIT-TEST-BLOCK 1- 2DUP TL1 LOAD =
-  -> TRUE }T ;              TUF7 \ ." TUF7 "
+  -> TRUE }T ;
+TUF7 \ ." TUF7 "
+
 : WRITE-AT-END-OF-BLOCK ( blk c-addr u -- )
   ROT BLANK-BUFFER
   OVER 1024 SWAP - CHARS +
@@ -398,14 +405,24 @@ TUF4 \ ." TUF4 "
 : TL2 ( u blk -- )
   SWAP 0 <# #S #> WRITE-AT-END-OF-BLOCK ;
 : TUF8 T{ BLOCK-RND RND-TEST-BLOCK 2DUP TL2 LOAD =
-  -> TRUE }T ;                TUF8 \ ." TUF8 "
+  -> TRUE }T ;
+TUF8 \ ." TUF8 "
+
 \ LOAD updates BLK
 \ u: "BLK @"; u LOAD
 : TL3 ( blk -- )
   S" BLK @" WRITE-BLOCK ;
-
 : TUF9 T{ RND-TEST-BLOCK DUP TL3 DUP LOAD = -> TRUE }T ;
 TUF9 \ ." TUF9 "
+
+\ EVALUATE resets BLK
+\ u: "EVALUATE-BLK@"; u LOAD
+: EVALUATE-BLK@ ( -- BLK@ )
+    S" BLK @" EVALUATE ;
+: TL4 ( blk -- )
+    S" EVALUATE-BLK@" WRITE-BLOCK ;
+: TUF10 T{ RND-TEST-BLOCK DUP TL4 LOAD -> 0 }T ;
+TUF10 \ ." TUF10 "
 
 \ EVALUATE can nest with LOAD
 \ u: "BLK @"; S" u LOAD" EVALUATE
@@ -416,14 +433,17 @@ TUF9 \ ." TUF9 "
     [CHAR] L HOLD
     BL HOLD
   #S #> ;                    \ c-addr u
+: TUF11
+  T{ RND-TEST-BLOCK DUP TL3 DUP TL5 EVALUATE = -> TRUE }T ;
+TUF11 \ ." TUF11 "
 
 \ Nested LOADs
 \ u2: "BLK @"; u1: "LOAD u2"; u1 LOAD
 : TL6 ( blk1 blk2 -- )
     DUP TL3                    \ blk1 blk2
     TL5 WRITE-BLOCK ;
-: TUF10 T{ 2RND-TEST-BLOCKS 2DUP TL6 SWAP LOAD = -> TRUE }T ;
-TUF10 \ ." TUF10 "
+: TUF12 T{ 2RND-TEST-BLOCKS 2DUP TL6 SWAP LOAD = -> TRUE }T ;
+TUF12 \ ." TUF12 "
 
 \ LOAD changes the current block that is effected by UPDATE
 \ This test needs at least 2 distinct buffers, though this is
@@ -431,33 +451,38 @@ TUF10 \ ." TUF10 "
 \ distinct buffers are not returned, then the tests quits with
 \ an error condition.
 : TL7 ( blk1 blk2 -- u1 u2 rnd2 blk2-addr rnd1' rnd1 )
-  OVER BUFFER OVER BUFFER = IF  \ test needs 2 distinct buffers
-    2DROP 0 0 0 0 0 0           \ Dummy result
-  ELSE
-    OVER BLOCK-RND DUP ROT TL1 >R   \ blk1 blk2
-    DUP S" SOURCE DROP" WRITE-BLOCK \ blk1 blk2
-    \ change blk1 to a new rnd, but don't UPDATE
-    OVER BLANK-BUFFER           \ blk1 blk2 blk1-addr
-    BLOCK-RND DUP >R            \ blk1 blk2 blk1-addr rnd1'
-    0 <# #S #>                  \ blk1 blk2 blk1-addr c-addr u
-    ROT SWAP CHARS CMOVE        \ blk1 blk2
-    \ Now LOAD blk2
-    DUP LOAD DUP >R             \ blk1 blk2 blk2-addr
+  2DUP BUFFER SWAP BUFFER = IF  \ test needs 2 distinct buffers
+    2DROP 0. 0. 0. EXIT         \ Dummy result
+  THEN
 
-    \ Write a new blk2
-    DUP 1024 BL FILL            \ blk1 blk2 blk2-addr
-    BLOCK-RND DUP >R            \ blk1 blk2 blk2-addr rnd2
-    0 <# #S #>                  \ blk1 blk2 blk2-addr c-addr u
-    ROT SWAP CHARS CMOVE        \ blk1 blk2
-   \ Following UPDATE should refer to the LOADed blk2, not blk1
-    UPDATE FLUSH                \ blk1 blk2
-    \ Finally, load both blocks then collect all results
-    LOAD SWAP LOAD              \ u2 u1
-    R> R> R> R>               \ u2 u1 rnd2 blk2-addr rnd1' rnd1
-  THEN ;
-T{ 2RND-TEST-BLOCKS TL7         \ run test procedure
-   SWAP DROP SWAP DROP          \ u2 u1 rnd2 rnd1
-   2= -> TRUE }T
+  OVER BLOCK-RND DUP ROT TL1 >R   \ blk1 blk2
+  DUP S" SOURCE DROP" WRITE-BLOCK \ blk1 blk2
+  \ change blk1 to a new rnd, but don't UPDATE
+  OVER BLANK-BUFFER           \ blk1 blk2 blk1-addr
+  BLOCK-RND DUP >R            \ blk1 blk2 blk1-addr rnd1'
+  0 <# #S #>                  \ blk1 blk2 blk1-addr c-addr u
+  ROT SWAP CHARS CMOVE        \ blk1 blk2
+  \ Now LOAD blk2
+  DUP LOAD DUP >R             \ blk1 blk2 blk2-addr
+  OVER BUFFER OVER <>         \ Keep blk2 the "current buffer"
+    ABORT" SOURCE problem"    \ for UPDATE
+
+  \ Write a new blk2
+  DUP 1024 BL FILL            \ blk1 blk2 blk2-addr
+  BLOCK-RND DUP >R            \ blk1 blk2 blk2-addr rnd2
+  0 <# #S #>                  \ blk1 blk2 blk2-addr c-addr u
+  ROT SWAP CHARS CMOVE        \ blk1 blk2
+  \ Following UPDATE should refer to the LOADed blk2 not blk1
+  UPDATE FLUSH                \ blk1 blk2
+  \ Finally, load both blocks then collect all results
+  LOAD SWAP LOAD              \ u2 u1
+  R> R> R> R> ;               \ u2 u1 rnd2 blk2-addr rnd1' rnd1
+
+: TUF13
+  T{ 2RND-TEST-BLOCKS TL7         \ run test procedure
+     SWAP DROP SWAP DROP          \ u2 u1 rnd2 rnd1
+     2= -> TRUE }T ;
+TUF13 \ ." TUF13 "
 
 \ I would expect LOAD to work on the contents of the buffer
 \ cache and not the block device, but the specification doesn't

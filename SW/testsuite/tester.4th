@@ -20,7 +20,7 @@ HEX
 \ : CHARS ; IMMEDIATE         : CHAR+ 1+ ;
 
 : ERROR ( C-ADDR U -- )
-  CR TYPE CR \ SOURCE DROP >IN @ 63 COM AND + 64 TYPE
+  CR TYPE CR \ SOURCE DROP >IN @ 63 INVERT AND + 64 TYPE
   EMPTY-STACK          \ THROW AWAY EVERY THING ELSE
   #ERRORS @ 1 + #ERRORS !
   ABORT  \ *** Uncomment this line to ABORT on error

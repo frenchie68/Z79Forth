@@ -1,9 +1,8 @@
-Most primitives implemented in Z79Forth conform to the relevant standard
+Most primitives implemented in Z79Forth/A conform to the relevant standard
 specification. A few primitives are non standard at all. Please check
-doc/79-STANDARD-subset.txt for a description of those non-standard words.
-Also check doc/COMPILING.txt if the doc subdirectory, as the CONVERT primitive
-may or may not be available--it is not included in the interrupt enabled
-implementation, due to resource constraints.
+SW/doc/all-words.txt for a description of those non-standard words.
+Also check SW/doc/COMPILING.txt if the doc subdirectory, as there are a few
+system tunable parameters that can alter the system's behaviour.
 
 If a CompactFlash card is detected at system bootup time, block #1 will be
 automatically loaded. If the code loaded from there never relinquishes control
@@ -19,11 +18,15 @@ context in which the error occurred. Error particulars will be as follows:
 Where:
 
 xxxx is the HEX represention of BLK @
-yyyy is the HEX representation in >IN @
+yyyy is the HEX representation of >IN @
 
-at the time the expection was triggered.
+at the time the exception was triggered.
 
 Important notice:
 -----------------
-On error BASE is reset to the default (10).
+On error:
+- BASE is reset to decimal.
+- the return stack is cleared.
+- the data stack is cleared because the control stack is implemented on the
+  top of it.
 

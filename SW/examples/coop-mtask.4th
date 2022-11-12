@@ -51,24 +51,15 @@
 \ -----------------------------------------------------------
 
 \ Z79Forth glue code begins.
+
 : rdrop R> DROP ;
-1 CONSTANT true
-0 CONSTANT false
-: rdepth $12E C@ ;               \ Release dependent!!!
+
+: rdepth $137 C@ ;               \ Release dependent!!!
+
 : nop ;
+
 : cell- ( addr1 -- addr2 ) 1 CELLS - ;
-: DEFER ( "name" -- )
-  CREATE ['] ABORT ,
-  DOES> ( ... -- ... )
-    @ EXECUTE ;
-: DEFER! ( xt1 xt2 -- ) 9 + ! ;  \ Z79Forth impl. dependent
-: IS ( xt "<spaces>name" -- ) STATE @ IF
-    POSTPONE [']   POSTPONE DEFER!
-  ELSE
-    ' DEFER!
-  THEN
-; IMMEDIATE
-DEFER PAUSE
+
 \ Z79Forth glue code ends.
 
 \ Configuration:
@@ -90,25 +81,28 @@ VARIABLE up           \ U-area
 0 up !                \ Initialize variable
 \ Current task fields accessors
 : next-task ( -- task ) up @ ;
-: task-state ( -- state ) up @ cell+ ;
+: task-state ( -- state ) up @ CELL+ ;
 : task-data ( -- data ) up @ 2 CELLS + ;
 : task-return ( -- return ) up @ 3 CELLS + stackspace + ;
 : task-cra ( -- cra ) up @ 4 stkspccells 2 * + CELLS + ;
 
 \ -----------------------------------------------------------
+DEFER PAUSE
+
 : (pause) ( stacks fly around )
 
-  S cell+ @ task-cra !       \ Save code return address
+  S CELL+ @ task-cra !       \ Save code return address
 
+\ -----------------------------------------------------------
 \ Parameter stack backup.
   depth task-data !          \ Number of elements
-  task-data cell+ >R         \ Begin with top of stack
+  task-data CELL+ >R         \ Begin with top of stack
 
   BEGIN
     DEPTH
   WHILE
     R@ !
-    R> cell+ >R
+    R> CELL+ >R
   REPEAT
 
   rdrop
@@ -117,13 +111,13 @@ VARIABLE up           \ U-area
 \ Return stack backup.
 
   rdepth task-return !       \ Number of elements
-  task-return cell+          \ Begin with top of return stack
+  task-return CELL+          \ Begin with top of return stack
 
   BEGIN
     rdepth
   WHILE
     R> OVER !
-    cell+
+    CELL+
   REPEAT
 
   DROP
@@ -168,23 +162,22 @@ VARIABLE up           \ U-area
 
   rdrop
 
-  task-cra @ S cell+ !       \ Context switch
-;
+  task-cra @ S CELL+ ! ;     \ Context switch
 
 \ -----------------------------------------------------------
 
 \ Wake a random task (IRQ safe)
-: WAKE ( task -- ) cell+ true SWAP ! ;
+: WAKE ( task -- ) CELL+ TRUE SWAP ! ;
 
 \ Idle a random task (IRQ safe)
-: IDLE ( task -- ) cell+ false SWAP ! ;
+: IDLE ( task -- ) CELL+ FALSE SWAP ! ;
 
 \ -----------------------------------------------------------
 \ Round-robin list task handling - do not use in IRQ !
 \ -----------------------------------------------------------
 
 \ Stop current task
-: STOP ( -- ) false task-state ! PAUSE ;
+: STOP ( -- ) FALSE task-state ! PAUSE ;
 
 \ Generate jump opcodes
 : MULTITASK ( -- ) ['] (pause) IS PAUSE ;
@@ -198,11 +191,10 @@ VARIABLE up           \ U-area
   next-task
   BEGIN
     ( Task-Address )
-    2DUP = IF 2DROP true EXIT THEN
+    2DUP = IF 2DROP TRUE EXIT THEN
     @ DUP next-task = \ Stop when end of circ. list is reached
   UNTIL
-  2DROP false
-;
+  2DROP FALSE ;
 
 : previous ( task -- addr-of-task-before )
   \ Find the task that has the desired one in its next field
@@ -212,8 +204,7 @@ VARIABLE up           \ U-area
   WHILE
     @
   REPEAT
-  rdrop
-;
+  rdrop ;
 
 : insert ( task -- ) \ Insert a task into the round-robin list
   DUP task-in-list?  \ Is the desired task currently linked?
@@ -221,8 +212,7 @@ VARIABLE up           \ U-area
     DROP
   ELSE
     next-task @ OVER ! next-task !
-  THEN
-;
+  THEN ;
 
 : remove ( task -- ) \ Remove a task from the round-robin list
   DUP task-in-list?  \ Is the desired task currently linked?
@@ -231,8 +221,7 @@ VARIABLE up           \ U-area
     SWAP previous ( next previous ) !
   ELSE
     DROP
-  THEN
-;
+  THEN ;
 
 \ -----------------------------------------------------------
 \ Create a new task - do not use in IRQ !
@@ -255,18 +244,15 @@ VARIABLE up           \ U-area
   \ Store the desired entry point in the task descriptor
   R@ 4 CELLS + stackspace 2 * + !
 
-  R> insert
-;
+  R> insert ;
 
 : ACTIVATE ( task-entryp task -- )
-  true OVER cell+ !  \ Currently running
-  preparetask
-;
+  TRUE OVER CELL+ !  \ Currently running
+  preparetask ;
 
 : BACKGROUND ( task-entryp task -- )
-  false OVER cell+ ! \ Currently idling
-  preparetask
-;
+  FALSE OVER CELL+ ! \ Currently idling
+  preparetask ;
 
 \ -----------------------------------------------------------
 \ Trial run (purely accademic)
@@ -276,8 +262,7 @@ TASK: background-task
   BEGIN
     [CHAR] . EMIT CR
     STOP
-  AGAIN
-;
+  AGAIN ;
 
 TASK: main-task
 : main-code CR
@@ -289,8 +274,7 @@ TASK: main-task
     background-task WAKE
     PAUSE
 \   S H. CR     \ Optional sanity check
-  AGAIN
-;
+  AGAIN ;
 
 ' main-code main-task ACTIVATE
 ' background-code background-task BACKGROUND

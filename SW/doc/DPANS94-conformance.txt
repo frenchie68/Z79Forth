@@ -1,23 +1,27 @@
-I, Francois Laagel, hereby testify that to the best of my knowledge, Z79Forth/A
-is an ANS Forth System matching the minimum requirements as stated by
-ANSI-X3.215-1994.
+I, Francois Laagel, hereby testify that, to the best of my knowledge,
+Z79Forth/A is an ANS Forth System matching the minimum requirements
+as stated by ANSI-X3.215-1994.
 
 - providing <> .( \ 0<> 0> 2>R 2R> 2R@ AGAIN COMPILE, ?DO ERASE FALSE HEX
-  MARKER NIP :NONAME PAD PICK .R ROLL TO TRUE TUCK U> UNUSED U.R VALUE WITHIN
-  from the Core Extension word set
+  MARKER NIP :NONAME PAD PICK .R ROLL SOURCE-ID TO TRUE TUCK U> UNUSED
+  U.R VALUE WITHIN from the Core Extension word set
 - providing the Block word set
-- providing LIST THRU EMPTY-BUFFERS SCR from the Block Extension word set
+- providing the Block Extension word set
 - providing D+ D- D0= D< DNEGATE from Double-Number word set
 - providing KEY? PAGE from the Facility word set
 - providing MS from the Facility Extension word set
 - providing the Programming-Tools word set
-- providing AHEAD BYE STATE from the Programming-Tools Extension word set
-- providing -TRAILING BLANK CMOVE CMOVE> from the String word set
+- providing AHEAD BYE STATE from the Programming-Tools
+  Extension word set
+- providing -TRAILING BLANK CMOVE CMOVE> COMPARE from the String word set
 
-4.1.1 Implementation-defined options
-------------------------------------
+1 The Core words
+----------------
+
+1.1 Implementation-defined options
+----------------------------------
 - aligned address requirements (3.1.3.3 Addresses):
-  There are no address alignment requirements in this implemenation.
+  There are no address alignment requirements in this implementation.
 
 - behavior of 6.1.1320 EMIT for non-graphic characters:
   The character is output to the terminal over the HD63B50 ACIA.
@@ -169,13 +173,13 @@ ANSI-X3.215-1994.
 - whether the current definition can be found after 6.1.1250 DOES> (6.1.0450 :):
   no. 
 
-4.1.2 Ambiguous conditions
---------------------------
+1.2 Ambiguous conditions
+------------------------
 Generic error conditions:
 
 - a name is neither a valid definition name nor a valid number during text
   interpretation (3.4 The Forth text interpreter): control is transferred to
-  the error handler under error code 2 ('?').
+  the error handler under error code 2 ('?' undefined word).
 
 - a definition name exceeded the maximum length allowed (3.3.1.2 Definition
   names): control is transferred to the error handler under error code 16
@@ -271,10 +275,15 @@ Word specific error conditions:
   RESTORE-INPUT: not applicable as RESTORE-INPUT is not supported.
 
 - data space containing definitions is de-allocated (3.3.3.2 Contiguous
-  regions): only MARKER (and ALLOT with a negative byte count) provide a way
+  regions): only MARKER and ALLOT with a negative byte count provide a way
   of de-allocating dictionary space. MARKER is safe whereas ALLOT could lead
   to situations where existing dictionary header entries exist past the
   current value of HERE. Should this happen, chaos is guaranteed to ensue.
+  Additional consideration: Z79Forth/A also supports a few Forth2012 primitives
+  such as DEFER DEFER! DEFER@ IS and ACTION-OF. It should be noted that
+  release of data space containing definitions could lead to cached (DEFERred)
+  references of memory locations that are no longer available. This also is
+  a potential recipe for system instability.
 
 - data space read/write with incorrect alignment (3.3.3.1 Address alignment):
   there are no alignment requirements.
@@ -282,29 +291,232 @@ Word specific error conditions:
 - data-space pointer not properly aligned (6.1.0150 ,, 6.1.0860 C,): there are
   no alignment requirements.
 
-- less than u+2 stack items (6.2.2030 PICK, 6.2.2150 ROLL); XXX
-  A bug exists here!!!!
+- less than u+2 stack items (6.2.2030 PICK, 6.2.2150 ROLL): control is
+  transferred to the error handler under error code 13 ('Invalid argument').
 
-- loop-control parameters not available ( 6.1.0140 +LOOP, 6.1.1680 I, 6.1.1730 J, 6.1.1760 LEAVE, 6.1.1800 LOOP, 6.1.2380 UNLOOP);
+- loop-control parameters not available ( 6.1.0140 +LOOP, 6.1.1680 I,
+  6.1.1730 J, 6.1.1760 LEAVE, 6.1.1800 LOOP, 6.1.2380 UNLOOP): control is
+  transferred to the error handler under error code 7 ('Return stack undeflow').
 
-- most recent definition does not have a name (6.1.1710 IMMEDIATE);
+- most recent definition does not have a name (6.1.1710 IMMEDIATE): unchecked.
+  IMMEDIATE only applies to the most recently named definition.
 
-- name not defined by 6.2.2405 VALUE used by 6.2.2295 TO;
+- name not defined by 6.2.2405 VALUE used by 6.2.2295 TO: unchecked. However,
+  through a strange twist of things, it will work if the name in question was
+  CREATEd or is a VARIABLE or a CONSTANT.
 
-- name not found (6.1.0070 ', 6.1.2033 POSTPONE, 6.1.2510 ['], 6.2.2530 [COMPILE]);
+- name not found (6.1.0070 ', 6.1.2033 POSTPONE, 6.1.2510 ['],
+  6.2.2530 [COMPILE]): control is transferred to the error handler under error
+  code 2 ('?' undefined word).
 
-- parameters are not of the same type (6.1.1240 DO, 6.2.0620 ?DO, 6.2.2440 WITHIN);
+- parameters are not of the same type (6.1.1240 DO, 6.2.0620 ?DO,
+  6.2.2440 WITHIN): Parameters are treated as if they were of the same type.
 
-- 6.1.2033 POSTPONE or 6.2.2530 [COMPILE] applied to 6.2.2295 TO;
+- 6.1.2033 POSTPONE or 6.2.2530 [COMPILE] applied to 6.2.2295 TO: a call to
+  TO will be compiled, resulting in correct behaviour. [COMPILE] is not
+  supported.
 
-- string longer than a counted string returned by 6.1.2450 WORD;
+- string longer than a counted string returned by 6.1.2450 WORD: unchecked. The
+  string will be ok, but the count will, of course, contain only the least
+  significant bits of the length.
 
-- u greater than or equal to the number of bits in a cell (6.1.1805 LSHIFT, 6.1.2162 RSHIFT);
+- u greater than or equal to the number of bits in a cell (6.1.1805 LSHIFT,
+  6.1.2162 RSHIFT): 0 is returned.
 
-- word not defined via 6.1.1000 CREATE (6.1.0550 >BODY, 6.1.1250 DOES>);
+- word not defined via 6.1.1000 CREATE (6.1.0550 >BODY, 6.1.1250 DOES>):
+  control is transferred to the error handler under error code 14 ('No matching
+  CREATE').
 
-- words improperly used outside 6.1.0490 <# and 6.1.0040 #> (6.1.0030 #, 6.1.0050 #S, 6.1.1670 HOLD, 6.1.2210 SIGN).
+- words improperly used outside 6.1.0490 <# and 6.1.0040 #> (6.1.0030 #,
+  6.1.0050 #S, 6.1.1670 HOLD, 6.1.2210 SIGN): unchecked. If the data stack is
+  empty when this happens a data stack underflow condition will be triggered.
+  Otherwise the system is likely to misbehave.
 
-4.1.3 Other system documentation
+1.3 Other system documentation
 --------------------------------
+This whole implementation assumes that the Z79Forth reference board is used.
+Kicad 5 schematics and the corresponding PDF file are included in this
+distribution. The reference board may also be called the validated use case.
+
+1.3.1 Words using PAD
+---------------------
+None. PAD is defined and available to the programmer for temporary storage.
+No words use it for their own purpose. Contrary to common practice in some
+other systems, PAD resides at a fixed address and is exactly 84 bytes long.
+
+Pictured numbers string representation is stored in a buffer of the same size,
+whose address is not directly available to the programmer. WORD's output is to
+HERE, i.e. the current end of the dictionary.
+
+1.3.2 System conformance upon boot
+----------------------------------
+Z79Forth/A is an EEPROM resident implementation. Which means that most words
+from the Core wordset are immediately available. However the following words
+are defined in CompactFlash storage: >BODY ABORT" ENVIRONMENT? LSHIFT RSHIFT
+On a fully functional system where the supplied CompactFlash image has been
+transferred to a medium, they will be transparently loaded (block #1 will be
+auto-loaded).
+
+1.3.3 System dictionary space
+-----------------------------
+The system dictionary occupies about 5.5 KB of EEPROM space. On the top of this
+about 2 KB of material is automatically loaded from CompactFlash storage. The
+file all-words.txt in the SW/doc directory documents which are EEPROM resident
+(E prefix) or loaded from mass storage (C prefix).
+
+1.3.4 Application dictionary space
+----------------------------------
+Upon system initialization, the ROM based flavor of '@' is relocated to SRAM,
+starting at the address WDICSPC (see SW/src/constants.asm for details). After
+the material loaded automatically from mass storage is in and taking into
+account the space required for global variables and buffers, this leaves about
+26 KB of application space. This can be verified interactively by resorting to:
+
+        UNUSED .
+
+1.3.5 Return stack space
+------------------------
+The return stack size is configurable through the RSTKSZ tunable parameter
+(defined in SW/src/constants.asm) and is expressed in bytes. It defaults to
+128 (64 cells). The RPICKN implementation contraints it to be no higher than
+510 bytes (255 cells). This puts an upper limit on the number of screens that
+can in service through nested LOADs. For every nested call to LOAD, four cells
+will be pushed to the return stack.
+
+1.3.6 Data stack space
+----------------------
+The data stack size is configurable through the NSTKSZ tunable parameter
+(defined in SW/src/constants.asm) and is expressed in bytes. It defaults to
+192 (96 cells). The upper limit is only constrained by the SRAM size.
+
+1.3.7 Mass storage requirements
+-------------------------------
+The mass storage device used by the Z79Forth reference board is a SanDisk
+CompactFlash device programmed in 8 bit mode. There is no minimum storage
+requirement. Z79Forth will work even in the absence of a CF card. However,
+the following standard words are expected to be loaded from mass storage:
+
+Core word set:		ABORT" >BODY ENVIRONMENT? LSHIFT RSHIFT
+Core ext word set:	.( 2>R 2R> 2R@ ERASE TO UNUSED VALUE WITHIN
+Tools word set:		DUMP SEE
+String word set:	/STRING -TRAILING
+
+The maximum number of addressable blocks is the full range of unsigned block
+numbers (64 MB).
+
+1.3.8 An operator's terminal
+----------------------------
+In the validated use case, this is provided by an HD63B50 ACIA whose base
+address is defined by ACIACTL and ACIADAT (see SW/src/constants.asm).
+
+The default ACIA settings assume a 1.84320 MHz oscillator, optionally divided
+by 3 through a pair of D type latches. The baud rate is further divided by 16
+by chip configuration, thus resulting in a 115200 bps line rate (8N1 is also
+programmed). However, reliability problems have been observed when repeatedly
+cut & pasting large blocks of text at very short time intervals. The divide
+by 3 path (38400 bps operation) is highly recommended.
+
+RTS/CTS flow control is implemented on input. Asynchronous serial input is
+interrupt driven. Character input is queued to a 64 byte FIFO and dequeued
+whenever GETCH is invoked. Character output supports software flow control
+(XON/OFF).
+
+The preferred user interface to the ACIA is Minicom under Linux (other options
+might work as well, YMMV). An input line will be considered as terminated upon
+reception of a CR character (hex $0D). No extra LF (hex $0A) character is
+expected. The input processing routine provides support for cooked input.
+Supported control codes are:
+
+- erase (^H) implements the traditional backspace semantics.
+- kill (^U) erases all characters up to the beginning of the line, in a Unix
+  like manner.
+- intr (^C) interrupts the normal flow of execution and resumes control in
+  the error handler, as if ABORT had been called from Forth code.
+
+The recommended terminal size is 25 lines by 80 columns. DUMP (see SW/examples/
+dump.4th) assumes 80 columns are available. LWVI only requires 18 lines by 64
+columns.
+
+2 The optional Block word set
+-----------------------------
+
+2.1 Implementation-defined options
+----------------------------------
+- the format for display by LIST: the screen passed as an argument is displayed
+  as 16 lines of 64 characters. The text is shown exactly as it is in the
+  loaded block--nothing is added.
+
+- the length of a line affected by \: 64 characters.
+
+2.2 Ambiguous conditions
+------------------------
+- correct block read was not possible: this can happen in one of two
+  situations: either the CompactFlash was not detected on bootup or an I/O
+  error occurred. In either case, control is transferred to the error handler
+  under error code 17 ('IO error').
+
+- I/O exception in block transfer: control is transferred to the error handler
+  under error code 17 ('IO error').
+
+- invalid block number: this is not possible if the minimum storage requirements
+  are met (i.e. a minimum of 128 MB od CompactFlash).
+
+- a program directly alters the contents of BLK: execution continues in the
+  new block (transparently loaded) at the current >IN offset.
+
+- no current block buffer for UPDATE: UPDATE has no effect.
+
+2.3 Other system documentation:
+-------------------------------
+- any restrictions a multiprogramming system places on the use of buffer
+  addresses: no restictions. It should be noted that multiprogramming is
+  not officially. There is only one global user context available.
+
+- the number of blocks available for source and data: only limited by the
+  cell representation of an unsigned number: 65536.
+
+3 The optional Facility word set
+--------------------------------
+
+3.1 Implementation-defined options
+----------------------------------
+- duration of a system clock tick: there is no periodic inteeruption is the
+  validated use case. MS's waiting period is specified in milliseconds.
+
+- repeatability to be expected from the execution of MS: pretty good indeed.
+  This is implemented as busy waiting and must be calibrated at EEPROM
+  compilation time (see SW/src/constants.asm, MSLCNT definition).
+
+4 The optional Programming-Tools word set
+-----------------------------------------
+
+4.1 Implementation-defined options
+----------------------------------
+- source and format of display by SEE: a disassembly listing is provided.
+  Only a few 6309 operation codes are supported: LXI (ldx immediate), JSR, JMP
+  and RTS. Anything else is mapped to FCB (form constant byte). The disassembler
+  is supplied in SW/examples/dis.4th and resides in blocks 90 to 94 in the
+  default CompactFlash image.
+
+4.2 Ambiguous conditions
+------------------------
+- FORGET removes a word required for correct execution: FORGET is not
+  implemented in Z79Forth/A. MARKER is to be used instead.
+
+- fewer than u+1 items on the control-flow stack (CS-PICK, CS-ROLL): CS-PICK
+  and CS-ROLL are not implemented in Z79Forth/A.
+
+- name can’t be found (FORGET): FORGET is not implemented in Z79Forth/A.
+
+- name not defined via CREATE: ;CODE is not implemented in Z79Forth/A.
+
+- POSTPONE applied to [IF]: After defining : X POSTPONE [IF] ; IMMEDIATE. X is
+  equivalent to [IF].
+
+- reaching the end of the input source before matching [ELSE] or [THEN]:
+  Continue in the same state of conditional compilation in the next outer input
+  source. Currently there is no warning to the user about this.
+
+- removing a needed definition (FORGET): FORGET is not implemented in
+  Z79Forth/A.
 

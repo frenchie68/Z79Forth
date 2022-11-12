@@ -9,11 +9,12 @@
 * Also credited for their help: Justin Poirier (seminal HW design), Daniel
 * Tufvesson (original CompactFlash interface), Peter Minuth (general Forth
 * guruness), Paul E. Bennett (ANSI compatibility advice); Michel Jean, Bill
-* Ragsdale, Pablo Hugo Reda, Demitri Peynado and Bernd Paysan for contributed
-* application level code; Carsten Strotmann for most of the benchmarking code
-* (see https://theultimatebenchmark.org/); Gerry Jackson and Steve R. Palmer
-* (see https://github.com/gerryjackson/forth2012-test-suite) for selected
-* bits and pieces of the Forth2012 test suite (see https://forth-standard.org/).
+* Ragsdale, Pablo Hugo Reda, Matthias Koch, Demitri Peynado and Bernd Paysan
+* for contributed application level code; Carsten Strotmann for most of the
+* benchmarking code (see https://theultimatebenchmark.org/); Gerry Jackson and
+* Steve R. Palmer (see https://github.com/gerryjackson/forth2012-test-suite)
+* for selected bits and pieces of the Forth2012 test suite
+* (see https://forth-standard.org/).
 *
 * This is a native Forth. Not a threaded interpretive implementation.
 * Worth noticing is the fact that the return stack does not hold return
@@ -238,6 +239,7 @@ CFCARDP	rmb	1		NZ if CF card present
 CFCMMIR	rmb	1		Last CF command issued
 CFERRCD	rmb	1		and the corresponding error code
 SRCID	rmb	1		ANSI SOURCE-ID (internal only).
+SQUOTFN	rmb	1		NZ only if running WORD from S" (or .")
 
 * Serial buffer parameters. Queing happens on FIRQ.
 * Dequeing occurs when GETCH is invoked.
@@ -419,27 +421,14 @@ RAMOK	ldx	#RAMSTRT
 * The interpreter main loop.
 INTERP	clrd
 	std	UBLK		Interpreting from the console. Set BLK to 0
-	std	UTOIN
 	sta	SRCID		Clear SOURCE-ID. Not invoked in EVALUATE context
-	ldx	#CMDBUF
-	stx	BSBFADR
-	ldb	#CMDBFSZ	No NUL terminator in this implementation
-	jsr	GETS		Acquire command from the console
-
-* Additional setup in case the ANSI \ is used.
-	clra
-	std	ISLEN		GETS returns the entered character count via B
-
-	clrb
-	std	ISEADDR		Clear end of input stream address (included)
+	jsr	READLN		Acquire the next input line (>IN is cleared)
 	bsr	_INTERP
 MINTLRA	bra	INTERP
 
 * The interpreter itself.
 _INTERP	jsr	SCNSTOK		Scan for the beginning of a word at address X
 	beq	@oeistr		This is the end
-	tfr	x,d		Starting token address to D
-	jsr	U2INFRD		Derive >IN from D
 	tst	USTATE+1	We do ignore the upper byte
 	bne	COMP		We are compiling
 	jsr	SWDIC		Updates TOKENEP, CURTOKL, IMDFLG/DEFFLG
@@ -464,13 +453,27 @@ NMCVIRA	equ	*
 	ldb	#6		Incorrect STATE
 	jsr	ERRHDLR		No return
 INTISRA	equ	*		For symbolic stack debugging purposes
-@introk	ldd	TOKENEP
-	bsr	U2INFRD		Derive >IN from D
+@introk	bsr	WIEN2IN		Ask Vienna for its opinion about >IN should be
 	ldx	#INTRPRA	The return address
 	pshs	x
 	tfr	y,pc		An indirect call to Y
 INTRPRA	jsr	BKIN2PT		Derive X from BLK, >IN
 	bra	_INTERP
+
+* The Vienna anomaly: have >IN point one character further into the input
+* stream if the end of the input stream has not been reached yet and
+* the next available character is BL. This simplifies WORD and is required
+* for the GNU Forth based PARSE implementation.
+WIEN2IN ldx	TOKENEP
+	ldd	ISEADDR
+	cmpr	d,x
+	beq	@noskip		End of input stream reached already
+	lda	#SP
+	cmpa	,x
+	bne	@noskip
+	leax	1,x
+@noskip	tfr	x,d
+	bra	U2INFRD		Derive >IN from D
 
 * The compiler.
 * Upon entry TOKENSP has been set by a prior call to SCNSTOK.
@@ -478,9 +481,8 @@ COMP	jsr	SWDIC		Updates TOKENEP, CURTOKL, IMDFLG/DEFFLG
 	beq	@cmpnum		Word @ TOKENSP is not in the dictionary
 	tst	IMDFLG
 	beq	@notimd
-	ldd	TOKENEP
-	bsr	U2INFRD		Derive >IN from D
-	ldx	#COMPLRA	Word is immediate. Execute it.
+	bsr	WIEN2IN		Ask Vienna for its opinion about >IN should be
+	ldx	#COMPLRA	Word is immediate. Execute it
 	pshs	x		Return to COMPLRA
 	tfr	y,pc		An indirect call to Y
 COMPLRA	jsr	BKIN2PT		Derive X from BLK, >IN
@@ -521,6 +523,18 @@ EMXASXT	ldy     DICEND
 * Derive UTOIN from D's current value. D is altered.
 U2INFRD	subd	BSBFADR
 	std	UTOIN
+	rts
+
+* Used by INTERP and REFILL.
+READLN	ldx	#CMDBUF
+	stx	BSBFADR
+	ldb	#CMDBFSZ
+	jsr	GETS
+	clra
+	std	ISLEN		GETS returns the entered character count via B
+	clrb
+	std	ISEADDR		Clear end of input stream address (included)
+	std	UTOIN		and >IN as well
 	rts
 
 * Store the HEX representation of the lower nibble of A to Y+.
@@ -723,24 +737,25 @@ FORTHIN	RFXT	jsr,NCLR+7	XT for NCLR. Set up the normal stack
 	std	USCR		Clear SCR
 	std	UBLK		Clear BLK
 	std	UTOIN		Clear >IN
+	std	MRUBUFA		Clear most the recently used buffer address
 	sta	SRCID
 	ENDC			DEBUG
 	RFXT	jmp,DECIMAL+10	XT for DECIMAL. Default base is decimal
 
 * Input stream end reached? If ISEADDR is clear, compute it, then compare
 * X to it. EOL condition should be handled if we return from this with ZFLAG
-* set. BSBFADR and ISLEN must have been previously initilized.
+* set. BSBFADR and ISLEN must have been previously initialized.
 ISERCHD	pshs	d
 	ldd	ISEADDR
-	beq	@iseset
+	bne	@cont
+* Input stream end address (ISEADDR) needs to be initialized.
+	ldd	BSBFADR
+	addd	ISLEN
+	std	ISEADDR
 @cont	cmpr	x,d		CC = (D - X)
 	puls	d
 	blo	@inpovf
 	rts
-@iseset	ldd	BSBFADR
-	addd	ISLEN
-	std	ISEADDR
-	bra	@cont
 @inpovf	ldb	#18		>IN Out of range
 	jsr	ERRHDLR
 
@@ -813,7 +828,7 @@ CKNBPFX	ldb	,x		B has a potential base prefix character
 	sta	UBASE+1		Update BASE
 	puls	x
 	leax	1,x		Skip the prefix from the input stream
-	dec	CURTOKL		Dor the sanity of NUMCVT
+	dec	CURTOKL		For the sanity of NUMCVT
 	rts
 
 * NUMCVT performs a signed string to number conversion. The input string is
@@ -823,8 +838,7 @@ CKNBPFX	ldb	,x		B has a potential base prefix character
 * - redirection to the error handler (Undefined word), or
 * - a converted cell or double cell returned through the data stack.
 *   Upon return, ISDBLF being NZ will indicate a double.
-NUMCVT	bsr	CKBASE		No return if BASE isn't in the [2..36] range
-	clr	ISNEGF		Assume the result is positive
+NUMCVT	clr	ISNEGF		Assume the result is positive
 	clr	ISDBLF		Assume the result is not a double number
 	lda	CURTOKL
 	sta	SVCTOKL		Save CURTOKL's value upon entry
@@ -890,21 +904,9 @@ RSBSPFX	lda	BASBKUP
 	sta	UBASE+1
 @theend	rts
 
-* Check whether BASE is in the supported range ([2..36]).
-CKBASE	lda	UBASE+1		BASE
-	cmpa	#2
-	blo	@ckbser		Must be >= 2
-	cmpa	#36
-	bhi	@ckbser		And <= 36 (the ANSI maximum)
-	rts
-@ckbser	ldb	#15		Invalid BASE
-	jsr	ERRHDLR		No return
-CKBASRA	equ	*
-
 * Convert number stored in X to a string (depending on BASE value).
 * Output is stored in the global TBUFF buffer. X is preserved.
-CVNSTR	bsr	CKBASE
-	clr	ISNEGF
+CVNSTR	clr	ISNEGF
 	tfr	x,d
 	tst	CVISSGN		Are we to perform a signed conversion?
 	beq	@cvnst1
@@ -939,26 +941,6 @@ CVNSTR	bsr	CKBASE
 	rts
 @cvnst6	stb	,-y
 	bra	@cvnst5
-
-* Check for minimal data stack depth. On input D has the lowest possible stack
-* address that satisfies the needs of the caller. This routine is meant
-* to support "transactional" behaviour, which is intended to improve
-* debugging support.
-CHKNDPT	cmpr	d,u
-	bhi	@stkudf
-	rts
-@stkudf	ldb	#1		Data stack underflow
-	jsr	ERRHDLR		No return
-CKDPTRA	equ	*
-
-* Parameter stack's depth checking primitives (transactional behavior support).
-MIN1PST	MINDREQ	1
-
-MIN2PST	MINDREQ	2
-
-MIN3PST	MINDREQ	3
-
-MIN4PST	MINDREQ	4
 
 * Search word beginning at address TOKENSP in the dictionary.
 * Upon return Z will be set if the word was not found.
@@ -1009,7 +991,7 @@ SWDIC1	ldx	DICEND		Entry point for the ANSI FIND
 	clra
 	lslb			Bit 6 to CFLAG
 	rola			CFLAG to A
-	sta	DEFFLG		Set DEFINE flag
+	sta	DEFFLG		Set DEFINE (compilation only) flag
 	ldx	TOKENEP
 	stx	TOKENSP
 	IFNE	RELFEAT
@@ -1254,10 +1236,8 @@ NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
 	fcn	'RPOPRA'
 	fdb	RPSHRA		Return stack overflow
 	fcn	'RPSHRA'
-	fdb	ERRHDLR		Error handler
-	fcn	'ERRHDLR'
-	fdb	CKBASRA		Illegal BASE value
-	fcn	'CKBASRA'
+*	fdb	ERRHDLR		Error handler
+*	fcn	'ERRHDLR'
 	fdb	CKDPTRA		Not enough parameters supplied (transac. behav.)
 	fcn	'CKDPTRA'
 	fdb	CHKNDPT		Check data stack minimum depth (transac. behav.)
@@ -1515,32 +1495,71 @@ BKIN2PT	pshs	y
 	include	rtc.asm		Experimental MC146818 support
 	include	storage.asm	CompactFlash support
 
+* Check for minimal data stack depth. On input D has the lowest possible stack
+* address that satisfies the needs of the caller. This routine is meant
+* to support "transactional" behaviour, which is intended to improve
+* debugging support.
+CHKNDPT	cmpr	d,u
+	bhi	@stkudf
+	rts
+@stkudf	ldb	#1		Data stack underflow
+	jsr	ERRHDLR		No return
+CKDPTRA	equ	*
+
+* Parameter stack depth checking primitives.
+MIN1PST	MINDREQ	1
+
+MIN2PST	MINDREQ	2
+
+MIN3PST	MINDREQ	3
+
+MIN4PST	MINDREQ	4
+
 ******************************************************************************
 * Dictionary begins. Please note that @ has to be the first (in linked list
 * order) word and EMPTY-BUFFERS has to be the last one. In the code below ANSI
 * refers to ANSI-X3.215-1994 Draft 6 proposal (i.e. the free spec).
 
-EBUFS	fcb	13		79-STANDARD (REQ145)
+EBUFS	fcb	13		ANSI (Block ext)
 	fcc	'EMPTY-BUFFERS'	( -- )
 	fdb	0		Last dictionary entry
 	RFCS
-EMPTYB	ldx	#BUF0
-	bsr	EMPT1B
+EMPTYB	clrd			The following cannot fail so it's OK to clear
+	std	MRUBUFA		the most recently used buffer address now
+	ldx	#BUF0
+	bsr	@empt1b
 	ldx	#BUF1
-* Empty the buffer pointed to by X.
-EMPT1B	stx	MRUBUFA		Update most recently used buffer address
-	leax	BOTERM,x	Buffer offset to the terminator field
-	clrd
+* Empty the buffer pointed to by X. D is zero upon entering this routine.
+@empt1b	leax	BOTERM,x	Buffer offset to the terminator field
 	std	,x		Clear terminator and flags fields
-	IFNE	DEBUG
-	ldd	#$C7C7
-	std	2,x		Dummy block number
-	ENDC			DEBUG
 	rts
 
-SAVBUF	fcb	12		79-STANDARD (REQ221)
-	fcc	'SAVE-BUFFERS'	( -- )
+ALIGND	fcb	7		ANSI Core
+	fcc	'ALIGNED'	( addr -- a-addr )
 	fdb	EBUFS
+	RFCS
+	bra	MIN1PST		At least one cell must be stacked up
+
+* n2 is the size in address units (bytes) of n1 characters. A NOOP.
+CHARS	fcb	5		ANSI Core
+	fcc	'CHARS'		( n1 -- n2 )
+	fdb	ALIGND
+	RFCS
+	bra	MIN1PST		At least one cell must be stacked up
+
+CELLP	fcb	5		ANSI (Core)
+	fcc	'CELL+'		( a-addr1 -- a-addr2 )
+	fdb	CHARS
+	RFCS
+	bsr	MIN1PST		We need at least one cell stacked up
+	ldd	,u
+	addd	#2
+	std	,u
+	rts
+
+SAVBUF	fcb	12		ANSI (Block)
+	fcc	'SAVE-BUFFERS'	( -- )
+	fdb	CELLP
 	RFCS
 	ldx	#BUF0
 	bsr	WBIFDRT
@@ -1548,9 +1567,8 @@ SAVBUF	fcb	12		79-STANDARD (REQ221)
 * Write buffer back to mass storage if marked as dirty.
 * The dirty bit is cleared but the buffer contents itself is not.
 * The buffer will continue to be marked as "in use."
-* On input X has has the base buffer address. Both D and X
-* are preserved. Y is not.
-WBIFDRT	pshs	d
+* On input X has has the base buffer address. D, X and Y are all preserved.
+WBIFDRT	pshs	y,d
 	pshs	x		Base buffer address (arg1 to CF1BKWR)
 	lda	#BINUSE|BDIRTY
 	anda	BOFLAGS,x
@@ -1558,7 +1576,7 @@ WBIFDRT	pshs	d
 	bne	@alldon		Block not in use or in use but not dirty
 	ldx	BOBLKNO,x
 	pshs	x		Block number (arg0 to CF1BKWR)
-	bsr	CF1BKWR		Write data buffer to CF
+	jsr	CF1BKWR		Write data buffer to CF
 	leas	2,s		Drop one cell from the system stack (blknum)
 	ldx	,s		Retrieve base buffer address
 	leax	BOFLAGS,x
@@ -1566,29 +1584,37 @@ WBIFDRT	pshs	d
 	anda	#^BDIRTY	Clear the dirty bit
 	sta	,x		and update the 'flags' field
 @alldon	puls	x		Restore X
-	puls	d		and D
+	puls	d,y		and D/Y
 	rts
 
-FLUSH	fcb	5		79-STANDARD (REF)
-	fcc	'FLUSH'		( -- ) An alias for SAVE-BUFFERS
+FLUSH	fcb	5		ANSI (Block)
+	fcc	'FLUSH'		( -- )
 	fdb	SAVBUF
 	RFCS
-	RFXT	bra,SAVBUF+15	XT for SAVE-BUFFERS
+	RFXT	bsr,SAVBUF+15	XT for SAVE-BUFFERS
+	RFXT	jmp,EBUFS+16	XT for EMPTY-BUFFERS
 
-UPDATE	fcb	6		79-STANDARD (REQ229)
+UPDATE	fcb	6		ANSI (Block)
 	fcc	'UPDATE'	( -- )
 	fdb	FLUSH
 	RFCS
 	ldx	MRUBUFA		Most recently used buffer base address
+	beq	@xquiet		All buffers are currently invalidated
 	leax	BOFLAGS,x	Buffer 'flags' field's address to X
 	lda	,x		Buffer 'flags' field to A
+	IFNE	DEBUG
 	bita	#BINUSE		Is that buffer in use?
-	beq	@upddon		No, we're done here
+	beq	@ncurbf		No, something's fishy here. Bail out now!
+	ENDC			DEBUG
 	ora	#BDIRTY
 	sta	,x		Set the dirty bit
-@upddon	rts
+@xquiet	rts
+	IFNE DEBUG
+@ncurbf	ldb	#15		No current buffer
+	jsr	ERRHDLR		No return
+	ENDC			DEBUG
 
-BUFFER	fcb	6		79-STANDARD (REQ130)
+BUFFER	fcb	6		ANSI (Block)
 	fcc	'BUFFER'	( ublkno -- addr )
 	fdb	UPDATE
 	RFCS
@@ -1613,16 +1639,15 @@ BUFFER	fcb	6		79-STANDARD (REQ130)
 	cmpx	MRUBUFA		Most recently used buffer address
 	bne	@bselct
 	ldx	#BUF1
-* At this point X has the base address of the block we are interested in.
-@bselct	pshs	y		Backup the target block number
-	jsr	WBIFDRT		Write back if dirty. X and D are preserved
+* At this point X has the base address of the block we are interested in
+* and Y has the target block number.
+@bselct	jsr	WBIFDRT		Write back if dirty. X, Y and D are preserved
 	lda	#BINUSE
 	sta	BOFLAGS,x	Update the buffer's 'flags' field
-	puls	y		Restore the target block number
 	sty	BOBLKNO,x	and update the 'blknum' field as well
 	bra	@retba
 
-BLOCK	fcb	5		79-STANDARD (REQ191)
+BLOCK	fcb	5		ANSI (Block)
 	fcc	'BLOCK'		( ublkno -- addr )
 	fdb	BUFFER
 	RFCS
@@ -1655,9 +1680,41 @@ BLOCK	fcb	5		79-STANDARD (REQ191)
 	UCNPUSH
 	rts
 
-BLK	fcb	3
-	fcc	'BLK'
+* Three different behaviours have been observed here (from console input):
+* Interactive input is: "CR >IN ?<CR>"
+*
+* GNU Forth 0.7.3:
+* REFILL .S CR >IN ? <1> -1 
+* 11  ok
+* VFX Forth 5.11:
+* REFILL .S CR >IN ? 
+* 8  ok-1
+* SwiftForth 3.7.9:
+* REFILL .S CR >IN ?
+* 8  ok
+*
+* I am going for the SwiftForth solution.
+REFILL	fcb	6		ANSI (Core ext/Block ext)
+	fcc	'REFILL'
 	fdb	BLOCK
+	RFCS
+	ldx	UBLK
+	bne	@nxtblk		We are running from block context
+* Running from the console (user input device) or from an EVALUATE string.
+	tst	SRCID		Are we being EVALUATEd?
+	RFXT	lbne,FALSE+8	Yes. Return false
+	jsr	READLN		>IN is cleared
+	bra	@rtrue
+@nxtblk	leax	1,x
+	stx	UBLK		Update BLK
+	tfr	0,x
+	stx	UTOIN		Clear >IN
+* Any possible block number is valid.
+@rtrue	RFXT	jmp,TRUE+7	Return true.
+
+BLK	fcb	3		ANSI (Block)
+	fcc	'BLK'
+	fdb	REFILL
 	RFCS
 	ldx	#UBLK
 	jmp	NPUSH
@@ -1669,7 +1726,7 @@ TOIN	fcb	3		ANSI (Core)
 	ldx	#UTOIN
 	jmp	NPUSH
 
-SCR	fcb	3
+SCR	fcb	3		ANSI (Block ext)
 	fcc	'SCR'
 	fdb	TOIN
 	RFCS
@@ -1743,7 +1800,7 @@ RTCSTOR	fcb	4		Non-standard
 	RFXT	jmp,TWODROP+8	XT for 2 DROP
 	ENDC			RTCFEAT
 
-LIST	fcb	4		79-STANDARD (REQ109)
+LIST	fcb	4		ANSI (Block ext)
 	fcc	'LIST'		( ublkno -- )
 	fdb	RTCSTOR
 	RFCS
@@ -1780,29 +1837,10 @@ ALIGN	fcb	5		ANSI Core
 	RFCS
 	rts
 
-ALIGND	fcb	7		ANSI Core
-	fcc	'ALIGNED'	( addr -- a-addr )
-	fdb	ALIGN
-	RFCS
-	jmp	MIN1PST		At least one cell must be stacked up
-
-CHARP	fcb	5		ANSI Core
-	fcc	'CHAR+'		( c-addr1 -- c-addr2 )
-	fdb	ALIGND
-	RFCS
-	RFXT	jmp,ONEP+5	XT for 1+
-
-* n2 is the size in address units (bytes) of n1 characters. A NOOP.
-CHARS	fcb	5		ANSI Core
-	fcc	'CHARS'		( n1 -- n2 )
-	fdb	CHARP
-	RFCS
-	jmp	MIN1PST		At least one cell must be stacked up
-
 * Convert a single cell to a double. Non-transactional.
 STOD	fcb	3		ANSI Core
 	fcc	'S>D'		( n -- d )
-	fdb	CHARS
+	fdb	ALIGN
 	RFCS
 	jsr	NPOP		N to X
 	UCNPUSH			Push back low order cell
@@ -1958,9 +1996,9 @@ RSTRCT	fcb	8		Non-standard (GNU Forth)
 	bra	IMMED1
 
 * Added for better support of ANSI VALUEs.
-UNMON	fcb	9
+UNMON	fcb	9		Non-standard
 	fcc	'UNMONITOR'	( -- )
-	fdb	MONITOR
+	fdb	RSTRCT
 	RFCS
 	IFNE	RELFEAT
 	clra
@@ -1974,9 +2012,9 @@ UNMON	fcb	9
 * last defined word in the dictionary. : words are monitored by default
 * and so are constants. CREATEd words require an explicit invokation of
 * MONITOR if they are to be checked for integrity.
-MONITOR	fcb	7
+MONITOR	fcb	7		Non-standard
 	fcc	'MONITOR'	( -- )
-	fdb	RSTRCT
+	fdb	UNMON
 	RFCS
 	IFNE	RELFEAT
 	lda	#1		Set MONFLM in the word 'flags' header field
@@ -2028,9 +2066,9 @@ CSUMFLM	fcn	'integrity check failed'
 * multitasking is not supported by this implementation. Therefore no status
 * value is returned. Feedback will only be provided for corrupted words, in
 * the form of a diagnostic message printed to the console.
-ICHECK	fcb	6
+ICHECK	fcb	6		Non-standard
 	fcc	'ICHECK'	( -- )
-	fdb	UNMON
+	fdb	MONITOR
 	RFCS
 	IFNE	RELFEAT
 	ldy	DICEND		Upper bound for the code of the last word (exc.)
@@ -2065,6 +2103,7 @@ ICHECK	fcb	6
 	ENDC			RELFEAT
 @ickdon	rts
 
+* hForth prototyping code below:
 * : ?DO 0 rakeVar !
 *   POSTPONE do?DO
 *   HERE            \ leave ?DO-orig
@@ -2107,6 +2146,7 @@ QDOEX	jsr	MIN2PST
 	andcc	#^ZFLAG		Clear ZFLAG
 @skloop	rts
 
+* hForth prototyping code below:
 * : DO 0 rakeVar !   0   POSTPONE doDO   HERE   bal+ ; IMMEDIATE RESTRICT
 DO	fcb	$C2		ANSI (Core)
 	fcc	'DO'		Comp: ( C: -- do-sys )
@@ -2124,6 +2164,7 @@ DOEX	RFXT	jsr,SWAP+7	XT for SWAP
 	RFXT	jsr,TOR+5	XT for >R (limit)
 	RFXT	jmp,TOR+5	XT for >R (index)
 
+* hForth prototyping code below:
 * : LOOP POSTPONE doLOOP   rake ; IMMEDIATE RESTRICT
 LOOP	fcb	$C4		ANSI (Core)
 	fcc	'LOOP'		Comp: ( C: do-sys -- )
@@ -2204,7 +2245,7 @@ UNLOOP	fcb	$46		ANSI (Core)
 	jsr	RPOP		Drop the index from the return stack
 	jmp	RPOP		and the loop limit as well
 
-* Prototyping code below:
+* hForth prototyping code below:
 *
 * VARIABLE bal   0 bal !
 * : bal+ 1 bal +! ;
@@ -2215,7 +2256,7 @@ UNLOOP	fcb	$46		ANSI (Core)
 *   branch ; RESTRICT
 * : AHEAD branch HERE 0 ,  \ 0 is an unresolved forward reference
 *   bal+ 1 ; IMMEDIATE RESTRICT
-AHEAD	fcb	$C5		ANSI (Tools ext)
+AHEAD	fcb	$C5		ANSI (Programming tools ext)
 	fcc	'AHEAD'		Comp: ( C: -- orig )
 	fdb	UNLOOP		Exec: ( -- )
 	RFCS
@@ -2230,6 +2271,7 @@ AHEAD1	lda	#JMPOPC
 	ldx	#1		ANS:orig/type is 1
 	jmp	CSPUSH
 
+* hForth prototyping code below:
 * : IF 0branch HERE 0 ,  \ 0 is an unresolved forward reference
 *   bal+ 1 ; IMMEDIATE RESTRICT
 IF	fcb	$C2		ANSI (Core)
@@ -2252,6 +2294,7 @@ UNLESS	fcb	$C6		Non-standard (Perl inspired)
 	jsr	EMXASXT
 	RFXT	bra,IF+5	XT for IF
 
+* hForth prototyping code below:
 * : ELSE POSTPONE AHEAD 2SWAP POSTPONE THEN ; IMMEDIATE RESTRICT
 ELSE	fcb	$C4		ANSI (Core)
 	fcc	'ELSE'		Comp: ( C: orig1 -- orig2 )
@@ -2261,6 +2304,7 @@ ELSE	fcb	$C4		ANSI (Core)
 	RFXT	jsr,TWOSWAP+8	This should be read as "1 CS-ROLL"
 	RFXT	bra,THEN+7
 
+* hForth prototyping code below:
 * : THEN 1- ABORT" Unbalanced IF/ELSE/THEN construct"
 *   HERE SWAP ! bal-
 *   HERE fwdref ! ; IMMEDIATE RESTRICT
@@ -2292,7 +2336,7 @@ EQ	fcb	1		ANSI (Core)
 @eq1	stx	,u		Store in place to FLAG
 	rts
 
-DIFF	fcb	2		79-STANDARD (REF)
+DIFF	fcb	2		ANSI (Core ext)
 	fcc	'<>'		( N1 N2 -- FLAG )
 	fdb	EQ
 	RFCS
@@ -2377,7 +2421,7 @@ INVERT	fcb	6		ANSI (Core)
 	UCNPUSH			and to the data stack
 	rts
 
-ZGREAT	fcb	2		79-STANDARD (REQ118)
+ZGREAT	fcb	2		ANSI (Core ext)
 	fcc	'0>'
 	fdb	INVERT
 	RFCS
@@ -2525,6 +2569,7 @@ NEGATE	fcb	6		ANSI (Core)
 	std	,u
 	rts
 
+* hForth prototyping code below:
 * : BEGIN HERE 0 bal+ ; IMMEDIATE RESTRICT
 BEGIN	fcb	$C5		ANSI (Core)
 	fcc	'BEGIN'		Comp: ( C: -- dest )
@@ -2536,6 +2581,7 @@ BEGIN	fcb	$C5		ANSI (Core)
 	tfr	0,x		ANS:dest/type is zero
 	jmp	CSPUSH		to the control flow stack
 
+* hForth prototyping code below:
 * : AGAIN ABORT" Unbalanced BEGIN/AGAIN construct"
 *   branch , bal- ; IMMEDIATE RESTRICT
 AGAIN	fcb	$C5		ANSI (Core ext)
@@ -2572,6 +2618,7 @@ EXIT	fcb	$C4		ANSI (Core)
 	stx	DICEND
 	rts
 
+* hForth prototyping code below:
 * : UNTIL ABORT" Unbalanced BEGIN/UNTIL construct"
 *   0branch , bal- ; IMMEDIATE RESTRICT
 UNTIL	fcb	$C5		ANSI (Core)
@@ -2587,6 +2634,7 @@ UNTIL	fcb	$C5		ANSI (Core)
 	jsr	CSPOP		ANS:dest/addr to X
 	bra	AGAIN1
 
+* hForth prototyping code below:
 * : WHILE POSTPONE IF 2SWAP ; RESTRICT IMMEDIATE
 WHILE	fcb	$C5		ANSI (Core)
 	fcc	'WHILE'		Comp: ( C: dest -- orig dest )
@@ -2595,6 +2643,7 @@ WHILE	fcb	$C5		ANSI (Core)
 	RFXT	jsr,IF+5
 	RFXT	jmp,TWOSWAP+8	This should be read as "1 CS-ROLL"
 
+* hForth prototyping code below:
 * : REPEAT POSTPONE AGAIN POSTPONE THEN ; RESTRICT IMMEDIATE
 REPEAT	fcb	$C6		ANSI (Core)
 	fcc	'REPEAT'	Comp: ( C: orig dest -- )
@@ -2617,6 +2666,7 @@ TOR	fcb	$42		ANSI (Core)
 	jsr	NPOP
 	jmp	RPUSH
 
+* hForth prototyping code below:
 * : LEAVE POSTPONE UNLOOP POSTPONE branch
 *   HERE rakeVar DUP @ , ! ; IMMEDIATE RESTRICT
 * rakeVar points to the head of a linked list of forward references to
@@ -2847,7 +2897,7 @@ COMPC1	ldd	#-1
 	stx	RECADDR		Should RECURSE by used by a :NONAME definition
 	rts
 
-NONAME	fcb	$7
+NONAME	fcb	$7		ANSI (Core ext)
 	fcc	':NONAME'
 	fdb	COMPC
 	RFCS
@@ -2946,7 +2996,7 @@ EXCT	fcb	7		ANSI (Core)
 @exct1	ldb	#13		Illegal argument
 	jsr	ERRHDLR		No return
 
-BYE	fcb	3		ANSI (Programming tools)
+BYE	fcb	3		ANSI (Programming tools ext)
 	fcc	'BYE'
 	fdb	EXCT
 	RFCS
@@ -2992,26 +3042,24 @@ WORD	fcb	4		ANSI (Core)
 	fcc	'WORD'		( char "<chars>ccc<char>" -- c-addr )
 	fdb	CHAR
 	RFCS
-	jsr	NPOP
+	clr	SQUOTFN		Do not skip leading delimiter(s)
+WORD1	jsr	NPOP		Entry point for S"
 	tfr	x,w		F has the delimiter ASCII code
 	ldy	DICEND		The counted string returned is stored at HERE
 	pshs	y
 	clr	,y+		Initialize its length
         jsr	BKIN2PT		Derive X from BLK, >IN
-	jsr	NXTCHAR		Current input char to A unless ZFLAG is set
-	beq	@word3
-	cmpa	#SP		BL
-	beq	@word1		Skip initial blank if there is one
-	leax	-1,x		Go back one char.
-@word1	jsr	NXTCHAR
+@word1	jsr	NXTCHAR		Current input char to A unless ZFLAG is set
 	beq	@word3		EOL reached, this is the end
+	tst	SQUOTFN		S"/." context: do not look for a leading delim.
+	bne	@word2x
 	cmpr	f,a		Leading delimiter matched?
 	beq	@word1		Yes, skip it (it might be repeated)
 * Either there was no leading delimiter or we went past the leading repetitions.
 	leax	-1,x		Go back one char.
 @word2	jsr	NXTCHAR		Acquire next character from the input stream
 	beq	@word3		EOL reached
-	cmpr	f,a		Trailing delimiter?
+@word2x	cmpr	f,a		Trailing delimiter?
 	beq	@word3
 	sta	,y+
 	inc	[,s]		Increment string length
@@ -3031,11 +3079,20 @@ LPAR	fcb	$81		ANSI (Core). No longer 79-STANDARD compliant
 	RFXT	bsr,WORD+7
 	RFXT	jmp,DROP+7
 
-SOURCE	fcb	6		ANSI (Core)
-	fcc	'SOURCE'	( -- c-addr u )
+SOURID	fcb	9		ANSI (Core ext)
+	fcc	'SOURCE-ID'	( -- 0 | -1 )
 	fdb	LPAR
 	RFCS
-	ldx	BSBFADR
+	ldb	SRCID
+	sex			Sign extension B to D
+	tfr	d,x
+	jmp	NPUSH
+
+SOURCE	fcb	6		ANSI (Core)
+	fcc	'SOURCE'	( -- c-addr u )
+	fdb	SOURID
+	RFCS
+	ldx	BSBFADR		Where we're at, from a physical address point
 	jsr	NPUSH
 	ldx	ISLEN		Input stream length
 	jmp	NPUSH
@@ -3048,7 +3105,7 @@ SOURCE	fcb	6		ANSI (Core)
 *   SOURCE >IN ! DROP ; IMMEDIATE
 * However since C/L (number of columns per line) is 64 (a power of 2), things
 * can be coded in a more compact manner as: >IN @ 63 INVERT AND 64 + >IN !
-BKSLSH	fcb	$81		ANSI (Block Ext)
+BKSLSH	fcb	$81		ANSI (Core Ext)
 	fcb	$5C		\ ( -- )
 	fdb	SOURCE
 	RFCS
@@ -3081,11 +3138,13 @@ SQUOTE	fcb	$82		ANSI (Core)
 	fcc	'S"'		Comp: ( "ccc<quote>" -- )
 	fdb	PSTR		Exec: ( -- c-addr u )
 	RFCS
+	lda	#1
+	sta	SQUOTFN		Do skip leading delimiter(s)
 	tst	USTATE+1
 	bne	@sqcmp
 	ldx	#'"		We are interpreting
 	jsr	NPUSH
-	RFXT	jsr,WORD+7	XT for WORD
+	jsr	WORD1
 	RFXT	jmp,COUNT+8	XT for COUNT
 @sqcmp	ldy	DICEND		We are compiling
 	lda	#JMPOPC		JMP extended
@@ -3095,7 +3154,7 @@ SQUOTE	fcb	$82		ANSI (Core)
 	sty	DICEND
 	ldx	#'"
 	jsr	NPUSH
-	RFXT	jsr,WORD+7	XT for WORD
+	jsr	WORD1
 	jsr	NPOP
 	clra
 	ldb	,x		C@
@@ -3113,18 +3172,11 @@ SQUOTE	fcb	$82		ANSI (Core)
 	RFXT	ldx,#COUNT+8	XT for COUNT
 	jmp	EMXASXT
 
-* Transactional behaviour is guaranteed here. What this means is that the
-* operation will preserve the data stack contents, should insufficient
-* parameters be supplied. It is a very desirable feature (for debugging
-* purposes) which will be generalized to a number of other words. As an
-* aside, it also allows us to access the data stack as directly indexed
-* through the 6309 U register, resulting in better performance.
-DPLUS	fcb	2		79-STANDARD (REQ241)
+DPLUS	fcb	2		ANSI (Double)
 	fcc	'D+'		( d1 d2 -- d1+d2--signed )
-	fdb	SQUOTE		In processor's terms U has ( L1 H1 L2 H2)
+	fdb	SQUOTE		In processor's terms U has ( L1 H1 L2 H2 )
 	RFCS
 	jsr	MIN4PST		Make sure we have at least 4 cells stacked up
-* At this point sufficient stack depth has been assessed. Let's rock and roll!
 	ldd	6,u		L1
 	addd	2,u		L2
 	std	6,u		d1+d2 least significant cell
@@ -3134,7 +3186,7 @@ DPLUS	fcb	2		79-STANDARD (REQ241)
 	leau	4,u		Drop 2 cells from the data stack
 	rts
 
-DNEG	fcb	7		79-STANDARD (REQ245)
+DNEG	fcb	7		ANSI (Double)
 	fcc	'DNEGATE'
 	fdb	DPLUS
 	RFCS
@@ -3148,7 +3200,7 @@ DNEG	fcb	7		79-STANDARD (REQ245)
 	stq	,u		Store the result back to the data stack
 	rts
 
-DMINUS	fcb	2		79-STANDARD (double number extension)
+DMINUS	fcb	2		ANSI (Double)
 	fcc	'D-'		( d1 d2 -- d1-d2--signed )
 	fdb	DNEG		In processor's terms U has ( L1 H1 L2 H2)
 	RFCS
@@ -3162,7 +3214,7 @@ DMINUS	fcb	2		79-STANDARD (double number extension)
 	leau	4,u
 	rts
 
-DZEQ	fcb	3		79-STANDARD (double number extension)
+DZEQ	fcb	3		ANSI (Double)
 	fcc	'D0='		( d -- flag )
 	fdb	DMINUS
 	RFCS
@@ -3173,7 +3225,7 @@ DZEQ	fcb	3		79-STANDARD (double number extension)
 * f = FLAG(d1.hi==d2.hi ? d1.lo<d2.lo : d1.hi<d2.hi);
 * Comparisons between high cells are signed, but they are unsigned between
 * the low cells.
-DLESS	fcb	2		79-STANDARD (REQ244)
+DLESS	fcb	2		ANSI (Double)
 	fcc	'D<'		( d1 d2 -- flag )
 	fdb	DZEQ
 	RFCS
@@ -3192,7 +3244,7 @@ DLESS	fcb	2		79-STANDARD (REQ244)
 	bls	@done
 @anstru	decf			#$FF to F
 @done	tfr	f,b
-	sex			Sign extention B to D
+	sex			Sign extension B to D
 	std	6,u		FLAG returned as a cell
 	leau	6,u		Drop three cells from the data stack
 	rts
@@ -3267,7 +3319,6 @@ TONUMBR	fcb	7		ANSI (Core)
 	fdb	TWOFTCH
 	RFCS
 	jsr	MIN4PST		At least 4 cells need to be stacked up
-	jsr	CKBASE		Check for supported BASE. No return if not
 	ldx	2,u		C-ADDR1 to X
 @cvloop	ldd	,u		Check U1. End of input string reached?
 	beq	@cvdone		Yes--conversion is done
@@ -3532,7 +3583,6 @@ CVTB	fcb	2		ANSI (Core)
 	fcc	'<#'		( -- )
 	fdb	CVT
 	RFCS
-	jsr	CKBASE		Sanity check. BASE can be altered at any time
 	clr	APADBUF
 	rts
 
@@ -3559,7 +3609,7 @@ UDOT	fcb	2		ANSI (Core)
 	clr	CVISSGN		Conversion is unsigned
 	bra	PTOP0
 
-DOTR	fcb	2		79-STANDARD (REF)
+DOTR	fcb	2		ANSI (Core ext)
 	fcc	'.R'
 	fdb	UDOT
 	RFCS
@@ -3587,7 +3637,7 @@ DOTR0	jsr	NPOP
 	bra	@dotr2
 @dotr3	jmp	PUTS
 
-UDOTR	fcb	3		79-STANDARD (REF216)
+UDOTR	fcb	3		ANSI (Core ext)
 	fcc	'U.R'
 	fdb	DOTR
 	RFCS
@@ -3622,7 +3672,7 @@ SPACES	fcb	6		ANSI (Core)
 	decw
 	bra	@loop
 
-PAGE	fcb	4		79-STANDARD (REF)
+PAGE	fcb	4		ANSI (Facility)
 	fcc	'PAGE'
 	fdb	SPACES
 	RFCS
@@ -3635,14 +3685,14 @@ CRLF	fcb	2		ANSI (Core)
 	RFCS
 	jmp	PUTCR
 
-PAD	fcb	3		79-STANDARD (REQ226)
+PAD	fcb	3		ANSI (Core ext)
 	fcc	'PAD'
 	fdb	CRLF
 	RFCS
 	ldx	#PADBUF
 	jmp	NPUSH
 
-TYPE	fcb	4		79-STANDARD (REQ222)
+TYPE	fcb	4		ANSI (Core)
 	fcc	'TYPE'		( c-addr u -- )
 	fdb	PAD
 	RFCS
@@ -3691,7 +3741,7 @@ TERPRET	fcb	$49		79-STANDARD (REF) I make this compile time only
 	ldx	#CMDBUF		Base buffer address for serial line input
 	tst	SRCID		Counted string?
 	beq	@rsolvd		No. Back to the serial console
-	ldx	BSBFADR		BSBFADR and ISELEN have been set up previously
+	ldx	BSBFADR		BSBFADR and ISLEN have been set up previously
 	bra	@rsolvd
 * BLK is NZ, map the block in memory.
 @isblk	jsr	NPUSH		X has the target block number
@@ -3727,7 +3777,7 @@ LOAD2	std	UTOIN		Clear >IN
 	jsr	RSTINP		Restore input parameters
 	jmp	BKIN2PT		Map BLK in (if needed) and update BSBFADR
 
-EVAL	fcb	8		ANSI (Core)
+EVAL	fcb	8		ANSI (Core/Block)
 	fcc	'EVALUATE'	( i * x c-addr u -- j * x )
 	fdb	LOAD
 	RFCS
@@ -3835,19 +3885,15 @@ ONEP	fcb	2		ANSI (Core)
 	std	,u
 	rts
 
-CELLP	fcb	5		ANSI (Core)
-	fcc	'CELL+'		( a-addr1 -- a-addr2 )
+CHARP	fcb	5		ANSI Core
+	fcc	'CHAR+'		( c-addr1 -- c-addr2 )
 	fdb	ONEP
 	RFCS
-	jsr	MIN1PST		We need at least one cell stacked up
-	ldd	,u
-	addd	#2
-	std	,u
-	rts
+	RFXT	bra,ONEP+5	XT for 1+
 
 MINUS	fcb	1		ANSI (Core)
 	fcc	'-'		( n1|u1 n2|u2 -- n3|u3 )
-	fdb	CELLP
+	fdb	CHARP
 	RFCS
 	jsr	MIN2PST		We need at least two cells stacked up
 	ldd	2,u		N1 to D
@@ -4059,11 +4105,11 @@ DIV1	clr	F83DIVF		Assume no adjustment required for floored div.
 	andb	#DVFMASK
 	stb	DIVFCN
 
-	tst	DIVDBL
-	bne	*+7		Make sure double stack requirements are met
-	jsr	MIN2PST		At least two cells need to be stacked up
-	bra	*+5
-	jsr	MIN3PST		At least three cells need to be stacked up
+	tst	DIVDBL		Numerator is double cell?
+	bne	*+7		Yes
+	jsr	MIN2PST		Assert single cell division reqs are met
+	bra	*+5		Stacked parameters reqs verified OK
+	jsr	MIN3PST		Assert double cell division reqs are met
 
 	tst	DIVSYM
 	bne	@dvsym		Symmetric division is wanted
@@ -4078,8 +4124,8 @@ DIV1	clr	F83DIVF		Assume no adjustment required for floored div.
 * Division by zero conditions are dealt with through the trap handler.
 @dvsgn	clrd			Clear the numerator's MSC
 	ldw	2,u		Numerator's LSC
-	bpl	@dvactu		Branch if no sign extention is needed
-* Sign extention from W to Q.
+	bpl	@dvactu		Branch if no sign extension is needed
+* Sign extension from W to Q.
 	comd			-1 to D (numerator's MSC)
 @dvactu	divq	,u		,u has the denominator
 	bsr	FDIVADJ		Perform floored division adjustment, if needed
@@ -4187,7 +4233,7 @@ SYSSTK	fcb	1		Non-standard
 	tfr	s,x
 	jmp	NPUSH
 
-SYSSTAT	fcb	2
+SYSSTAT	fcb	2		Non-standard
 	fcc	'S@'
 	fdb	SYSSTK
 	RFCS
@@ -4208,7 +4254,7 @@ PAYLOAD	fcb	7		Non standard
 * - added feat: display the immedediate and define (compile time only) flags.
 * - added feat: display the forgettable status (R/W). Everything user
 *   defined is forgettable (i.e. RAM resident).
-WORDS	fcb	5		Non-standard
+WORDS	fcb	5		ANSI (Programming tools)
 	fcc	'WORDS'		( -- )
 	fdb	PAYLOAD
 	RFCS
@@ -4317,7 +4363,7 @@ WORDS	fcb	5		Non-standard
 	lbne	@vlist1
 	rts
 
-STATE	fcb	5		ANSI (Core)
+STATE	fcb	5		ANSI (Core/Programming tools ext)
 	fcc	'STATE'		( -- a-addr )
 	fdb	WORDS
 	RFCS
@@ -4368,7 +4414,7 @@ DOTTICK	fcb	2		Non-standard (SwiftForth)
 
 * Display a dump of the data stack in the current BASE. In Leo Brodie's
 * "Starting Forth" the data stack is printed from the bottom up. So it is here.
-DDUMP	fcb	2		ANSI (Optional "Programming tools" word set)
+DDUMP	fcb	2		ANSI (Programming tools)
 	fcc	'.S'		( -- )
 	fdb	DOTTICK
 	RFCS
@@ -4493,7 +4539,7 @@ ROT	fcb	3		ANSI (Core)
 	ldx	#2
 	bra	ROLL1
 
-MROT	fcb	4
+MROT	fcb	4		Non-standard
 	fcc	'-ROT'
 	fdb	ROT
 	RFCS
@@ -4557,7 +4603,7 @@ BLANK	fcb	5		ANSI (String)
 	ldw	#SP
 	bra	FILL1
 
-CMOVED	fcb	6		FORTH-83
+CMOVED	fcb	6		ANSI (String)
 	fcc	'CMOVE>'
 	fdb	BLANK
 	RFCS
@@ -4571,7 +4617,7 @@ CMOVD1	decw
 	tfm	x-,y-
 @cmovd1	rts
 
-CMOVE	fcb	5		79-STANDARD (REQ153)
+CMOVE	fcb	5		ANSI (String)
 	fcc	'CMOVE'
 	fdb	CMOVED
 	RFCS
@@ -4668,7 +4714,7 @@ CFETCH	fcb	2		ANSI (Core)
 	std	,u
 	rts
 
-QMARK	fcb	1		79-STANDARD (REQ194)
+QMARK	fcb	1		ANSI (Programming tools)
 	fcc	'?'
 	fdb	CFETCH
 	RFCS
@@ -4704,10 +4750,10 @@ BOOTMSG	fcb	CR,LF
 	IFNE	RTCFEAT
 	fcc	'Z79Forth/AR 6309 ANS Forth System'
 	ELSE
-	fcc	'Z79Forth/A  6309 ANS Forth System'
+	fcc	'Z79Forth/AI 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20221023 (C) Francois Laagel 2019'
+	fcc	'20221111 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
@@ -4747,7 +4793,11 @@ ERRMTBL	fcn	'Data stack overflow'	Error 0
 	fcn	'Missing delimiter'	Error 12
 	fcn	'Illegal argument'	Error 13
 	fcn	'No matching CREATE'	Error 14
-	fcn	'Invalid BASE'		Error 15
+	IFNE DEBUG
+	fcn	'No current buffer'	Error 15
+	ELSE
+	fcn	''			Error 15
+	ENDC				DEBUG
 	fcn	'Word name too long'	Error 16
 	fcn	'IO error'		Error 17
 	fcn	'>IN Out of range'	Error 18

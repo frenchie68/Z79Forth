@@ -50,7 +50,7 @@ fi
 
 ./txt2blk -i ../examples/coop-mtask.4th -d $CFDEV -s 305 \
 -h '\ Cooperative Multitasking, Matthias Koch. VD 2021/01.'
-# : coopmtload 305 325 THRU ;
+# : coopmtload 305 323 THRU ;
 
 ./txt2blk -i ../testsuite/tester.4th -d $CFDEV -s 400 \
 -h "\ Z79Forth test suite. Based on Gerry Jackson's Forth2012."
@@ -60,14 +60,17 @@ fi
 -h "\ Z79Forth test suite. Based on Gerry Jackson's Forth2012."
 ./txt2blk -i ../testsuite/blocktest.4th -d $CFDEV -s 527 \
 -h "\ Z79Forth test suite. Based on Steve R. Palmer's Forth2012."
-./txt2blk -i ../testsuite/doubletest.4th -d $CFDEV -s 566 \
+./txt2blk -i ../testsuite/doubletest.4th -d $CFDEV -s 568 \
+-h "\ Z79Forth test suite. Based on Hayes/Jackson's Forth2012."
+./txt2blk -i ../testsuite/stringtest.4th -d $CFDEV -s 602 \
 -h "\ Z79Forth test suite. Based on Hayes/Jackson's Forth2012."
 
 # : f12testload 400 403 THRU  \ Test infrastructure setup
 #   404 472 THRU              \ Core word set test
 #   473 526 THRU              \ Core ext set test
-#   527 565 THRU              \ Block word set test
-#   566 599 THRU              \ Double word set test
+#   527 567 THRU              \ Block word set test
+#   568 601 THRU              \ Double word set test
+#   602 627 THRU              \ Double word set test
 # ;
 
 ./txt2blk -i ../examples/expsys.4th -d $CFDEV -s 800 \
@@ -76,5 +79,5 @@ fi
 
 ./txt2blk -i ../examples/ansiextern.4th -d $CFDEV -s 1000 \
 -h "\ ANSI non-EEPROM resident words. FLA Sep 10, 2022."
-# : ansiload 1000 1008 THRU ;
+# : ansiload 1000 1010 THRU ;
 
