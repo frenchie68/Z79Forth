@@ -24,6 +24,6 @@ Please note that it is not recommend to clone master directly, as the software
 may not match the schematics. The recommended approach is to clone a release.
 
 The REL-ANS94 branch has an ANSI compliant implementation of the Core word set
-and a few extras from other wrod sets. It is now considered ready for prime
+and a few extras from other word sets. It is now considered ready for prime
 time!
 
