@@ -51,8 +51,6 @@ FIRQHDL	pshs	x,d
 	lda	SERBDEQ
 	sta	SERBENQ
 	clr	SERBCNT		Serial input buffer has been emptied
-	RFXT	jsr,NCLR+7	Clear the data stack
-	RFXT	jsr,RCLR+7	and the return stack
 	ldy	1,s		Saved PC from the FIRQ stack
 	ldx	#ERRHD1
 	stx	1,s		Execution continues in the error handler

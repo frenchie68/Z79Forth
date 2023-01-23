@@ -3,7 +3,7 @@ This project has a hardware component and a software component.
 
 - hardware: an Hitachi 63C09 based single board computer, aka the "Z79Forth
   Reference Board."
-- software: an ANS94 full core word set implementation entirely written in
+- software: an ANS94 full Core word set implementation entirely written in
   assembly language. Some primitives of the "Core ext" word set are also
   supplied.
 

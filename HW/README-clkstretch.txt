@@ -1,6 +1,6 @@
 Using signals provided over the J4 extension connector and the circuitry
 described in circuit-20211015-1355.clkstretch.txt, it is possible to slow
-down the CPU clock to 800 Mhz when slow devices are being accessed.
+down the CPU clock to 1 Mhz when slow devices are being accessed.
 
 To view the CircuitJS simulation at work, start a browser and go to
 https://www.falstad.com/ (with JavaScript support enabled!). Click on

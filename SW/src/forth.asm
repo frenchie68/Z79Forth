@@ -296,12 +296,12 @@ WDICSPC	equ	*
 IODZHDL	bitmd	#$40		Illegal opcode?
 	beq	@iodzh1
 	ldx	#IOPERRM
-	bra	@iodxh2
+	bra	@iodzh2
 @iodzh1	bitmd	#$80		Division by zero?
 	beq	@iodzh3		And you may ask yourself, well
 *				How did I get here?
-	ldx	#DV0ERRM
-@iodxh2 jsr	PUTS
+	ldx	#DV0ERRM	Division by zero it is!
+@iodzh2 jsr	PUTS
 	ldd	12,s		Return code address (PC)
 	ldy	#HEXBUF
 	jsr	HDMP4	
@@ -453,7 +453,7 @@ NMCVIRA	equ	*
 	ldb	#6		Incorrect STATE
 	jsr	ERRHDLR		No return
 INTISRA	equ	*		For symbolic stack debugging purposes
-@introk	bsr	WIEN2IN		Ask Vienna for its opinion about >IN should be
+@introk	bsr	WIEN2IN		Ask Vienna for its opinion about >IN
 	ldx	#INTRPRA	The return address
 	pshs	x
 	tfr	y,pc		An indirect call to Y
@@ -481,7 +481,7 @@ COMP	jsr	SWDIC		Updates TOKENEP, CURTOKL, IMDFLG/DEFFLG
 	beq	@cmpnum		Word @ TOKENSP is not in the dictionary
 	tst	IMDFLG
 	beq	@notimd
-	bsr	WIEN2IN		Ask Vienna for its opinion about >IN should be
+	bsr	WIEN2IN		Ask Vienna for its opinion about >IN
 	ldx	#COMPLRA	Word is immediate. Execute it
 	pshs	x		Return to COMPLRA
 	tfr	y,pc		An indirect call to Y
@@ -1236,11 +1236,11 @@ NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
 	fcn	'RPOPRA'
 	fdb	RPSHRA		Return stack overflow
 	fcn	'RPSHRA'
-*	fdb	ERRHDLR		Error handler
-*	fcn	'ERRHDLR'
-	fdb	CKDPTRA		Not enough parameters supplied (transac. behav.)
+	fdb	ERRHDLR		Error handler
+	fcn	'ERRHDLR'
+	fdb	CKDPTRA		Not enough parameters supplied
 	fcn	'CKDPTRA'
-	fdb	CHKNDPT		Check data stack minimum depth (transac. behav.)
+	fdb	CHKNDPT		Check data stack minimum depth
 	fcn	'CHKNDPT'
 	fdb	CMP2RA		Missing operand in any of U<, U>, <, >
 	fcn	'CMP2RA'
@@ -1496,9 +1496,7 @@ BKIN2PT	pshs	y
 	include	storage.asm	CompactFlash support
 
 * Check for minimal data stack depth. On input D has the lowest possible stack
-* address that satisfies the needs of the caller. This routine is meant
-* to support "transactional" behaviour, which is intended to improve
-* debugging support.
+* address that satisfies the needs of the caller.
 CHKNDPT	cmpr	d,u
 	bhi	@stkudf
 	rts
@@ -1837,7 +1835,7 @@ ALIGN	fcb	5		ANSI Core
 	RFCS
 	rts
 
-* Convert a single cell to a double. Non-transactional.
+* Convert a single cell to a double.
 STOD	fcb	3		ANSI Core
 	fcc	'S>D'		( n -- d )
 	fdb	ALIGN
@@ -4725,8 +4723,8 @@ QMARK	fcb	1		ANSI (Programming tools)
 THEEND	equ	*		This is the end, Beautiful friend
 *				This is the end, My only friend
 
-* This transactional word is relocated to RAM, so that we can compile new
-* definitions. FORTHIN will take care of that and adjust the relevant pointers.
+* This word is relocated to RAM, so that we can compile new definitions.
+* FORTHIN will take care of that and adjust the relevant pointers.
 FETCH	fcb	1		ANSI (Core)
 	fcc	'@'		( a-addr -- x )
 	fdb	QMARK
@@ -4753,7 +4751,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/AI 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20221111 (C) Francois Laagel 2019'
+	fcc	'20230122 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'

@@ -45,7 +45,7 @@ as stated by ANSI-X3.215-1994.
   Word names matching is case insensitive.
 
 - conditions under which control characters match a space delimiter
-  (3.4.1.1 Delimiters): carriage return (ASCII 13) is accepted a a space
+  (3.4.1.1 Delimiters): carriage return (ASCII 13) is accepted as a space
   delimiter by WORD.
 
 - format of the control-flow stack (3.2.3.2 Control-flow stack):
@@ -126,9 +126,9 @@ as stated by ANSI-X3.215-1994.
   ud      double-cell unsigned number      2      0..4,294,967,295
 
 - read-only data-space regions (3.3.3 Data space): this is a ROM resident
-  implementation. Data at addresses between $E000 and $FFFF is not modifiable.
+  implementation. Data at addresses between $E000 and $FFFF are not modifiable.
   Words between @ and EMPTY-BUFFERS (in dictionary search order) may not be
-  forgotten.
+  disposed of--FORGET has been deprecated in this implementation.
 
 - size of buffer at 6.1.2450 WORD (3.3.3.6 Other transient regions): a parsed
   string length may never exceed the maximum size of a counted string, if
@@ -197,8 +197,8 @@ Generic error conditions:
 - attempting to obtain the execution token, (e.g., with 6.1.0070 ',
   6.1.1550 FIND, etc.) of a definition with undefined interpretation semantics:
   will result in the actual execution being returned, regardless of the state
-  of the 'compilation only' flag. Applying EXECUTE to such a token will cause
-  thge word to be execute regardless of the 'compilation only' flag.
+  of the 'compilation only' flag. Applying EXECUTE to such a token will result
+  in the execution token to be run, as one would expect.
 
 - dividing by zero (6.1.0100 */, 6.1.0110 */MOD, 6.1.0230 /, 6.1.0240 /MOD,
   6.1.1561 FM/MOD, 6.1.1890 MOD, 6.1.2214 SM/REM, 6.1.2370 UM/MOD,
@@ -223,8 +223,8 @@ Generic error conditions:
 
 - interpreting a word with undefined interpretation semantics: if this happens
   via the interpreter, control will be transferred to the error handler with
-  error code 6 ('Incorrect STATE'). However this can also achieved by using '
-  and applying EXECUTE to the execution token returned, in which case no
+  error code 6 ('Incorrect STATE'). However this can also be achieved by using
+  ' and then applying EXECUTE to the execution token returned, in which case no
   error condition will be detected but unexepected system behaviour is likely
   to emerge.
 
@@ -301,9 +301,9 @@ Word specific error conditions:
 - most recent definition does not have a name (6.1.1710 IMMEDIATE): unchecked.
   IMMEDIATE only applies to the most recently named definition.
 
-- name not defined by 6.2.2405 VALUE used by 6.2.2295 TO: unchecked. However,
-  through a strange twist of things, it will work if the name in question was
-  CREATEd or is a VARIABLE or a CONSTANT.
+- name not defined by 6.2.2405 VALUE used by 6.2.2295 TO: unchecked. This
+  will only work if the name in question was a CONSTANT, which is very close
+  to what VALUE comes down to.
 
 - name not found (6.1.0070 ', 6.1.2033 POSTPONE, 6.1.2510 ['],
   6.2.2530 [COMPILE]): control is transferred to the error handler under error
@@ -353,9 +353,9 @@ HERE, i.e. the current end of the dictionary.
 Z79Forth/A is an EEPROM resident implementation. Which means that most words
 from the Core wordset are immediately available. However the following words
 are defined in CompactFlash storage: >BODY ABORT" ENVIRONMENT? LSHIFT RSHIFT
-On a fully functional system where the supplied CompactFlash image has been
-transferred to a medium, they will be transparently loaded (block #1 will be
-auto-loaded).
+and WITHIN. On a fully functional system where the supplied CompactFlash image
+has been transferred to a medium, they will be transparently loaded (block #1
+will be auto-loaded).
 
 1.3.3 System dictionary space
 -----------------------------
@@ -379,9 +379,7 @@ account the space required for global variables and buffers, this leaves about
 The return stack size is configurable through the RSTKSZ tunable parameter
 (defined in SW/src/constants.asm) and is expressed in bytes. It defaults to
 128 (64 cells). The RPICKN implementation contraints it to be no higher than
-510 bytes (255 cells). This puts an upper limit on the number of screens that
-can in service through nested LOADs. For every nested call to LOAD, four cells
-will be pushed to the return stack.
+510 bytes (255 cells).
 
 1.3.6 Data stack space
 ----------------------
@@ -459,7 +457,7 @@ columns.
   under error code 17 ('IO error').
 
 - invalid block number: this is not possible if the minimum storage requirements
-  are met (i.e. a minimum of 128 MB od CompactFlash).
+  are met (i.e. a minimum of 128 MB of CompactFlash).
 
 - a program directly alters the contents of BLK: execution continues in the
   new block (transparently loaded) at the current >IN offset.
@@ -470,7 +468,7 @@ columns.
 -------------------------------
 - any restrictions a multiprogramming system places on the use of buffer
   addresses: no restictions. It should be noted that multiprogramming is
-  not officially. There is only one global user context available.
+  not officially supported. There is only one global user context available.
 
 - the number of blocks available for source and data: only limited by the
   cell representation of an unsigned number: 65536.
@@ -480,7 +478,7 @@ columns.
 
 3.1 Implementation-defined options
 ----------------------------------
-- duration of a system clock tick: there is no periodic inteeruption is the
+- duration of a system clock tick: there is no periodic interruption is the
   validated use case. MS's waiting period is specified in milliseconds.
 
 - repeatability to be expected from the execution of MS: pretty good indeed.
@@ -510,12 +508,10 @@ columns.
 
 - name not defined via CREATE: ;CODE is not implemented in Z79Forth/A.
 
-- POSTPONE applied to [IF]: After defining : X POSTPONE [IF] ; IMMEDIATE. X is
-  equivalent to [IF].
+- POSTPONE applied to [IF]: [IF] is not implemented in Z79Forth/A.
 
 - reaching the end of the input source before matching [ELSE] or [THEN]:
-  Continue in the same state of conditional compilation in the next outer input
-  source. Currently there is no warning to the user about this.
+  [ELSE] and [THEN] are not implemented in Z79Forth/A.
 
 - removing a needed definition (FORGET): FORGET is not implemented in
   Z79Forth/A.

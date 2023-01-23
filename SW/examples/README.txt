@@ -9,6 +9,12 @@ Example		Author		Notes
 				challenge. The file has to be sourced from
 				the console.
 
+ansiextern.4th	Francois Laagel	Additional material needed to meet the "Core"
+				word set that could not be fitted intop the
+				EEPROM image. This is normally auto-loaded
+				from CompactFlash if the image supplied in
+				SW/util has been installed to a medium.
+
 bernd-oof.4th	Bernd Paysan	Bernd's mini object oriented Forth. This must
 				be sourced from the console.
 
@@ -145,6 +151,6 @@ vt100.4th	Francois Laagel	Vestigial code of little interest besides
 				development.
 
 The CF image shipped in SW/util/*.img also includes a subset of the Forth2012
-test suite. It is not meant as an ANSI compliance test but as a non-regression
-test suite. It can be loaded from CF storage by resorting to: F12TESTLOAD
+test suite (source code is in SW/testsuite). It is meant as an ANS compliance
+test. It can be loaded from CF storage by resorting to: F12TESTLOAD
 
