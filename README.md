@@ -1,8 +1,11 @@
 # Z79Forth
+
+[The Wire Wrapped Prototype Board](KIMG0091.jpg)
+
 This project has a hardware component and a software component.
 
-- hardware: an Hitachi 63C09 based single board computer, aka the "Z79Forth
-  Reference Board."
+- hardware: an Hitachi 63C09 based single board computer, aka the *Z79Forth
+  Reference Board.*
 - software: an ANS94 full Core word set implementation entirely written in
   assembly language. Some primitives of the "Core ext" word set are also
   supplied.
@@ -11,7 +14,7 @@ Additionally, some sample application programs and benchmarks are provided.
 Please note that the GPL version 3 only applies to the assembly code. The
 schematics and the Forth source code are released in the public domain.
 
-"The 6309 Book" has been included in this distribution with the express assent
+*The 6309 Book* has been included in this distribution with the express assent
 of its author, Chris Burke--may he be hereby thanked one more time for a great
 piece of work, without which none of this would have been possible!
 
