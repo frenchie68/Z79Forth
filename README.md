@@ -43,16 +43,16 @@ particularly adapted to digital hardware experimentation and provides the
 developer with a great deal of flexibility.
 
 The original MC6809 processor is hard to procure these days. It came under
-two very distints versions: one requiring an external crystal (on chip
+two very distints variants: one requiring an external crystal (on chip
 oscillator) and the __E__ suffixed version meant to be used with an external
 oscillator. For integration's sake I selected the __E__ flavor.
 
 In addition to being tricky to buy, the MC6809 was also limited to a 2 MHz
 bus clock. In contrast, Hitachi's own implementation of the 6809 architecture
-supports bus clocks of up to 3 MHz officially and 5 MHz in practice. The
-Z79Forth reference board uses the HD63C09E clocked at 4 MHz. The choice of that
-particular frequency was meant to allow some bus cycles to be stretched down
-easily to 1 MHz, so as to be able to possibly accomodate extensions using
+supports bus clock frequencies of up to 3 MHz officially and 5 MHz in practice.
+The Z79Forth reference board uses the HD63C09E clocked at 4 MHz. The choice of
+that particular frequency was meant to allow some bus cycles to be stretched
+down easily to 1 MHz, so as to be able to possibly accomodate extensions using
 components of the MC6800 product line. At this point, it is worth mentioning
 the fact that the HD6309 offers reduced power consumption and an extended
 instruction set which is heavily used by the Z79Forth software.
@@ -75,7 +75,7 @@ the platform.
   The asynchronous communication interface adapter (ACIA) transmit and receive
   clock inputs are driven by a 1.8432 MHz XCO, optionally divided by a factor
   of three. This provides support for either 115200 or 38400 bps communication.
-  The CPU clock input are to be supplied in quadrature at 4 MHz. This is
+  The CPU clock inputs are to be supplied in quadrature at 4 MHz. This is
   accomplished by dividing the output of a 16 MHz XCO via a dual JK flip-flop.
   Care has been taken to provide potential support for streching down the
   bus clock down to 1 MHz for 6800 peripherals.
@@ -85,19 +85,46 @@ the platform.
   to accomodate the 6809 implementation of Z79Forth, which led me to divide
   the addres space of the processor into eight 8 KB regions. Interrupt vectors
   have to be readable from a 16 bytes segment starting at $FFF0, so the last
-  region ($E000-$FFFF) needed to be assigned to the EEPROM. Region 6 is where
-  memory mapped I/O operations take place. Regions 0-3 ($0000-$7FFF) would
-  be populated by a 32 KB static RAM.
-- __EEPROM__: a modern production grade Microchip AT28C64B 8 KB was selected.
+  region ($E000-$FFFF) needed to be assigned to the EEPROM. Region 6
+  ($C000-$DFFF) is where memory mapped I/O operations take place. Regions 0-3
+  ($0000-$7FFF) is populated by a 32 KB static RAM. Region 4 ($8000-$BFFF)
+  remains available for off-board extensions.
+
+  The I/O space is further divided into eight 1 KB areas, allowing for up to
+  eight devices to be used in the system. Of those, dev. 0 is reserved for
+  the CompactFlash module; dev. 6 is assigned to serial communication. An
+  unsupported RTC experiment based on the MC146818 chip uses dev. 5.
+- __EEPROM__: a modern production grade Microchip AT28C64B 8 KB was selected
+  (150 ns access time).
 - __ACIA__: an HD63B50 IC was selected for its availibility and its improved
   flexibility over the MC6850. In particular its E input pin can be driven
-  by a strobe signal and does not need to be a clocked signal.
-- __RAM__: I originally used a NEC D43256AC (32K x 8) with a 100 ns access
-  time. This proved to be a difficult component to acquire. I later selected
-  the Fujitsu F84256-10LL simply because I could buy it on a weight basis!
-  Any static 32 KB by 8 SRAM with an access time of 100 ns or less would do.
-- __CompactFlash__:
-- __Interrupt Support__: 1/ for async input. 2/ NMI
+  by a strobe signal and does not need to be a clocked signal. Recent (2.2.x)
+  versions of the schmematics include a jumper based multiplexer that
+  supports asynchronous serial communications either to a USB host or to an
+  RS232 DTE.
+- __RAM__: I originally used a NEC D43256AC (32K by 8 bits) with a 100 ns
+  access time. This proved to be a difficult component to acquire. I later
+  selected the Fujitsu F84256-10LL simply because I could buy it on a weight
+  basis! Any static 32 KB by 8 bits SRAM with an access time of 100 ns or less
+  would do just as well.
+- __CompactFlash__: CF is a fantastic technology that was not available in
+  my Z80 days. It is quite easy to interface to an 8 bit data bus processor
+  operating at 4 MHz. The medium itself includes an *Integrated Drive
+  Electronics* (IDE) controller which is where all the intelligence resides.
+  The original *Z79Forth Reference Board* did not have any support for mass
+  storage as it was also missing from the Z80 incarnation. This shortcoming
+  was ultimately fixed with release 2.x of the schematics.
+- __Interrupt Support__: Again here, there is some historical background worth
+  mentioning. The original board design (schematics 1.x) resorted to a stricly
+  polling mechanism with respect to serial communication. Later on, after
+  having experienced cut and paste difficulties, it was felt that serial
+  communication (input) should be interrupt driven. As a result, the current
+  release trains (tags 2.x and 3.x) now program the ACIA so that it will
+  raise FIRQ when its receive data register is full.
+
+  At a later stage, I recognize the fact that being able to dump the CPU
+  registers on a manually triggered NMI might be valuable. This is only needed
+  in extremely dire situations and does not produce any symbolic information.
 
 ### Software Development
 In 1984, I wrote a native Forth implementation for the TRS-80 model I
@@ -118,7 +145,7 @@ native symmetric division to the more contemporary floored division.
 
 At some point, I realized that most people coding in Forth nowadays resort
 to the ANS94 specification. So I included ANS code porting guidelines and
-ANS specific primitives. Later on in 2021 I went further by making the code
+ANS specific primitives. Later on in 2022 I went further by making the code
 ANS94 compliant.
 
 The resulting project delivery reflects this. The master branch has the
