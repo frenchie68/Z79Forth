@@ -1,6 +1,6 @@
 # Z79Forth
 
-[The Wire Wrapped Prototype Board](KIMG0091.jpg)
+![](KIMG0091.jpg "The Wire Wrapped Prototype Board")
 
 This project has a hardware component and a software component.
 
@@ -25,8 +25,4 @@ Known shortcomings of the current repository are as follows:
   
 Please note that it is not recommend to clone master directly, as the software
 may not match the schematics. The recommended approach is to clone a release.
-
-The REL-ANS94 branch has an ANSI compliant implementation of the Core word set
-and a few extras from other word sets. It is now considered ready for prime
-time!
 
