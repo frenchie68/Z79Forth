@@ -1,13 +1,14 @@
 # Z79Forth
 
-![](KIMG0091.jpg "The Wire Wrapped Prototype Board")
+![An Early Hardware Iteration](KIMG0091.jpg "The Wire Wrapped Prototype Board")
 
+## Overview ##
 This project has a hardware component and a software component.
 
 - hardware: an Hitachi 63C09 based single board computer, aka the *Z79Forth
   Reference Board.*
-- software: an ANS94 full Core word set implementation entirely written in
-  assembly language. Some primitives of the "Core ext" word set are also
+- software: an ANS94 full __Core__ word set implementation entirely written in
+  assembly language. Some primitives of the __Core ext__ word set are also
   supplied.
 
 Additionally, some sample application programs and benchmarks are provided.
@@ -20,9 +21,17 @@ piece of work, without which none of this would have been possible!
 
 Known shortcomings of the current repository are as follows:
 
-- unfinished editor (see SW/examples/lwvi.4th). Some extra work still is needed
-  on the delete primitives.
+- unfinished editor (see `SW/examples/lwvi.4th`). Some extra work still is
+  needed on the delete primitives.
   
 Please note that it is not recommend to clone master directly, as the software
 may not match the schematics. The recommended approach is to clone a release.
+
+## Background
+
+## Building the Platform
+
+## Repository Organization
+
+## See Also
 
