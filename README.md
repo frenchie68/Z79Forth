@@ -182,7 +182,7 @@ REL-ANS94
 +-- README.md                                This file
 +-- SW                                       Software implementation
     |-- benchmarks
-    |   |-- <Various benchmarks submitted to the VCFE in 2020>
+    |   |-- &lt;Various benchmarks submitted to the VCFE in 2020&gt
     |   +-- vcfe2020.txt                     Benchmark results
     +-- doc
     |   |-- all-words.txt                    What is implemented and where
@@ -191,7 +191,7 @@ REL-ANS94
     |   |-- ImplSpecMaterial.txt             Implementation specific doc.
     |   +-- LWVI-UserManual.txt              Documentation for the editor
     +-- examples
-    |   |-- <Collection of example programs>
+    |   |-- &lt;Collection of example programs&gt
     |   +-- README.txt                       An overview of the examples
     +-- reference                            Reference material
     |   |-- FORTH-79.TXT                     The 79-STANDARD specification
@@ -210,7 +210,7 @@ REL-ANS94
     |   |-- storage.asm                      CompactFlash storage handling
     |   +-- words.txt                        A list of supported words
     +-- testsuite
-    |   |-- <A subset of the Forth2012 test suite>
+    |   |-- &lt;A subset of the Forth2012 test suite&gt
     |   +-- README.txt
     +-- util
         |-- cfinit.sh                        Pointers to block numbers for apps
