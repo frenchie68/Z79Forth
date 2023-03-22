@@ -219,7 +219,26 @@ REL-ANS94
         +-- txt2blk.c                        txt2blk utility source code
 </pre>
 
-## See Also
+## Contributing/Feedback
+### Channels
+Bug reports should be submitted as Github issues.
+
+Discussions have been enabled for the Z79Forth repository. Should you decide
+to begin one, please specify whether your interest is with 79-STANDARD or ANS94,
+if that information is relevant.
+
+My email address also is available from Github.
+
+### Potential Contribution Areas
+The core of the system is pretty much frozen since only five bytes of EEPROM
+are currently available. Changes in that department are likely to require
+moving primitives to CompactFlash storage anyway.
+
+The most welcome contributions would be in the `SW/examples` field.
+These should include some basic example documentation in a form suitable to
+be added to the examples documentation.
+
+### See Also
 [The Z79Forth Facebook Group](https://www.facebook.com/groups/505661250539263/)
 
 [The Z79Forth Blog](https://z79forth.blogspot.com/)
