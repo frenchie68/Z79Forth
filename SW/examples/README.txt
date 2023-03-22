@@ -10,7 +10,7 @@ Example		Author		Notes
 				the console.
 
 ansiextern.4th	Francois Laagel	Additional material needed to meet the "Core"
-				word set that could not be fitted intop the
+				word set that could not be fitted into the
 				EEPROM image. This is normally auto-loaded
 				from CompactFlash if the image supplied in
 				SW/util has been installed to a medium.

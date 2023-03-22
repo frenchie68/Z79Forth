@@ -5,10 +5,10 @@
 ## Overview ##
 This project has a hardware component and a software component.
 
-- hardware: an Hitachi 63C09 based single board computer, aka the *Z79Forth
+- __hardware__: an Hitachi 63C09 based single board computer, aka the *Z79Forth
   Reference Board.*
-- software: an ANS94 full __Core__ word set implementation entirely written in
-  assembly language. Some primitives of the __Core ext__ word set are also
+- __software__: an ANS94 full __Core__ word set implementation entirely written
+  in assembly language. Some primitives of the __Core ext__ word set are also
   supplied.
 
 Additionally, some sample application programs and benchmarks are provided.
@@ -34,7 +34,8 @@ digital electronics development skills. Z79Forth is a tribute to the golden
 days of eight bit computing. The Motorola MC6809 processor always had an
 excellent reputation for being Forth friendly, being endowed with two stack
 pointers and two index registers. I always wanted to program a serious
-application for it. Hardware and software development proceeded in parallel.
+application for it but never had the chance. Hardware and software development
+proceeded in parallel.
 
 ### Hardware Development
 Z79Forth is a journey into retro-computing that takes advantage of modern
@@ -88,7 +89,7 @@ the platform.
   region ($E000-$FFFF) needed to be assigned to the EEPROM. Region 6
   ($C000-$DFFF) is where memory mapped I/O operations take place. Regions 0-3
   ($0000-$7FFF) is populated by a 32 KB static RAM. Region 4 ($8000-$BFFF)
-  remains available for off-board extensions.
+  remains available for off board extensions.
 
   The I/O space is further divided into eight 1 KB areas, allowing for up to
   eight devices to be used in the system. Of those, dev. 0 is reserved for
@@ -120,11 +121,12 @@ the platform.
   having experienced cut and paste difficulties, I felt that serial
   communication (input) ought to be interrupt driven. As a result, the current
   release trains (tags 2.x and 3.x) now program the ACIA so that it will
-  raise FIRQ when its receive data register is full.
+  assert <FIRQ#> when its receive data register is full.
 
   At a later stage, I recognized the fact that being able to dump the CPU
-  registers on a manually triggered NMI might be valuable. This is only needed
-  in extremely dire situations and does not produce any symbolic information.
+  registers on a manually triggered <NMI#> might be valuable. This is only
+  needed in extremely dire situations and does not produce any symbolic
+  information.
 
 ### Software Development
 In 1984, I wrote a native Forth implementation for the TRS-80 model I
@@ -153,7 +155,65 @@ The resulting project delivery reflects this. The master branch has the
 
 ## Building the Platform
 
+
 ## Repository Organization
 
+<pre>
+REL-ANS94
++-- HW                                       Hardware description files
+|   +-- BOM.txt                              Bill of material
+|   +-- circuit-20211015-1355.clkstretch.txt Clock stretcher simulation data
+|   +-- J1-top-view.txt                      Pinout for the extension connector
+|   +-- kicad
+|   |   |-- <Kicad 5 Eeschema files>
+|   +-- README-clkstretch.txt                How to use the clock stretcher sim.
+|   +-- README.txt                           Proj. description from Elektor Labs
+|   +-- Z79Forth-iteration2.2.2.pdf          Full PDF schematics
+|   +-- Z79Forth-ww-botview.svg              Prototype sample layout
+|   +-- Z79Forth-ww-topview.svg              Prototype sample layout
++-- KIMG0091.jpg
++-- LICENSE                                  The GPL version 3
++-- README.md                                This file
++-- SW                                       Software implementation
+    |-- benchmarks
+    |   |-- <Various benchmarks submitted to the VCFE in 2020>
+    |   +-- vcfe2020.txt                     Benchmark results
+    |-- doc
+    |   |-- all-words.txt                    What is implemented and where
+    |   |-- COMPILING.txt                    Must read before re-assembling!
+    |   |-- DPANS94-conformance.txt          Mandatory ANS94 conformance doc.
+    |   |-- ImplSpecMaterial.txt             Implementation specific doc.
+    |   +-- LWVI-UserManual.txt              Documentation for the editor
+    |-- examples
+    |   |-- <Collection of example programs>
+    |   +-- README.txt                       An overview of the examples
+    |-- reference                            Reference material
+    |   |-- FORTH-79.TXT                     The 79-STANDARD specification
+    |   |-- FORTH-83.PRN                     The FORTH-83 specification
+    |   |-- HD6309EP-TechRef.txt             Things to know about caching
+    |   |-- HD63C09E.pdf                     CPU official datasheet from Hitachi
+    |   +-- The_6309_Book.pdf                Chris Burke's invaluable book
+    |-- src                                  Z79Forth source code
+    |   |-- console.asm                      Serial console handling
+    |   |-- constants.asm                    Check this file for system tunables
+    |   |-- forth.asm                        Core Z79Forth implementation
+    |   |-- forth.hex                        EEPROM Intel HEX image file
+    |   |-- forth.lst                        An assembly listing
+    |   |-- Makefile                         Software build driver
+    |   |-- rtc.asm                          Not supported: MC146818 RTC
+    |   |-- storage.asm                      CompactFlash storage handling
+    |   +-- words.txt                        A list of supported words
+    |-- testsuite
+    |   |-- <A subset of the Forth2012 test suite>
+    |   +-- README.txt
+    +-- util
+        |-- cfinit.sh                        Pointers to block numbers for apps
+        |-- cfirq230122.img                  CompactFlash image (64 MB)
+        |-- Makefile                         Generates txt2blk (host utility)
+        +-- txt2blk.c                        txt2blk utility source code
+</pre>
+
 ## See Also
+[The Z79Forth Facebook Group](https://www.facebook.com/groups/505661250539263/)
+[The Z79Forth Blog](https://z79forth.blogspot.com/)
 
