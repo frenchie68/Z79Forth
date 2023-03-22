@@ -164,7 +164,7 @@ of material (see `HW/BOM.txt`) is believed to be accurate. Good luck!
 
 ## Repository Organization
 
-<pre>
+>
 REL-ANS94
 +-- HW                                       Hardware description files
 |   +-- BOM.txt                              Bill of material
@@ -217,7 +217,6 @@ REL-ANS94
         |-- cfirq230122.img                  CompactFlash image (64 MB)
         |-- Makefile                         Generates txt2blk (host utility)
         +-- txt2blk.c                        txt2blk utility source code
-</pre>
 
 ## Contributing/Feedback
 ### Channels
