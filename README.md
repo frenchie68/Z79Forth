@@ -172,7 +172,7 @@ REL-ANS94
 |   +-- circuit-20211015-1355.clkstretch.txt Clock stretcher simulation data
 |   +-- J1-top-view.txt                      Pinout for the extension connector
 |   +-- kicad
-|   |   |-- &lt;Kicad 5 Eeschema files&gt
+|   |   +-- &lt;Kicad 5 Eeschema files&gt
 |   +-- README-clkstretch.txt                How to use the clock stretcher sim.
 |   +-- README.txt                           Proj. description from Elektor Labs
 |   +-- Z79Forth-iteration2.2.2.pdf          Full PDF schematics
@@ -245,11 +245,4 @@ be added to the examples documentation.
 [The Z79Forth Facebook Group](https://www.facebook.com/groups/505661250539263/)
 
 [The Z79Forth Blog](https://z79forth.blogspot.com/)
-
-=======
-Please note that it is not recommend to clone master directly, as the software
-may not match the schematics. The recommended approach is to clone a release.
-
-The master branch has the 79-STANDARD implementation. The REL-ANS94 branch
-has a full Core word set implementation of the ANS 1994 standard specification.
 
