@@ -138,8 +138,8 @@ days, mass storage was implemented via a cassette recorder, which meant that my
 historic printout was very poorly commented. So the first order of business was
 to properly document the Z80 implementation. Then came the porting effort
 (starting with machine dependency handling), bug fixes, features addition
-(`DOES>` pictured numeric output), 79-STANDARD compliance fixes, the performance
-campaign and the required documentation production.
+(`DOES>` pictured numeric output), 79-STANDARD compliance fixes, the
+performance campaign and the required documentation production.
 
 Unlike FORTH-83, 79-STANDARD does not specify the modulo operation in any
 particular way. Compatibility concerns led me to move from the processor
@@ -154,7 +154,13 @@ The resulting project delivery reflects this. The master branch has the
 79-STANDARD implementation and the REL-ANS94 has the ANS flavor.
 
 ## Building the Platform
+A kit is being put together. The estimated marker size is about 50 units. A PCB
+is being designed but this is a slow process and financial constraints also
+set an upper limit on how fast things can progress.
 
+So, your best bet is to acquire all the parts yourself and wire wrap the system
+as I did. A double Europe protyping card will be more than adequate. The bill
+of material (see <HW/BOM.txt>) is believed to be accurate. Good luck!
 
 ## Repository Organization
 
@@ -215,5 +221,6 @@ REL-ANS94
 
 ## See Also
 [The Z79Forth Facebook Group](https://www.facebook.com/groups/505661250539263/)
+
 [The Z79Forth Blog](https://z79forth.blogspot.com/)
 
