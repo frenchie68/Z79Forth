@@ -213,9 +213,7 @@ NCLR                            EBD8    0004    --R
 S>D                             EBBE    0013    --R
 ALIGN                           EBB7    0001    --R
 LIST                            EB78    0037    --R
-RTC!                            EB6E    0003    --R
-RTC@                            EB5F    0008    --R
-TICKS                           EB50    0008    --R
+[...]
 SCR                             EB42    0006    --R
 >IN                             EB36    0006    --R
 BLK                             EB2A    0006    --R
