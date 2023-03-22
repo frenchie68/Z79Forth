@@ -246,3 +246,10 @@ be added to the examples documentation.
 
 [The Z79Forth Blog](https://z79forth.blogspot.com/)
 
+=======
+Please note that it is not recommend to clone master directly, as the software
+may not match the schematics. The recommended approach is to clone a release.
+
+The master branch has the 79-STANDARD implementation. The REL-ANS94 branch
+has a full Core word set implementation of the ANS 1994 standard specification.
+
