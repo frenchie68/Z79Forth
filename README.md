@@ -160,7 +160,7 @@ set an upper limit on how fast things can progress.
 
 So, your best bet is to acquire all the parts yourself and wire wrap the system
 as I did. A double Europe protyping card will be more than adequate. The bill
-of material (see <HW/BOM.txt>) is believed to be accurate. Good luck!
+of material (see `HW/BOM.txt`) is believed to be accurate. Good luck!
 
 ## Repository Organization
 
