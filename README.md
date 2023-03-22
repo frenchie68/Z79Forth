@@ -164,14 +164,14 @@ of material (see `HW/BOM.txt`) is believed to be accurate. Good luck!
 
 ## Repository Organization
 
->
+<pre>
 REL-ANS94
 +-- HW                                       Hardware description files
 |   +-- BOM.txt                              Bill of material
 |   +-- circuit-20211015-1355.clkstretch.txt Clock stretcher simulation data
 |   +-- J1-top-view.txt                      Pinout for the extension connector
 |   +-- kicad
-|   |   |-- <Kicad 5 Eeschema files>
+|   |   |-- &lt;Kicad 5 Eeschema files&gt
 |   +-- README-clkstretch.txt                How to use the clock stretcher sim.
 |   +-- README.txt                           Proj. description from Elektor Labs
 |   +-- Z79Forth-iteration2.2.2.pdf          Full PDF schematics
@@ -184,22 +184,22 @@ REL-ANS94
     |-- benchmarks
     |   |-- <Various benchmarks submitted to the VCFE in 2020>
     |   +-- vcfe2020.txt                     Benchmark results
-    |-- doc
+    +-- doc
     |   |-- all-words.txt                    What is implemented and where
     |   |-- COMPILING.txt                    Must read before re-assembling!
     |   |-- DPANS94-conformance.txt          Mandatory ANS94 conformance doc.
     |   |-- ImplSpecMaterial.txt             Implementation specific doc.
     |   +-- LWVI-UserManual.txt              Documentation for the editor
-    |-- examples
+    +-- examples
     |   |-- <Collection of example programs>
     |   +-- README.txt                       An overview of the examples
-    |-- reference                            Reference material
+    +-- reference                            Reference material
     |   |-- FORTH-79.TXT                     The 79-STANDARD specification
     |   |-- FORTH-83.PRN                     The FORTH-83 specification
     |   |-- HD6309EP-TechRef.txt             Things to know about caching
     |   |-- HD63C09E.pdf                     CPU official datasheet from Hitachi
     |   +-- The_6309_Book.pdf                Chris Burke's invaluable book
-    |-- src                                  Z79Forth source code
+    +-- src                                  Z79Forth source code
     |   |-- console.asm                      Serial console handling
     |   |-- constants.asm                    Check this file for system tunables
     |   |-- forth.asm                        Core Z79Forth implementation
@@ -209,7 +209,7 @@ REL-ANS94
     |   |-- rtc.asm                          Not supported: MC146818 RTC
     |   |-- storage.asm                      CompactFlash storage handling
     |   +-- words.txt                        A list of supported words
-    |-- testsuite
+    +-- testsuite
     |   |-- <A subset of the Forth2012 test suite>
     |   +-- README.txt
     +-- util
@@ -217,6 +217,7 @@ REL-ANS94
         |-- cfirq230122.img                  CompactFlash image (64 MB)
         |-- Makefile                         Generates txt2blk (host utility)
         +-- txt2blk.c                        txt2blk utility source code
+</pre>
 
 ## Contributing/Feedback
 ### Channels
