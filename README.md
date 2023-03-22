@@ -154,7 +154,7 @@ The resulting project delivery reflects this. The master branch has the
 79-STANDARD implementation and the REL-ANS94 has the ANS flavor.
 
 ## Building the Platform
-A kit is being put together. The estimated marker size is about 50 units. A PCB
+A kit is being put together. The estimated market size is about 50 units. A PCB
 is being designed but this is a slow process and financial constraints also
 set an upper limit on how fast things can progress.
 
