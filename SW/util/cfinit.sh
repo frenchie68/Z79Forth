@@ -52,6 +52,10 @@ fi
 -h '\ Cooperative Multitasking, Matthias Koch. VD 2021/01.'
 # : coopmtload 305 323 THRU ;
 
+./txt2blk -i ../examples/elevator.4th -d $CFDEV -s 340 \
+-h '\ Interactive lift simulator. Z79Forth/A     FLA March 25, 2023'
+# : liftload 340 376 THRU ;
+
 ./txt2blk -i ../testsuite/tester.4th -d $CFDEV -s 400 \
 -h "\ Z79Forth test suite. Based on Gerry Jackson's Forth2012."
 ./txt2blk -i ../testsuite/core.4th -d $CFDEV -s 404 \

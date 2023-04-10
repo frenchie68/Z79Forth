@@ -4,7 +4,6 @@
 \ ------------------------------------------------------------
 \ begin Z79Forth glue code.
 
-: /string DUP >R - SWAP R> + SWAP ;
 : cell 1 CELLS ;
 
 \ end Z79Forth glue code.

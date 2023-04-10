@@ -2,7 +2,7 @@
 
 Some of these have been "blockified" and are present in the CompactFlash image
 that can be found in SW/util/*.img, in which case credit to the original author
-can be found at the beginning of each block and also in SW/util/cfinit.sh.
+can be found at the beginning of each block (also in SW/util/cfinit.sh).
 
 Example		Author		Notes
 100fact.4th	Michel Jean	Computes 100!. This came up as an SVFIG
@@ -39,6 +39,10 @@ dis.4th		Francois Laagel	The standard disassembler. It is normally loaded
 dump.4th	Francois Laagel	An hexadecimal DUMP utility. It can be loaded
 				from CF by resorting to DUMPLOAD
 				Usage is: <addr> <bytecount> DUMP
+
+elevator.4th	Francois Laagel	A lift simulator. My entry to the Forth2020
+				challenge of April 8, 2023. It can be loaded
+				from CF storage by resorting to LIFTLOAD
 
 enigma-f.4th	Bill Ragsdale	The current SVFIG's boss's take on the Enigma
 				encryption system. The code has to be sourced

@@ -18,7 +18,7 @@ VARIABLE bytecount        \ Number of interesting bytes
 VARIABLE asciib $E ALLOT  \ Buffer for the ASCII character dump
 
 : dump.initvars.prtheader ( baseaddr bytecount -- align16 )
-  bytecount ! DUP start ! $FFF0 AND
+  bytecount ! DUP start ! $-10 AND
   ( baseaddr bytecount ) HEX CR .header ;
 
 : asciidump asciib $10 TYPE ;
@@ -28,7 +28,7 @@ VARIABLE asciib $E ALLOT  \ Buffer for the ASCII character dump
   DUP 0 <= IF ABORT THEN ;
 
 : dump.iskip.bcount ( addr -- skipbytecount )
-  start @ $FFF0 AND = IF
+  start @ $-10 AND = IF
     start @ $F AND EXIT
   THEN 0 ;
 
@@ -63,6 +63,4 @@ VARIABLE asciib $E ALLOT  \ Buffer for the ASCII character dump
       asciidump CR
     THEN
   AGAIN ;
-
-\ ' DOES> PAYLOAD dump
 
