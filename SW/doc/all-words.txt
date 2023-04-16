@@ -184,7 +184,7 @@ E	REFILL      -                       CORE_EXT
 -	RESTORE-INPUT -                     CORE_EXT
 E	ROLL        -                       CORE_EXT
 -	SAVE-INPUT  -                       CORE_EXT
-E	SOURCE-ID   *source-i-d*            CORE_EXT
+-	SOURCE-ID   *source-i-d*            CORE_EXT
 -	SPAN        -                       CORE_EXT
 -	TIB         *t-i-b*                 CORE_EXT
 -	#TIB        *number-t-i-b*          CORE_EXT
@@ -336,6 +336,9 @@ ICHECK	( -- ) If the running EEPROM image was compiled with a non-zero RELFEAT
 	MONITOR's execution time and every subsequent ICHECK invokation would
 	fail if that variable's value had been altered in the meantime.
 J'	Returns the fourth item from the return stack.
+MCC ( -- u ) Returns a cell containing the McCabe cyclomatic complexity of the
+	most recently compiled definition. This number begins at 1 and is
+	maintained internally as a byte.
 MONITOR	( -- ) If the running EEPROM image was compiled with a non-zero RELFEAT
 	(see constants.asm), this will compute the value of a byte checksum
 	and store it into the latest defined word's header. This works

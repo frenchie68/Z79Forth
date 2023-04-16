@@ -737,7 +737,7 @@ TESTING REFILL SOURCE-ID%
 \ EVALUATE
 
 T{ : RF1  S" REFILL" EVALUATE ; RF1 -> FALSE }T
-T{ : SID1  S" SOURCE-ID" EVALUATE ; SID1 -> -1 }T
+\ T{ : SID1  S" SOURCE-ID" EVALUATE ; SID1 -> -1 }T
 
 \ -------------------------------------------------------------
 \ TESTING S\"  (Forth 2012 compilation mode)%

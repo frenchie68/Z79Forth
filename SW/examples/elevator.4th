@@ -6,7 +6,8 @@
 \ Note2: environmental dependency: TRUE is assumed to be -1.
 \        i.e. _not_ a valid physical floor number (see below).
 \ Note3: confirmed working under GNU Forth 0.7.3 and VFX 5.11.
-\ Note4: this source code is formatted so as to be "blockable."
+\ Note4: -ROT is non-standard but common.
+\ Note5: this source code is formatted so as to be "blockable."
 
 \ Glossary of terms:
 
@@ -31,9 +32,8 @@ MARKER WasteIt
   DUP C@ 0= IF DROP ." Missing word name" EXIT THEN
   FIND 0= IF DROP 0 THEN ;
 
-: gf? 1 CELLS 8 = ;
+: gf? 1 CELLS 8 = ;          \ TRUE if GNU Forth or VFX
 : IFZ7 [ gf?     ]       LITERAL IF POSTPONE \ THEN ;
-: IFGF [ gf? 0=  ]       LITERAL IF POSTPONE \ THEN ;
 : IFVF [ Find79 upc 0= ] LITERAL IF POSTPONE \ THEN ;
 
 IFZ7 : Off ( addr -- ) 0 SWAP ! ;
@@ -44,7 +44,12 @@ IFZ7 : ;pn   [CHAR] ; EMIT pn ;
 IFZ7 : ESC[  #27 EMIT [CHAR] [ EMIT ;
 IFZ7 : AT-XY 1+ SWAP 1+ SWAP ESC[ pn ;pn [CHAR] H EMIT ;
 
-IFGF : UNLESS POSTPONE 0= POSTPONE IF ; IMMEDIATE
+\ Return the last word name as base-addr\byte-count.
+IFZ7 : lwcstring LAST DUP C@ $1F AND SWAP 1+ SWAP ;
+
+\ Print the McCabe cyclomatic complexity on ';'
+IFZ7 : ; POSTPONE ; lwcstring CR TYPE SPACE MCC . ; IMMEDIATE
+
 IFVF : toupper upc ;
 
 \ -------------------------------------------------------------
@@ -122,12 +127,13 @@ DEFER ProcessDigit           \ Later set to ProcessGenchar
   #floor 1+ 2 * 1+ cur_y ! ; \ in the log area
 
 \ -------------------------------------------------------------
-\ Return '#' if ((char *)'flaglist')['offset'] is non-zero,
-\ else ' '. XXX
+\ If the character residing 'offset' bytes from the base
+\ address 'flaglist' is non-zero, print it at column# 'x' and
+\ line# 'y'.
 
 : .Flag ( x y flaglist offset -- )
   + C@ ?DUP IF
-    ROT ROT  AT-XY  EMIT  EXIT
+    -ROT  AT-XY  EMIT  EXIT
   THEN 2DROP ;
 
 \ -------------------------------------------------------------
@@ -225,7 +231,7 @@ DEFER ProcessDigit           \ Later set to ProcessGenchar
 
 \ -------------------------------------------------------------
 \ Set flag for 'zbpfloor' in 'flaglist'.
-\ Discard inconsistent requests:
+\ Discard inconsistent updates:
 \ - out of range physical target floor#.
 \ - 'scheds'/'upreqs'/'dnreqs' requests for current 'zbpfloor'
 \   and the cabin is stopped.
@@ -234,11 +240,14 @@ DEFER ProcessDigit           \ Later set to ProcessGenchar
 
 : UpdateFlaglist ( cmdchar zbpfloor flaglist -- cmdchar )
   \ Check for out of range zbpfloor.
-  OVER 0 #floor WITHIN UNLESS 2DROP EXIT THEN
+  OVER 0 #floor WITHIN 0=  -ROT
 
-  OVER PfloorZbCur =  Stopped?       AND  IF 2DROP EXIT THEN
-  OVER 0=             OVER dnreqs =  AND  IF 2DROP EXIT THEN
-  OVER #floor 1- =    OVER upreqs =  AND  IF 2DROP EXIT THEN
+  OVER PfloorZbCur =  Stopped?       AND  -ROT
+  OVER 0=             OVER dnreqs =  AND  -ROT
+  OVER #floor 1- =    OVER upreqs =  AND
+
+  \ Bail out if any of the above conditions is met.
+  5 ROLL OR  4 ROLL OR  3 ROLL OR  IF 2DROP EXIT THEN
 
   +                          \ S: cmdchar\flagaddr
   OVER [CHAR] G = IF
@@ -292,9 +301,9 @@ DEFER ProcessDigit           \ Later set to ProcessGenchar
 \ Return TRUE iff char is in 'UDG'.
 
 : ValidAlpha? ( char -- char flag )
-  DUP [CHAR] U = IF TRUE EXIT THEN
-  DUP [CHAR] D = IF TRUE EXIT THEN
-  DUP [CHAR] G = ;
+  DUP  [CHAR] U =
+  OVER [CHAR] D = OR
+  OVER [CHAR] G = OR ;
 
 \ -------------------------------------------------------------
 \ Process alpha character if a valid one is recognized.
@@ -341,6 +350,19 @@ DEFER ProcessDigit           \ Later set to ProcessGenchar
   LOOP TRUE ;
 
 \ -------------------------------------------------------------
+\ Return the highest (greater than 'zbpfloor') scheduled stop
+\ if any, else TRUE.
+
+: NoSchedStopUpward? ( zbpfloor -- TRUE|zbpfloor )
+  \ Search for the highest request from a floor>TOS.
+  1+                       \ Potential loop limit (included)
+  DUP #floor = IF DROP TRUE EXIT THEN \ Already at the top
+
+  #floor 1- ( S: zbpfloor_cur+1\#floor-1 ) DO
+    I scheds + C@ IF I UNLOOP EXIT THEN
+  -1 +LOOP  TRUE ;
+
+\ -------------------------------------------------------------
 \ Return
 \ - if 'dir' is > 0: the highest ZB scheduled stop.
 \ - if 'dir' is < 0: the lowest ZB scheduled stop.
@@ -353,20 +375,13 @@ DEFER ProcessDigit           \ Later set to ProcessGenchar
 
   PfloorZbCur                \ S: dir\zbpfloor_cur
   SWAP 0> IF                 \ dir is UP. S: zbpfloor_cur
-    \ Search for the highest request from a floor>TOS.
-    1+                       \ Potential loop limit (included)
-    DUP #floor = IF DROP TRUE EXIT THEN \ Already at the top
-
-    #floor 1- ( S: zbpfloor_cur+1\#floor-1 ) DO
-      I scheds + C@ IF I UNLOOP EXIT THEN
-    -1 +LOOP
-    TRUE EXIT
+    NoSchedStopUpward?  EXIT
   THEN
 
   \ dir is DN. Search for the lowest request from a floor<TOS.
   0 ( S: zbpfloor_cur\0 ) ?DO
     I scheds + C@ IF I UNLOOP EXIT THEN
-  LOOP TRUE ;
+  LOOP  TRUE ;
 
 \ -------------------------------------------------------------
 \ Accept up/dn request. Code shared between 'AcceptUpReq?"
@@ -388,7 +403,7 @@ DEFER ProcessDigit           \ Later set to ProcessGenchar
 
 : AcceptUpReq? ( rqzbpfloor -- flag )
   \ Deny if there are no pending UP requests from rqzbpfloor.
-  DUP upreqs + C@ UNLESS DROP FALSE EXIT THEN
+  DUP upreqs + C@ 0= IF DROP FALSE EXIT THEN
 
   \ Common acceptance criteria.
   AcceptCmReq DUP TRUE = IF EXIT THEN
@@ -411,7 +426,7 @@ DEFER ProcessDigit           \ Later set to ProcessGenchar
 
 : AcceptDnReq? ( rqzbpfloor -- flag )
   \ Deny if there are no pending DN requests from rqzbpfloor.
-  DUP dnreqs + C@ UNLESS DROP FALSE EXIT THEN
+  DUP dnreqs + C@ 0= IF DROP FALSE EXIT THEN
 
   \ Common acceptance criteria.
   AcceptCmReq DUP TRUE = IF EXIT THEN
@@ -444,12 +459,8 @@ DEFER ProcessDigit           \ Later set to ProcessGenchar
 
   \ Update the 'scheds' flag list, if appropriate.
   #floor 0 DO
-    I AcceptUpReq? IF        \ Accept UP req. from floor I
-      [CHAR] A I scheds UpdateFlaglist DROP
-    THEN
-
-    I AcceptDnReq? IF        \ Accept DN req. from floor I
-      [CHAR] A I scheds UpdateFlaglist DROP
+    I AcceptUpReq?  I AcceptDnReq?  OR  IF
+      [CHAR] A I scheds UpdateFlaglist DROP  \ Advisory stop
     THEN
   LOOP ;
 
@@ -498,8 +509,9 @@ DEFER ProcessDigit           \ Later set to ProcessGenchar
   Stopped?        ABORT" Stopped in AckScheds?"
 
   PfloorZbCur scheds + DUP C@ IF
-    BypassStopAtCurFloor? UNLESS
-      FALSE SWAP C!  PfloorZbCur AckRequestsInCurrentDir
+    BypassStopAtCurFloor? 0= IF
+      FALSE SWAP C!          \ Clear flag in 'scheds' flaglist
+      PfloorZbCur AckRequestsInCurrentDir
       TRUE EXIT              \ Notify intent to stop
     THEN
   THEN
@@ -544,5 +556,6 @@ DEFER ProcessDigit           \ Later set to ProcessGenchar
   UNTIL ;
 
 \ Entry point here.
+IFZ7 CR ." Press any key " KEY DROP
 Run  WasteIt
 

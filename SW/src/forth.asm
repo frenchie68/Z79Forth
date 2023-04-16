@@ -238,7 +238,8 @@ RTCAVL	rmb	1		NZ if real time clock is present
 CFCARDP	rmb	1		NZ if CF card present
 CFCMMIR	rmb	1		Last CF command issued
 CFERRCD	rmb	1		and the corresponding error code
-SRCID	rmb	1		ANSI SOURCE-ID (internal only).
+SRCID	rmb	1		ANSI SOURCE-ID (internal only)
+CYCLO	rmb	1		McCabe cyclomatic complexity counter
 SQUOTFN	rmb	1		NZ only if running WORD from S" (or .")
 
 * Serial buffer parameters. Queing happens on FIRQ.
@@ -1532,9 +1533,19 @@ EMPTYB	clrd			The following cannot fail so it's OK to clear
 	std	,x		Clear terminator and flags fields
 	rts
 
+MCCABE	fcb	3		Non-standard
+	fcc	'MCC'		( -- mcc ) Returns the cyclomatic complexity
+	fdb	EBUFS		of the latest compiled word
+	RFCS
+	clra
+	ldb	CYCLO
+	tfr	d,x
+	leax	1,x		1 + number of BNE opcodes generated
+	jmp	NPUSH
+
 ALIGND	fcb	7		ANSI Core
 	fcc	'ALIGNED'	( addr -- a-addr )
-	fdb	EBUFS
+	fdb	MCCABE
 	RFCS
 	bra	MIN1PST		At least one cell must be stacked up
 
@@ -2114,6 +2125,7 @@ QDO	fcb	$C3		ANSI (Core ext)
 	RFCS
 	ldx	#QDOEX
 	jsr	EMXASXT		Compile "JSR QDOEX"
+	inc	CYCLO		Update MCC counter
 * The rest of this code looks very much like IF, except that 1 is not pushed
 * to the control flow stack to indicate an IF. This is done later on when
 * the RAKE code is executed by LOOP.
@@ -2152,6 +2164,7 @@ DO	fcb	$C2		ANSI (Core)
 	RFCS
 	ldx	#DOEX
 	jsr	EMXASXT		Compile "JSR DOEX"
+	inc	CYCLO		Update MCC counter
 	tfr	0,x		ANS:do-sys/addr (?DO-orig) is 0 for DO
 	jsr	CSPUSH
 	tfr	y,x		ANS:do-sys/type (DO-dest) is HERE
@@ -2280,6 +2293,7 @@ IF	fcb	$C2		ANSI (Core)
 	jsr	EMXASXT		Compile "JSR NPOP"
 	ldd	#BNEOPC
 	std	,y++		Compile "BNE *+5"
+	inc	CYCLO		Update MCC counter
 	bra	AHEAD1
 
 * Functionally equivalent to:
@@ -2595,6 +2609,7 @@ AGAIN1	lda	#JMPOPC		JMP extended
 	jsr	VARCON2
 	sty	DICEND
 	dec	BALNCD
+	inc	CYCLO		Update MCC counter
 	rts
 
 * The standard does not require this as being immediate but I do.
@@ -2885,10 +2900,11 @@ COMPC1	ldd	#-1
 	sta	USTATE+1
 	comd			0 to D
 	sta	BALNCD
+	sta	CYCLO		Initialize cyclomatic complexity counter
 	std	JSRLAST
 	std	FWDREF
 	tst	ANCMPF		Anonymous compilation?
-	bne	@isanon
+	bne	@isanon		Skip header creation if coming from :NONAME
 	jmp	LOCWRT
 @isanon	ldx	DICEND
 	stx	BDICEND		Backup HERE
@@ -3077,18 +3093,9 @@ LPAR	fcb	$81		ANSI (Core). No longer 79-STANDARD compliant
 	RFXT	bsr,WORD+7
 	RFXT	jmp,DROP+7
 
-SOURID	fcb	9		ANSI (Core ext)
-	fcc	'SOURCE-ID'	( -- 0 | -1 )
-	fdb	LPAR
-	RFCS
-	ldb	SRCID
-	sex			Sign extension B to D
-	tfr	d,x
-	jmp	NPUSH
-
 SOURCE	fcb	6		ANSI (Core)
 	fcc	'SOURCE'	( -- c-addr u )
-	fdb	SOURID
+	fdb	LPAR
 	RFCS
 	ldx	BSBFADR		Where we're at, from a physical address point
 	jsr	NPUSH
@@ -4751,7 +4758,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/AI 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20230122 (C) Francois Laagel 2019'
+	fcc	'20230416 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
@@ -4787,7 +4794,7 @@ ERRMTBL	fcn	'Data stack overflow'	Error 0
 	fcn	'Return stack underflow' Error 8
 	fcn	'Illegal construct'	Error 9
 	fcn	'Assertion failed'	Error 10
-	fcn	'RO word'		Error 11
+	fcn	''			Error 11 (formerly 'RO word')
 	fcn	'Missing delimiter'	Error 12
 	fcn	'Illegal argument'	Error 13
 	fcn	'No matching CREATE'	Error 14

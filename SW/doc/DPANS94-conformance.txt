@@ -3,7 +3,7 @@ Z79Forth/A is an ANS Forth System matching the minimum requirements
 as stated by ANSI-X3.215-1994.
 
 - providing <> .( \ 0<> 0> 2>R 2R> 2R@ AGAIN COMPILE, ?DO ERASE FALSE HEX
-  MARKER NIP :NONAME PAD PICK .R ROLL SOURCE-ID TO TRUE TUCK U> UNUSED
+  MARKER NIP :NONAME PAD PICK .R ROLL TO TRUE TUCK U> UNUSED
   U.R VALUE WITHIN from the Core Extension word set
 - providing the Block word set
 - providing the Block Extension word set

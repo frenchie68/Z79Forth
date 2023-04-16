@@ -54,7 +54,7 @@ fi
 
 ./txt2blk -i ../examples/elevator.4th -d $CFDEV -s 340 \
 -h '\ Interactive lift simulator. Z79Forth/A     FLA March 25, 2023'
-# : liftload 340 376 THRU ;
+# : liftload 340 377 THRU ;
 
 ./txt2blk -i ../testsuite/tester.4th -d $CFDEV -s 400 \
 -h "\ Z79Forth test suite. Based on Gerry Jackson's Forth2012."
