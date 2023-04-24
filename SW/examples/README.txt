@@ -150,6 +150,10 @@ sapin.4th	Michel Jean	Michel's obfuscated Forth code Christmas gift
 test.4th	Francois Laagel Vestigial code used for validation purposes
 				at some point. This should probably go...
 
+tetris.4th	Dirk Uwe Zoller	The "Tetris for Terminals" game. The application
+				can be launched from CF storage by resorting to
+				TTLOAD
+
 vt100.4th	Francois Laagel	Vestigial code of little interest besides
 				folks interested in terminal based editor
 				development.

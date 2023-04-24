@@ -77,6 +77,10 @@ fi
 #   602 627 THRU              \ Double word set test
 # ;
 
+./txt2blk -i ../examples/tetris.4th -d $CFDEV -s 650 \
+-h "\ Tetris for terminals. Z79Forth/A port: FLA April 22, 2023"
+# : ttload 650 677 THRU ;
+
 ./txt2blk -i ../examples/expsys.4th -d $CFDEV -s 800 \
 -h "\ Simple Forth expert system. Demitri Peynado: May 14, 2022."
 # : expsysload 800 809 THRU ;

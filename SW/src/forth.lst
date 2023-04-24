@@ -2912,7 +2912,7 @@ EDA3 10AF84           (        forth.asm):02198 (6+0)           sty     ,x      
 EDA6 1F01             (        forth.asm):02199 (4)             tfr     d,x
 EDA8 104D             (        forth.asm):02200 (2)             tstd
 EDAA 20F3             (        forth.asm):02201 (3)             bra     @lopres
-EDAC DD18             (        forth.asm):02202 (4)     @lopdon std     RAKEVAR
+EDAC 9F18             (        forth.asm):02202 (4)     @lopdon stx     RAKEVAR
 EDAE 0A35             (        forth.asm):02203 (5)             dec     BALNCD
 EDB0 BDE7E4           (        forth.asm):02204 (7)             jsr     CSPOP           ANS:do-sys/addr (?DO-orig) to X
 EDB3 2601             (        forth.asm):02205 (3)             bne     @endqdo         If NZ push it back, push type 1 and call THEN
@@ -3644,7 +3644,7 @@ F23D F22B             (        forth.asm):02929                 fdb     NONAME
 F23F BDE82B           (        forth.asm):02931 (7)             jsr     BALCHK          Check for unbalanced constructs
 F242 0F25             (        forth.asm):02932 (5)             clr     USTATE+1        Back to interpretation mode
                       (        forth.asm):02933         * Do not restore LSTWAD if we came from :NONAME.
-F244 9E0C             (        forth.asm):02934 (4)             ldx     BDICEND         X as HERE when : (LOCWRT) or :NONAME was called
+F244 9E0C             (        forth.asm):02934 (4)             ldx     BDICEND         X has HERE when : (LOCWRT) or :NONAME was called
 F246 0D34             (        forth.asm):02935 (4)             tst     ANCMPF
 F248 2604             (        forth.asm):02936 (3)             bne     @wasano
 F24A 9F06             (        forth.asm):02937 (4)             stx     LSTWAD          Update LAST
@@ -5476,7 +5476,7 @@ FE2D 5A3739466F727468 (        forth.asm):04758                 fcc     'Z79Fort
      6D
                       (        forth.asm):04759                 ENDC                    RTCFEAT
 FE4E 0D0A             (        forth.asm):04760                 fcb     CR,LF
-FE50 3230323330343136 (        forth.asm):04761                 fcc     '20230416 (C) Francois Laagel 2019'
+FE50 3230323330343233 (        forth.asm):04761                 fcc     '20230423 (C) Francois Laagel 2019'
      2028432920467261
      6E636F6973204C61
      6167656C20323031

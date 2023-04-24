@@ -514,7 +514,7 @@ NMCVCRA	equ	*
 * Note: this code provides support for trailing JSR elimination.
 * On input: X has the target execution token.
 * On output: Y will have HERE, A will be altered, X will be preserved.
-EMXASXT	ldy     DICEND
+EMXASXT	ldy	DICEND
 	sty	JSRLAST		JSRLAST points to the latest JSR code emission
 	lda	#JSROPC		JSR extended
 	jsr	VARCON2		Compile a JSR to the execution token
@@ -2199,7 +2199,7 @@ LOOP1	jsr	EMXASXT
 	tfr	d,x
 	tstd
 	bra	@lopres
-@lopdon	std	RAKEVAR
+@lopdon	stx	RAKEVAR
 	dec	BALNCD
 	jsr	CSPOP		ANS:do-sys/addr (?DO-orig) to X
 	bne	@endqdo		If NZ push it back, push type 1 and call THEN
@@ -2931,7 +2931,7 @@ COMPR	fcb	$C1		ANSI (Core)
 	jsr	BALCHK		Check for unbalanced constructs
 	clr	USTATE+1	Back to interpretation mode
 * Do not restore LSTWAD if we came from :NONAME.
-	ldx	BDICEND		X as HERE when : (LOCWRT) or :NONAME was called
+	ldx	BDICEND		X has HERE when : (LOCWRT) or :NONAME was called
 	tst	ANCMPF
 	bne	@wasano
 	stx	LSTWAD		Update LAST
@@ -4758,7 +4758,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/AI 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20230416 (C) Francois Laagel 2019'
+	fcc	'20230423 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'

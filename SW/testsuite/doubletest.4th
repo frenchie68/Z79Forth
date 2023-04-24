@@ -57,7 +57,7 @@ MIN-INTD 2/     CONSTANT LO-INT     \ 110...1
 \ ------------------------------------------------------------
 \ Z79Forth glue code begins.
 
-: 2constant SWAP CREATE , ,
+: 2CONSTANT SWAP CREATE , ,
   DOES>
   DUP @ SWAP CELL+ @ ;
 

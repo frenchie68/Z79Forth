@@ -208,7 +208,7 @@ CF1BKRD	tst	CFCARDP
 * 2,s has the target block number
 * 4,s has the buffer base address
 * Upon return, Y will be preserved.
-CF1BKWR tst	CFCARDP
+CF1BKWR	tst	CFCARDP
 	bne	@ctnued
 	bra	IOERR		Card not present--CF subsystem not initialized
 @ctnued	tfr	y,v
