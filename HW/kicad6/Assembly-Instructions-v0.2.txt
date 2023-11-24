@@ -1,0 +1,249 @@
+                      Welcome to the Z79Forth Reference Board
+                             Assembly Manual/PCB v 0.2
+
+Thank you for having purchased this kit. Putting it all together and seeing
+it coming to life is 50% of the fun you will get from the platform. Which does
+not mean that the other 50% coming from the joy of programming it in Forth
+should be neglected ;-)
+
+Be thorough and leave nothing to chance. Murphy's law still applies!
+
+1 Things you Will Definitely Need:
+----------------------------------
+- all the elements of the kit.
+- a soldering iron and some solder paste.
+- a pair of pliers to straighten out pins as needed.
+- wire cutters.
+- scotch tape to keep components in place before they are soldered.
+- a flat narrow (2 mm suggested) screwdriver to dispense the scotch tape
+  appropriately.
+- a USB mini-B cable for supplying power to the board and possibly communicating
+  with a host over USB.
+- optionally a null-modem cable to communicate with the board from a terminal.
+- about four hours of quality time, uninterrupted by any life form of any kind!
+
+2 Things you Might Need:
+------------------------
+- a lamp with an integrated magnifier.
+- a breadboard for assembling the pin headers to the FTDI USB module.
+- a digital multimeter for checking out resistors and capacitors values.
+- 3 mm spacers above and below the board so that assembly is facilitated.
+- an oscilloscope to verify essential signals. Please note that the four
+  screw holes at each corner of the board are conveniently wired to the ground.
+- some solder wick, in case something got wired incorrectly.
+- a fume extractor or, for the lack of it, a well ventilated workshop!
+- some chocolate, preferably with nuts.
+
+3 v0.2 PCB Bill of material:
+----------------------------
+- PCB version 0.2.
+
+\ -----------------------------------------------------------------------------
+Passive Components:
+
+IC Sockets:
+- 1 DIP 40 tulip IC socket.
+- 2 DIP 28 tulip IC sockets.
+- 1 DIP 24 tulip IC socket.
+- 1 DIP 20 tulip IC socket.
+- 4 DUP 16 tulip IC sockets.
+- 4 DIP 14 tulip IC sockets.
+- 2 DIP 8 tulip IC sockets.
+
+Resistors:
+- RN1: 10 K x 8
+- RN2: 1 K x 5
+- R1: 180, 250 mW
+- R2: 1 M, 250 mW
+- R3: 10 K, 250 mW
+- R4: 47 K, 250 mW
+- R5: 100 K, 250 mW
+
+Capacitors:
+- C1: 1 unpolarized electrolytic 6.3 V 220 uF capacitor (green).
+- C2-C5, C13-C21 : 13 unpolarized 100 nF capacitors (brown ones).
+- C6-C11: 6 unpolarized 1 uF capacitors (blue ones).
+- C12: 1 polarized electrolytic 6.3 V 10000 uF capacitor (black).
+
+Pin Headers:
+- J1: 2x20 pin header.
+- J2: 2 1x9 pin headers.
+- J3: DB9 male connector.
+- J4: 2 1x25 pin headers.
+- JP1 to JP5: 5 1x3 pin headers.
+
+Jumpers:
+- JP1-JP5: 5 standard 2.54 mm jumpers.
+
+Push-buttons:
+- S1, S2: 6x6 tactile DPST push buttons (normally open).
+
+\ -----------------------------------------------------------------------------
+Semi-conductors:
+- Y1: 1.84320 MHz CXO.
+- Y2: 16 MHz CXO.
+- U1: CD74HCT74E.
+- U2: CD74HCT112E.
+- U3: CD74HC14E.
+- U4: CD74HCT00E.
+- U5, U7: 2 SN74HCT138N.
+- U6: CD74HCT02N.
+- U8: HD63C09EP.
+- U9: HD63B50P.
+- U10: AT28C64B-15PU.
+- U11: F84256-10LL.
+- U12: CD74HCT245E.
+- U13: Max232EPE.
+- SDCFB-128 (to be inserted in the HX-2118P CF-ATA adapter).
+- Q1: BS170.
+- D1: 5 mm red LED, 2.1 V, 10 mA.
+
+Modules/adapters:
+- FT232RL USB serial communication adapter (mounted on top of J2).
+- HX-2118P ATA CompactFlash adapter (mounted on top of J1).
+- USB 5V phone charger.
+
+Mass Storage:
+- SanDisk 128 MB CompactFlash card.
+
+4 Procedure:
+------------
+Hints provided here assume you are looking at the board PCB in Kicad 6. It is
+presented upside down with the prototyping area at the top left.
+
+- if you have 3mm spacers, mount them as appropriate on both sides of the board.
+- solder the resistors. They are all horizontally mounted.
+  + R1: 180
+  + R2: 1 M
+  + R3: 10 K
+  + R4: 47 K
+  + R5: 100 K
+  Use scotch tape to keep the parts in place, if needed.
+- solder the 1 uF capacitors (blue ones): C6 to C11, close to the PCB.
+- solder the DIP 16 (green) IC sockets, all 4 of them.
+- solder the DIP 40 socket.
+- solder both DIP 28 sockets (EEPROM and SRAM)).
+- solder the DIP 24 socket for the ACIA.
+- solder the DIP 20 socket for the CompactFlash bidirectional buffer.
+- solder the DIP 14 sockets, all 4 of them.
+- solder Q1 (beware of short circuit potential there!) and D1. Make sure that
+  the 'K' labelled solder pad is connected to the pin closest to the flat
+  side of the LED.
+- solder S1 and S2 tactile switches.
+- solder the resistor networks:
+  + RN2: 1 K x 5
+  + RN1: 10 K x 8
+- solder the 100 nF capacitors: (brown ones): C1 to C5, C12 to C21.
+- solder the 2 DIP 8 sockets or solder Y1 and Y2 directly to the PCB, which is
+  my preferred option. You want reliable contacts here otherwise all bets are
+  off!
+- solder the pin headers for the jumpers: JP1 to JP5.
+- solder C1 (220 uF) horizontally. This baby is unpolarized.
+- solder J1 (2x20) pin headers: essential.
+- solder J4 (2x25) pin headers: optional.
+- solder the FT232RL module.
+- solder the DB9 socket (carefully!).
+- solder C12 (10000 uF) horizontally. Please pay attention to the polarity.
+
+5 Verification Step:
+--------------------
+[Optional] Two DIP 8 sockets are provided for the oscillators Y1 (1.8432 MHz)
+and Y2 (16 MHz). You may or may not use them and I recommend you do not. But if
+you do, now is the time to insert the oscillators in their sockets. Please note
+that the square corner indicates pin #1.
+
+- power check:
+  + make sure that the jumper on the FTDI adapter is set to 5 volts.
+  + connect the FTDI USB adapter to the phone charger using a USB mini-B cable.
+  + measure the voltage between the positive pin of C12 and the ground, i.e.
+    any screw hole at each board's corner. A valid reading should be at least
+    5 volts.
+
+- CPU clock check:
+  + insert U2 (CD74HCT112E) in its socket. Harris Semiconductors collector's
+    item, first class!
+  + insert U6 (CD74HCT02E) in its socket.
+  + insert U1 (CD74HCT74E) in its socket.
+  + insert U3 (CD74HC14E) in its socket.
+  + power up the beast and use either a frequency meter or an oscilloscope
+    to make sure you have steady 4 MHz signal on pins #34 (E) and #35 (Q)
+    of U8.
+
+- ACIA clock check
+  + when powered up, you should be able to observe a 614 KHz signal on
+    pin #9 of U1.
+
+6 Procedure (continued):
+------------------------
+- insert U13 (Max232EPE) in its socket.
+- insert U5 and U7 (SN74HCT138N) in their sockets.
+- insert U4 (SN74HCT00E) in its socket.
+- insert U12 (SN74HCT245N) in its socket.
+- insert U9 (HD63B50P) in its socket.
+- insert U11 (F84256-10LL) in its socket.
+  WARNING: The Fujitsu 32 KB SRAM has unusual markings. Pin #1 is at the top
+  left corner of the IC when you look at it and the vertical line is on the
+  left of the chip.
+- insert U8 (HD63C09E) in its socket.
+- make sure the EEPROM is programmed with either the ANS94 or the 79-STANDARD
+  HEX flash image. The CompactFlash medium goes into the HX-2118P CF-ATA
+  adapter. It should be identified with a label matching the one on the EEPROM.
+- insert U10 in its socket.
+
+7 Configuration Options:
+------------------------
+There are five jumpers on the board.
+
+JP1: ACIA TX/RX Clock Divider Selection:
+
+Position	Selected bps
+1-2		38400
+2-3 (default)	115200
+
+JP2-5: RS232/USB Serial Communication Selection
+These all need to be is the same position!
+
+Position	Selected comms.
+1-2 (default)	USB
+2-3		RS232
+
+8 Calibration:
+--------------
+Under normal circumstances, none is required. If using a 20 MHz DIP8 oscillator
+for Y2, you will have to re-program the EEPROM so that MS (busy waiting) acts
+accurately.
+
+To do that, you will need to modify the definition of MSLCNT in
+SW/src/constants.asm, rebuild the HEX image and re-program your EEPROM.
+
+9 Troubleshooting:
+------------------
+In case the board does not work when first powered up, the first thing to do
+is to perform a visual inspection of the PCB and check for unwanted solder
+bridges.
+
+Special attention should be paid to possible shorts between the solder pads
+for Q1, as they are placed dangerously close to each other. A gate/source
+short would result in serial communication failing miserably--and possibly
+to the death of U3!!!
+
+Bent IC pins can really ruin your day/night. This is something that should
+be paid attention to. Also, please check that all polarized capacitors have
+been correctly wired.
+
+Notes:
+- A firmware identity statement will be displayed by the system even if the
+  static RAM is not present.
+- With respect to serial communication: the IO LED will be on for as long as
+  CTS# is not detected as being asserted by the ACIA.
+- The system will come up even if the CompactFlash medium has not been
+  inserted. However, without it, you will not have a complete ANS94 core
+  system.
+
+<to Be continued...>
+
+10 Contact:
+-----------
+Francois Laagel <f.laagel@ieee.org>
+# https://sites.google.com/z79forth eventually...
+

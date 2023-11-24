@@ -154,13 +154,10 @@ The resulting project delivery reflects this. The master branch has the
 79-STANDARD implementation and the REL-ANS94 has the ANS flavor.
 
 ## Building the Platform
-A kit is being put together. The estimated market size is about 50 units. A PCB
-is being designed but this is a slow process and financial constraints also
-set an upper limit on how fast things can progress.
-
-So, your best bet is to acquire all the parts yourself and wire wrap the system
-as I did. A double Europe protyping card will be more than adequate. The bill
-of material (see `HW/BOM.txt`) is believed to be accurate. Good luck!
+A kit now is commercially available. The estimated market size is about 50
+units. A PCB has been contributed to the project and the related design
+kicad6 documents can be found in HW/kicad6. This is the central part of the
+kit.
 
 ## Repository Organization
 
@@ -169,9 +166,14 @@ REL-ANS94
 +-- HW                                       Hardware description files
 |   +-- BOM.txt                              Bill of material
 |   +-- circuit-20211015-1355.clkstretch.txt Clock stretcher simulation data
-|   +-- J1-top-view.txt                      Pinout for the extension connector
-|   +-- kicad
+|   +-- J1-top-view.txt                      Pinout for the CF-ATA connector
+|   +-- kicad5
 |   |   |-- &lt;Kicad 5 Eeschema files&gt
+|   +-- kicad6
+|   |   |-- Assembly-Instructions-v0.2.txt   How to put the v0.2 kit together
+|   |   |-- Assembly-Instructions-v0.3.txt   How to put the v0.3 kit together
+|   |   |-- z79forth-kicad6-v0.2.zip         v0.2 kit design files (PCB and SCH)
+|   |   +-- z79forth-kicad6-v0.3.zip         v0.3 kit design files (PCB and SCH)
 |   +-- README-clkstretch.txt                How to use the clock stretcher sim.
 |   +-- README.txt                           Proj. description from Elektor Labs
 |   +-- Z79Forth-iteration2.2.2.pdf          Full PDF schematics

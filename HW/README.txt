@@ -22,8 +22,11 @@ The software is licensed under the GNU General Public License version 3 and is
 available at https://github.com/frenchie68/Z79Forth. Kicad schematics are also
 provided over there.
 
-Project status: working wire wrapped prototype. A kit version is underway. A
-PCB implementation is being worked on. The software itself is believed to be
-performing according to specifications. There are no known bugs at this
-time.
+Project status:
+
+- Working wire wrapped prototype.
+- CPV has supplied working PCB design files for Kicad 6.
+- A kit version of this board now is commercially available.
+- The software itself is believed to be performing according to specifications.
+  There are no known user visible bugs at this time.
 
