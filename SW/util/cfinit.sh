@@ -41,7 +41,7 @@ fi
 # : dumpload 150 154 THRU ;
 
 ./txt2blk -i ../examples/rtc.4th -d $CFDEV -s 200 \
--h '\ MC146818 RTC Support primitives. FLA Nov 26,2021'
+-h '\ MC146818 RTC Support primitives. FLA Nov 26, 2021'
 # : rtcload 200 205 THRU ;
 
 ./txt2blk -i ../examples/sapin.4th -d $CFDEV -s 300 \
@@ -81,11 +81,15 @@ fi
 -h "\ Tetris for terminals. Z79Forth/A port: FLA April 22, 2023"
 # : ttload 650 677 THRU ;
 
+./txt2blk -i ../examples/hexadoku-z79.4th -d $CFDEV -s 700 \
+-h "\ Hexadoku Solver. Z79Forth/A. Francois Laagel.    May 11, 2023"
+# : hdload 700 747 THRU ;
+
 ./txt2blk -i ../examples/expsys.4th -d $CFDEV -s 800 \
 -h "\ Simple Forth expert system. Demitri Peynado: May 14, 2022."
 # : expsysload 800 809 THRU ;
 
 ./txt2blk -i ../examples/ansiextern.4th -d $CFDEV -s 1000 \
 -h "\ ANSI non-EEPROM resident words. FLA Sep 10, 2022."
-# : ansiload 1000 1010 THRU ;
+# : ansiload 1000 1011 THRU ;
 

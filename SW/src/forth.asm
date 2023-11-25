@@ -327,7 +327,7 @@ NMIHDL				These should never happen
 	rti
 
 * Interrupts are disabled by default upon reset.
-* NMI# will not be "armed" until S is initiliazed.
+* NMI# will not be "armed" until S is initialized.
 RSTHDL	ldmd	#1		Establish 6309 native mode
 
 	lda	#ACIRSET
@@ -3932,9 +3932,11 @@ SHIFT	fcb	5		79-STANDARD (REF)
 	beq	@shfdon
 	blt	@shftrg
 	lsld			Shift left (W is positive)
+	beq	@shfdon		Done if outcome is zero
 	decw
 	bra	@shftlp
 @shftrg lsrd			Shift right (W is negative)
+	beq	@shfdon		Done if outcome is zero
 	incw
 	bra	@shftlp
 @shfdon	std	2,u		Return value stored there
@@ -4029,9 +4031,15 @@ UMSTAR	fcb	3		ANSI (Core)
 	leas	6,s		Release system stack scratch space
 	rts
 
+CELLS	fcb	5		ANSI (Core)
+	fcc	'CELLS'		( n1 -- n2 )
+	fdb	UMSTAR
+	RFCS
+	RFXT	bra,TWOTIM+5
+
 TWOTIM	fcb	2		ANSI (Core)
 	fcc	'2*'		( x1 -- x2 )
-	fdb	UMSTAR
+	fdb	CELLS
 	RFCS
 	jsr	MIN1PST		One cell needs to be stacked up
 	ldd	,u
@@ -4654,18 +4662,9 @@ MOVE	fcb	4		ANSI (Core)
 	tfm	x+,y+		CMOVE
 @movend	rts
 
-CELLS	fcb	5		ANSI (Core)
-	fcc	'CELLS'		( n1 -- n2 )
-	fdb	MOVE
-	RFCS
-	jsr	NPOP		N1 to X
-	addr	x,x		Times 2
-	UCNPUSH			X to N2
-	rts
-
 LAST	fcb	4		79-STANDARD (REF)
 	fcc	'LAST'
-	fdb	CELLS
+	fdb	MOVE
 	RFCS
 	ldx	LSTWAD
 	jmp	NPUSH
@@ -4758,7 +4757,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/AI 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20230423 (C) Francois Laagel 2019'
+	fcc	'20231125 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'

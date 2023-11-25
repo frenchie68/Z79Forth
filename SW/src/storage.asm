@@ -49,10 +49,10 @@ CFCMDIS	bsr	CFRDY
 	lda	#'!
 	jsr	PUTCH
 @cfcidi	lda	CFCMMIR
-	ldx	#TBUFF
+	ldy	#TBUFF
 	jsr	HDMP2
 	lda	#'/
-	sta	,x+
+	sta	,y+
 	lda	CFERRCD
 	jsr	HDMP2
 	ldx	#TBUFF
@@ -97,8 +97,9 @@ CFINIT	clr	CFCARDP		Clear card present,
 	ELSE
 	jsr	CFRDY
 	ENDC
-	beq	@cfinab		Card not ready, abort
+	beq	CFINIAB		Card not ready, abort
 	bsr	CFDRSEL		Drive 0 select
+
 	lda	#1		Enable 8-bit data transfers
 	sta	CFFEATR
 	ldb	#CFSETFT	Issue a CF "Set Feature" command
@@ -107,8 +108,9 @@ CFINIT	clr	CFCARDP		Clear card present,
 	ELSE
 	jsr	CFCMDIS		Not allowed to fail
 	ENDC
-	bne	@cfinab		Abort with card present flag clear
-	lda	#1		Request default PIO mode wo/ IORDY
+	bne	CFINIAB		Abort with card present flag clear
+
+	lda	#%1010		Request PIO mode 2. Does not require IORDY
 	sta	CFSCNTR
 	lda	#3		ATA-2 "Set Transfer mode"
 	sta	CFFEATR
@@ -117,26 +119,29 @@ CFINIT	clr	CFCARDP		Clear card present,
 	ELSE
 	jsr	CFCMDIS		OK to fail
 	ENDC
+
 	lda	#$82		Disable write caching
 	sta	CFFEATR
 	IFEQ	DEBUG
-	bsr	CFCMDIS		B still has #CFSETF. Also OK to fail
+	bsr	CFCMDIS		B still has #CFSETFT. Also OK to fail
 	ELSE
-	jsr	CFCMDIS		B still has #CFSETF. Also OK to fail
+	jsr	CFCMDIS		B still has #CFSETFT. Also OK to fail
 	ENDC
+
 	ldb	#CFIDDEV	Issue a CF "Identify Device" command
 	IFEQ	DEBUG
 	bsr	CFCMDIS		Not allowed to fail
 	ELSE
 	jsr	CFCMDIS		Not allowed to fail
 	ENDC
-	bne	@cfinab		Abort with card present flag clear
+	bne	CFINIAB		Abort with card present flag clear
+
 	ldx	DICEND		Target address is HERE
 	bsr	CF1SRD		Read one sector
 	bsr	CFANTHS		Analyze this!
 	lda	#1
 	sta	CFCARDP		Set the card present flag
-@cfinab	rts
+CFINIAB	rts
 
 * Read one sector. The LBA parameters are assumed to have been set previously.
 * On input X points to the receiving (at least 512 bytes long) buffer.

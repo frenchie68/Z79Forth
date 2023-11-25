@@ -4,13 +4,8 @@ CSSNTVE	equ	0		Words and HEX numbers are case sensitive if NZ
 SSDFEAT	equ	1		Set to 1 to enable the symbolic stack dump feat.
 RELFEAT	set	1		Set to 1 to enable the reliability feature
 
-* Ultimately, this one should just go and become the only available option.
-ANSFEAT	set	1		Set to 1 to enable the ANS94 Core feature set
-
-*				Caution: when this is enabled, you can no
-*				longer fit a DEBUG image into an 8 KB EEPROM
 RTCFEAT	equ	0		Cool but the reliability feature must go...
-DEBUG	equ	0		Enforce assertions and miscellaneous checks
+DEBUG	set	0		Enforce assertions and miscellaneous checks
 HVNMI	equ	1		NMI handler support
 HVNMI2	equ	0		NMI handler support (async input debugging)
 * Loop count for MS. This is busy waiting, so we depend on the CPU clock speed.
@@ -24,14 +19,14 @@ RELFEAT	set	0		RTCFEAT disables RELFEAT
 	ELSE
 	IFNE	HVNMI
 	IFNE	HVNMI2
-RELFEAT	set	0		HVNMI and HVNMI2 disable RELFEAT
+RELFEAT	set	0		(HVNMI and HVNMI2) disable RELFEAT
 	ENDC			HVNMI2
 	ENDC			HVNMI
 	ENDC			RTCFEAT
 
-	IFNE	ANSFEAT
+* Intrinsic ANS94 support prevents both DEBUG and the reliability feature.
 RELFEAT	set	0
-	ENDC
+DEBUG	set	0
 
 * Control flow stack implemented on the top of the data stack.
 CSPUSH	EQU	NPUSH
@@ -176,8 +171,8 @@ XOFF	equ	$13		Aka DC3
 XON	equ	$11		Aka DC1
 
 * Stack sizes.
-NSTKSZ	equ	192		Expressed in bytes. Now only limited by RAM size
-RSTKSZ	equ	128		Expressed in bytes
+NSTKSZ	equ	256		Expressed in bytes. Now only limited by RAM size
+RSTKSZ	equ	254		Expressed in bytes. Up to 127 nested loops
 
 * Buffer sizes.
 CMDBFSZ	equ	132		Command line entry buffer

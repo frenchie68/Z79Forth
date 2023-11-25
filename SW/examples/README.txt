@@ -85,6 +85,16 @@ hanoi.4th	Peter Midnight	The classic towers of Hanoi recursion demo.
 				issuing <nn> TOWERS where nn is a number
 				between 2 and 10
 
+hexadoku-gen.4th Francois Laagel An Hexadoku solver/solution enumerator. The
+hexadoku-z79.4th		target problems are those published in the
+				Elektor electronics magazine. The 'gen' flavour
+				can be run either under Z79Forth or under GNU
+				Forth 0.7.3. The 'z79' flavour has 6309
+				specific optimizations. The application can be
+                                started from CF storage by resorting to
+                                HDLOAD It can be started over and over again
+                                by calling MAIN
+
 life.4th	Paul E. Bennett An implementation of John Horton Comway's
 				"Game of Life" and my first brush with ANSI
 				Forth source code. The application can be

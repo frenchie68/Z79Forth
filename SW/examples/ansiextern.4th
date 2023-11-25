@@ -47,6 +47,7 @@
 
 : ERASE ( addr u -- )
   0 FILL ;                    \ ANSI (Core ext)
+
 : ENVIRONMENT? ( c-addr u -- false | i*x true )
   2DROP FALSE ;               \ ANSI (Core)
 
@@ -158,4 +159,9 @@
 
 : 2>R ( x1 x2 -- ) ( R:  -- x1 x2 )
   SWAP >R >R ;  RESTRICT      \ ANSI (Core ext)
+
+\ -------------------------------------------------------------
+\ Non-standard but GNU Forth has it and I find it useful.
+
+: 2NIP 2SWAP 2DROP ;
 
