@@ -1,5 +1,7 @@
 # Z79Forth
 
+![A Preview of the Kit Version](DSCF1008.JPG "Now we have a PCB!")
+
 ![An Early Hardware Iteration](KIMG0091.jpg "The Wire Wrapped Prototype Board")
 
 ## Overview ##
