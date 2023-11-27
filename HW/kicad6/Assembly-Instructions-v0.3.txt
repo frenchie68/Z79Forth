@@ -34,9 +34,9 @@ Be thorough and leave nothing to chance. Murphy's law still applies!
 - a fume extractor or, for the lack of it, a well ventilated workshop!
 - some chocolate, preferably with nuts.
 
-3 v0.2 PCB Bill of material:
+3 v0.3 PCB Bill of material:
 ----------------------------
-- PCB version 0.2.
+- PCB version 0.3.
 
 \ -----------------------------------------------------------------------------
 Passive Components:
