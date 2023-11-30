@@ -133,7 +133,7 @@ presented upside down with the prototyping area at the top left.
 - solder the resistor networks:
   + RN2: 1 K x 5
   + RN1: 10 K x 8
-- solder the 100 nF capacitors: (brown ones): C1 to C5, C12 to C21.
+- solder the 100 nF capacitors: (brown ones): C2 to C5, C12 to C21.
 - solder the 2 DIP 8 sockets or solder Y1 and Y2 directly to the PCB, which is
   my preferred option. You want reliable contacts here otherwise all bets are
   off!
