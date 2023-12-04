@@ -46,7 +46,7 @@ IC Sockets:
 - 2 DIP 28 tulip IC sockets.
 - 1 DIP 24 tulip IC socket.
 - 1 DIP 20 tulip IC socket.
-- 4 DUP 16 tulip IC sockets.
+- 4 DIP 16 tulip IC sockets.
 - 4 DIP 14 tulip IC sockets.
 - 2 DIP 8 tulip IC sockets.
 
@@ -94,7 +94,6 @@ Semi-conductors:
 - U11: F84256-10LL.
 - U12: CD74HCT245E.
 - U13: Max232EPE.
-- SDCFB-128 (to be inserted in the HX-2118P CF-ATA adapter).
 - Q1: BS170.
 - D1: 5 mm red LED, 2.1 V, 10 mA.
 
@@ -234,6 +233,11 @@ Notes:
 - The system will come up even if the CompactFlash medium has not been
   inserted. However, without it, you will not have a complete ANS94 core
   system.
+- The HX-2118P CF/ATA adapters are not individually tested before shipping.
+  Please check for bent pins on the CompactFlash side and for questionable
+  soldering on the connector's side!
+- The most likely part to fail is the Atmel AT28C64B. It has been observed
+  time and time again.
 
 <to Be continued...>
 
