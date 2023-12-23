@@ -138,7 +138,9 @@ presented upside down with the prototyping area at the top left.
   off!
 - solder the pin headers for the jumpers: JP1 to JP5.
 - solder C1 (22 uF) horizontally. Please pay attention to the polarity.
-- solder J1 (2x20) pin headers: essential.
+- solder J1 (2x20) pin headers: essential. Some kits may ship with a shrouded
+  connector. If you are the recipient of such an instance, please make sure
+  that the central notch is oriented toward the outside edge of the board.
 - solder J4 (2x25) pin headers: optional.
 - solder the FT232RL module.
 - solder the DB9 socket (carefully!).
