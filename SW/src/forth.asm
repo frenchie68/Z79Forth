@@ -1311,7 +1311,9 @@ PRBLKIN	pshs	y
 * offending word.
 ERRHDLR ldy	,s		Invoking return address
 * In case of a trap return, we enter here with Y set to #IODZHDL
-ERRHD1	jsr	PUTCR		GNU Forth does this in its exception handler
+ERRHD1	lda	#$0F		ASCII Shift in (restore dflt charset)
+	jsr	PUTCH
+	jsr	PUTCR		GNU Forth does this in its exception handler
 	cmpb	#2		Undefined symbol?
 	bne	@perrm		No
 	lda	#''		Begin quote
@@ -4757,7 +4759,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/AI 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20231125 (C) Francois Laagel 2019'
+	fcc	'20240218 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
