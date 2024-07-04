@@ -37,8 +37,8 @@
 * -----------------------    -------------------------------------
 * dest                       control-flow destination      0
 * orig                       control-flow origin           1
-* of-sys                     OF origin                     2
-* case-sys                   x (any value)                 3
+* of-sys                     OF origin                     2 [1]
+* case-sys                   x (any value)                 3 [1]
 * do-sys                     ?DO origin                    DO destination
 * colon-sys                  xt of current definition     -1 [1]
 *
@@ -219,7 +219,6 @@ SBDROPC	rmb	2		Char. drop count for serial input (see FIRQHDL)
 ANCMPF	rmb	1		Anonymous compilation flag
 BALNCD	rmb	1		Balanced flag for control flow constructs
 BASBKUP	rmb	1		BASE backup when a base prefix is in use
-RDEPTH	rmb	1		Return stack depth in cells
 DIVFCN	rmb	1		Flag used by /, MOD and /MOD
 DIVDBL	rmb	1		DIV: N1 is a double (flag)
 DIVSYM	rmb	1		DIV: symmetric division required (flag)
@@ -322,7 +321,7 @@ SWI2HDL	equ	*
 IRQHDL	equ	*
 SWIHDL	equ	*
 	IFEQ	HVNMI
-NMIHDL				These should never happen
+NMIHDL				This should never happen
 	ENDC
 	rti
 
@@ -1401,12 +1400,30 @@ NPOP	cmpu	#NSTBOT
 DPOPRA	equ	*
 	nop
 
+* Eval RDEPTH (return stack depth cell count) based on the value of RSP.
+* Return computed value in A. CC will be set depending on the result of ASRD.
+* Preserve B and all other registers.
+*
+* Note: we can still make some extra EEPROM room by getting rid of NCLR/RCLR.
+* They are non standard anyway.
+*
+EVRDPTH	pshs	d		Make debugging a little bit easier
+	ldd	#RSTBOT
+	subd	RSP
+* TODO: panic on a negative outcome. This is unlikely but possible
+* since RSP can be altered directly by user level code.
+	asrd			Byte count to cell count
+* TODO: panic if D U> #RSTKSZ/2.
+	tfr	cc,a
+	stb	,s		A's value upon return. This affects CC
+	tfr	a,cc
+	puls	d		this does not
+	rts
+
 * Push X to the return stack (boundary is checked).
-RPUSH	lda	RDEPTH		RDEPTH is expressed in cells
+RPUSH	bsr	EVRDPTH		RDEPTH in cells to A
 	cmpa	#RSTKSZ/2	But RSTKZ is expressed in bytes
 	beq	@rpush1
-	inca
-	sta	RDEPTH
 	tfr	y,v
 	ldy	RSP
 	stx	,--y
@@ -1419,10 +1436,8 @@ RPSHRA	equ	*
 	nop			Meant to insulate RPUSH errors from RPOP EP
 
 * Pull X from the return stack (boundary is checked).
-RPOP	lda	RDEPTH		RDEPTH is expressed in cells
+RPOP	bsr	EVRDPTH		RDEPTH in cells to A
 	beq	@rpop1
-	deca
-	sta	RDEPTH
 	tfr	y,v
 	ldy	RSP
 	ldx	,y++
@@ -1875,7 +1890,6 @@ RCLR	fcb	4		Non-standard
 	RFCS
 	ldx	#RSTBOT
 	stx	RSP
-	clr	RDEPTH
 	rts
 
 DEPTH	fcb	5		ANSI (Core)
@@ -2706,7 +2720,7 @@ INDI	fcb	$41		ANSI (Core)
 	fdb	LEAVE
 	RFCS
 	clrb
-RPICKN	lda	RDEPTH
+RPICKN	jsr	EVRDPTH		RDEPTH in cells to A
 	cmpr	a,b
 	bhs	@rpick1
 	ldx	RSP
@@ -4759,7 +4773,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/AI 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20240416 (C) Francois Laagel 2019'
+	fcc	'20240628 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
@@ -4804,15 +4818,15 @@ ERRMTBL	fcn	'Data stack overflow'	Error 0
 	ELSE
 	fcn	''			Error 15
 	ENDC				DEBUG
-	fcn	'Word name too long'	Error 16
+	fcn	'Name too long'		Error 16
 	fcn	'IO error'		Error 17
-	fcn	'>IN Out of range'	Error 18
+	fcn	'>IN OoR'		Error 18
 
 * A-list used for numeric literal base prefixes.
 BASALST	fcc	'$'		Hexadecimal prefix
 	fcb	16
-	fcc	'&'		Decimal prefix (as in LWASM, VolksForth)
-	fcb	10
+*	fcc	'&'		Decimal prefix (as in LWASM, VolksForth)
+*	fcb	10
 	fcc	'#'		Decimal prefix
 	fcb	10
 	fcc	'%'		Binary prefix
