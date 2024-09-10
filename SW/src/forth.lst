@@ -1714,53 +1714,53 @@ E74F 860F             (        forth.asm):01313 (2)     ERRHD1  lda     #$0F    
 E751 BDE2D7           (        forth.asm):01314 (7)             jsr     PUTCH
 E754 BDE2F7           (        forth.asm):01315 (7)             jsr     PUTCR           GNU Forth does this in its exception handler
 E757 C102             (        forth.asm):01316 (2)             cmpb    #2              Undefined symbol?
-E759 2618             (        forth.asm):01317 (3)             bne     @perrm          No
+E759 2618             (        forth.asm):01317 (3)             bne     @ermscn         No
 E75B 8627             (        forth.asm):01318 (2)             lda     #''             Begin quote
 E75D BDE2D7           (        forth.asm):01319 (7)             jsr     PUTCH
-E760 A680             (        forth.asm):01320 (4+1)   @prtsym lda     ,x+             Display undefined symbol name
+E760 A680             (        forth.asm):01320 (4+1)   @psym   lda     ,x+             Display undefined symbol name
 E762 BDE2D7           (        forth.asm):01321 (7)             jsr     PUTCH
 E765 0A41             (        forth.asm):01322 (5)             dec     CURTOKL
-E767 26F7             (        forth.asm):01323 (3)             bne     @prtsym
+E767 26F7             (        forth.asm):01323 (3)             bne     @psym
 E769 8627             (        forth.asm):01324 (2)             lda     #''             End quote
 E76B BDE2D7           (        forth.asm):01325 (7)             jsr     PUTCH
 E76E 8620             (        forth.asm):01326 (2)             lda     #SP             BL EMIT
 E770 BDE2D7           (        forth.asm):01327 (7)             jsr     PUTCH
-E773 8EFED5           (        forth.asm):01328 (3)     @perrm  ldx     #ERRMTBL        Regular error handling
+E773 8EFED5           (        forth.asm):01328 (3)     @ermscn ldx     #ERRMTBL        Regular error handling. Scan for B error code
 E776 5D               (        forth.asm):01329 (1)     @nxterr tstb
-E777 2637             (        forth.asm):01330 (3)             bne     @skerrm
-E779 BDE2EA           (        forth.asm):01331 (7)             jsr     PUTS            Print error message
-E77C 8DA1             (        forth.asm):01332 (6)             bsr     PRBLKIN         Print BLK and >IN values (in hex)
-E77E 1F20             (        forth.asm):01333 (4)     @dmptos tfr     y,d             Dump top of the system stack contents
-                      (        forth.asm):01334                 IFNE    SSDFEAT
-E780 3406             (        forth.asm):01335 (4+2)           pshs    d
-                      (        forth.asm):01336                 ENDC                    SSDFEAT
-E782 108E04BA         (        forth.asm):01337 (4)             ldy     #HEXBUF
-E786 BDE192           (        forth.asm):01338 (7)             jsr     HDMP4
-E789 8620             (        forth.asm):01339 (2)             lda     #SP
-E78B A7A0             (        forth.asm):01340 (4+1)           sta     ,y+
-                      (        forth.asm):01341         * Symbolic stack dumps are configurable. In situations where the dictionary is
-                      (        forth.asm):01342         * trashed, they may not be considered desirable. See SSDFEAT in constants.asm.
-                      (        forth.asm):01343                 IFNE    SSDFEAT
-E78D 1F21             (        forth.asm):01344 (4)             tfr     y,x             X has the buffer pointer
-E78F 3520             (        forth.asm):01345 (4+2)           puls    y               Restore target symbol table entry
-E791 BDE616           (        forth.asm):01346 (7)             jsr     FINDSYM
-                      (        forth.asm):01347                 ELSE
-                      (        forth.asm):01348                 clr     ,y              No symbolic information is to be printed
-                      (        forth.asm):01349                 ENDC                    SSDFEAT
-E794 8E04BA           (        forth.asm):01350 (3)             ldx     #HEXBUF
-E797 BDE2EA           (        forth.asm):01351 (7)             jsr     PUTS
-E79A BDE2F7           (        forth.asm):01352 (7)             jsr     PUTCR
-E79D 108CE000         (        forth.asm):01353 (4)             cmpy    #IODZHDL
-E7A1 2702             (        forth.asm):01354 (3)             beq     @wastrp         We're just back from the trap handler
-E7A3 3262             (        forth.asm):01355 (4+1)           leas    2,s             Point to the next item on the stack
-E7A5 118C8000         (        forth.asm):01356 (4)     @wastrp cmps    #RAMSTRT+RAMSIZE
-E7A9 240C             (        forth.asm):01357 (3)             bhs     @errdon         We're done here
-E7AB 10AEE4           (        forth.asm):01358 (6+0)           ldy     ,s
-E7AE 20CE             (        forth.asm):01359 (3)             bra     @dmptos
-E7B0 A680             (        forth.asm):01360 (4+1)   @skerrm lda     ,x+             Scan for the next error message
-E7B2 26FC             (        forth.asm):01361 (3)             bne     @skerrm
-E7B4 5A               (        forth.asm):01362 (1)             decb
-E7B5 20BF             (        forth.asm):01363 (3)             bra     @nxterr
+E777 2707             (        forth.asm):01330 (3)             beq     @perrm
+E779 A680             (        forth.asm):01331 (4+1)           lda     ,x+             Scan for the next error message
+E77B 26FC             (        forth.asm):01332 (3)             bne     *-2
+E77D 5A               (        forth.asm):01333 (1)             decb
+E77E 20F6             (        forth.asm):01334 (3)             bra     @nxterr
+E780 BDE2EA           (        forth.asm):01335 (7)     @perrm  jsr     PUTS            Print error message
+E783 8D9A             (        forth.asm):01336 (6)             bsr     PRBLKIN         Print BLK and >IN values (in hex)
+E785 1F20             (        forth.asm):01337 (4)     @dmptos tfr     y,d             Dump top of the system stack contents
+                      (        forth.asm):01338                 IFNE    SSDFEAT
+E787 3406             (        forth.asm):01339 (4+2)           pshs    d
+                      (        forth.asm):01340                 ENDC                    SSDFEAT
+E789 108E04BA         (        forth.asm):01341 (4)             ldy     #HEXBUF
+E78D BDE192           (        forth.asm):01342 (7)             jsr     HDMP4
+E790 8620             (        forth.asm):01343 (2)             lda     #SP
+E792 A7A0             (        forth.asm):01344 (4+1)           sta     ,y+
+                      (        forth.asm):01345         * Symbolic stack dumps are configurable. In situations where the dictionary is
+                      (        forth.asm):01346         * trashed, they may not be considered desirable. See SSDFEAT in constants.asm.
+                      (        forth.asm):01347                 IFNE    SSDFEAT
+E794 1F21             (        forth.asm):01348 (4)             tfr     y,x             X has the buffer pointer
+E796 3520             (        forth.asm):01349 (4+2)           puls    y               Restore target symbol table entry
+E798 BDE616           (        forth.asm):01350 (7)             jsr     FINDSYM
+                      (        forth.asm):01351                 ELSE
+                      (        forth.asm):01352                 clr     ,y              No symbolic information is to be printed
+                      (        forth.asm):01353                 ENDC                    SSDFEAT
+E79B 8E04BA           (        forth.asm):01354 (3)             ldx     #HEXBUF
+E79E BDE2EA           (        forth.asm):01355 (7)             jsr     PUTS
+E7A1 BDE2F7           (        forth.asm):01356 (7)             jsr     PUTCR
+E7A4 108CE000         (        forth.asm):01357 (4)             cmpy    #IODZHDL
+E7A8 2702             (        forth.asm):01358 (3)             beq     @wastrp         We're just back from the trap handler
+E7AA 3262             (        forth.asm):01359 (4+1)           leas    2,s             Point to the next item on the stack
+E7AC 118C8000         (        forth.asm):01360 (4)     @wastrp cmps    #RAMSTRT+RAMSIZE
+E7B0 2405             (        forth.asm):01361 (3)             bhs     @errdon         We're done here
+E7B2 10AEE4           (        forth.asm):01362 (6+0)           ldy     ,s
+E7B5 20CE             (        forth.asm):01363 (3)             bra     @dmptos
 E7B7 10CE8000         (        forth.asm):01364 (4)     @errdon lds     #RAMSTRT+RAMSIZE
 E7BB 0D25             (        forth.asm):01365 (4)             tst     USTATE+1        We do ignore the upper byte
 E7BD 2710             (        forth.asm):01366 (3)             beq     @erdon2         No pointers to restore if we were interpreting
@@ -5491,7 +5491,7 @@ FE3A 5A3739466F727468 (        forth.asm):04773                 fcc     'Z79Fort
      6D
                       (        forth.asm):04774                 ENDC                    RTCFEAT
 FE5B 0D0A             (        forth.asm):04775                 fcb     CR,LF
-FE5D 3230323430363238 (        forth.asm):04776                 fcc     '20240628 (C) Francois Laagel 2019'
+FE5D 3230323430373139 (        forth.asm):04776                 fcc     '20240719 (C) Francois Laagel 2019'
      2028432920467261
      6E636F6973204C61
      6167656C20323031

@@ -282,7 +282,7 @@ $1000 , $2000 , $4000 , $8000 ,
 \ S" ....:....:....:...." 14 initline
 \ S" ....:....:....:...." 15 initline
 
-  \ Original design (1.2/1.3M backtracks).
+  \ Original design (1.2+M backtracks).
   S" 0...:.5.7:.9.B:.DEF" 0  initline
   S" 45..:C..F:...2:..AB" 1  initline
   S" ..A.:..2.:.D..:.5.7" 2  initline
@@ -647,7 +647,13 @@ $1000 , $2000 , $4000 , $8000 ,
   rl+                          \ Increment recursion level
 
   get-unresolved               \ Look for an unresolved spot
-  DUP 0= IF INVERT EXIT THEN   \ Problem solved
+  DUP 0= IF
+    solutions 1+!
+    stopon1st 0= IF
+      CR display-grid
+    THEN
+    INVERT EXIT
+  THEN                         \ Problem solved
 
   DUP @                        \ S: saddr\sval
   \ The list of set bits in TOS indicate the possibilities
@@ -663,18 +669,15 @@ $1000 , $2000 , $4000 , $8000 ,
 
       infer IF                 \ No inconsistencies detected
         RECURSE IF             \ Solution found
-          solutions 1+!
           stopon1st IF
             2DROP UNLOOP TRUE EXIT
-          ELSE
-            CR display-grid
           THEN
         THEN
       THEN
 
       \ Backtrack up to the last transaction boundary.
       BEGIN tstk-pop UNTIL
-      nbt 1+!              \ Increment #backtracks
+      nbt 1+!                  \ Increment #backtracks
     ELSE
       R> DROP
     THEN

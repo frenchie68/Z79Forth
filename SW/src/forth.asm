@@ -1314,21 +1314,25 @@ ERRHD1	lda	#$0F		ASCII Shift in (restore dflt charset)
 	jsr	PUTCH
 	jsr	PUTCR		GNU Forth does this in its exception handler
 	cmpb	#2		Undefined symbol?
-	bne	@perrm		No
+	bne	@ermscn		No
 	lda	#''		Begin quote
 	jsr	PUTCH
-@prtsym	lda	,x+		Display undefined symbol name
+@psym	lda	,x+		Display undefined symbol name
 	jsr	PUTCH
 	dec	CURTOKL
-	bne	@prtsym
+	bne	@psym
 	lda	#''		End quote
 	jsr	PUTCH
 	lda	#SP		BL EMIT
 	jsr	PUTCH
-@perrm	ldx	#ERRMTBL	Regular error handling
+@ermscn	ldx	#ERRMTBL	Regular error handling. Scan for B error code
 @nxterr	tstb
-	bne	@skerrm
-	jsr	PUTS		Print error message
+	beq	@perrm
+	lda	,x+		Scan for the next error message
+	bne	*-2
+	decb
+	bra	@nxterr
+@perrm	jsr	PUTS		Print error message
 	bsr	PRBLKIN		Print BLK and >IN values (in hex)
 @dmptos	tfr	y,d		Dump top of the system stack contents
 	IFNE	SSDFEAT
@@ -1357,10 +1361,6 @@ ERRHD1	lda	#$0F		ASCII Shift in (restore dflt charset)
 	bhs	@errdon		We're done here
 	ldy	,s
 	bra	@dmptos
-@skerrm	lda	,x+		Scan for the next error message
-	bne	@skerrm
-	decb
-	bra	@nxterr
 @errdon	lds	#RAMSTRT+RAMSIZE
 	tst	USTATE+1	We do ignore the upper byte
 	beq	@erdon2		No pointers to restore if we were interpreting
@@ -4773,7 +4773,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/AI 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20240628 (C) Francois Laagel 2019'
+	fcc	'20240719 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
