@@ -55,9 +55,9 @@
 * BCSOPC	$2503	BCS *+5	(relative) Used in LOOP, +LOOP
 * BNEOPC	$2603	BNE *+5	(relative) Used in ?DO, IF, UNTIL
 *
-* On error, the system stack pointer is reset. The return stack also is
-* but the data stack will be in the same state as when the error occurred.
-* ABORT and QUIT enforce their own ANS94 standard behaviour.
+* On error, the system stack pointer is reset. The return stack pointer also is.
+* The data stack will be cleared as well since it is used as the control flow
+* stack. ABORT and QUIT enforce their own ANS94 standard behaviour.
 *
 * RESTRICT is non-standard. It comes from GNU Forth (VolksForth). The " OK"
 * non-prompt string also does, by the way. Thanks to Anton Ertl for his terse
@@ -718,8 +718,17 @@ SLEN	pshs	x
 
 	include	console.asm
 
-FORTHIN	RFXT	jsr,NCLR+7	XT for NCLR. Set up the normal stack
-	RFXT	jsr,RCLR+7	XT for RCLR. Set up the return stack
+* Clear the data stack.
+NCLR	ldu	#NSTBOT
+	rts
+
+* Clear the return stack.
+RCLR	ldx	#RSTBOT
+	stx	RSP
+	rts
+
+FORTHIN	bsr	NCLR		Initialize the data stack
+	bsr	RCLR		Initialize the return stack
 * Relocate '@' code to RAM and set it up as the last dictionary entry (RO).
 	ldx	#THEEND		Source address for tfm
 	ldw	#(REALEND-THEEND) Byte count for tfm
@@ -1310,9 +1319,10 @@ PRBLKIN	pshs	y
 * offending word.
 ERRHDLR ldy	,s		Invoking return address
 * In case of a trap return, we enter here with Y set to #IODZHDL
-ERRHD1	lda	#$0F		ASCII Shift in (restore dflt charset)
-	jsr	PUTCH
-	jsr	PUTCR		GNU Forth does this in its exception handler
+ERRHD1	pshs	x
+	ldx	#SANRST		Implied CR here (as in GNU Forth)
+	jsr	PUTS
+	puls	x
 	cmpb	#2		Undefined symbol?
 	bne	@ermscn		No
 	lda	#''		Begin quote
@@ -1368,13 +1378,13 @@ ERRHD1	lda	#$0F		ASCII Shift in (restore dflt charset)
 	clr	USTATE+1	Switch back to interpretation mode
 	ldx	BDICEND		Restore essential pointers from backups
 	stx	DICEND		Restore HERE
-	tst	ANCMPF
-	bne	@clrano
+	tst	ANCMPF		Are we compiling anonymously?
+	bne	@clrano		Branch if we were
 	ldx	BLSTWAD
 	stx	LSTWAD		Restore LAST
 @clrano	clr	ANCMPF
-@erdon2	RFXT	jsr,RCLR+7	Clear the return stack and
-	RFXT	jsr,NCLR+7	the control flow stack (moved here from ABORT)
+@erdon2	jsr	RCLR		Clear the return stack and
+	jsr	NCLR		the control flow stack (moved here from ABORT)
 	RFXT	jsr,DECIMAL+10	Back to decimal BASE, for one's sanity sake!
 	jmp	INTERP
 
@@ -1403,9 +1413,6 @@ DPOPRA	equ	*
 * Eval RDEPTH (return stack depth cell count) based on the value of RSP.
 * Return computed value in A. CC will be set depending on the result of ASRD.
 * Preserve B and all other registers.
-*
-* Note: we can still make some extra EEPROM room by getting rid of NCLR/RCLR.
-* They are non standard anyway.
 *
 EVRDPTH	pshs	d		Make debugging a little bit easier
 	ldd	#RSTBOT
@@ -1877,24 +1884,9 @@ STOD	fcb	3		ANSI Core
 	leax	-1,x		N is < 0. Sign extension is required. -1 to X
 	jmp	NPUSH
 
-NCLR	fcb	4		Non-standard
-	fcc	'NCLR'		Clear the data (normal) stack
-	fdb	STOD
-	RFCS
-	ldu	#NSTBOT
-	rts
-
-RCLR	fcb	4		Non-standard
-	fcc	'RCLR'		Clear the return stack
-	fdb	NCLR
-	RFCS
-	ldx	#RSTBOT
-	stx	RSP
-	rts
-
 DEPTH	fcb	5		ANSI (Core)
 	fcc	'DEPTH'		( -- +n )
-	fdb	RCLR
+	fdb	STOD
 	RFCS
 	ldd	#NSTBOT		Bottom data stack address
 	subr	u,d		D has the current value of the data stack ptr
@@ -2770,7 +2762,7 @@ QUIT	fcb	4		ANSI (Core)
 	fdb	INDK
 	RFCS
 	clr	USTATE+1
-	RFXT	jsr,RCLR+7	XT for RCLR
+	jsr	RCLR		Clear the return stack
 	lds	#RAMSTRT+RAMSIZE Reset the system stack pointer
 	jsr	PUTCR
 	jmp	INTERP
@@ -4773,7 +4765,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/AI 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20240719 (C) Francois Laagel 2019'
+	fcc	'20241017 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
@@ -4793,6 +4785,9 @@ OKFEEDB	fcc	' ok'		As per GNU Forth's implementation...
 OKFEEDB	fcc	' OK'
 	ENDC			CSSNTVE
 	fcb	CR,LF,NUL
+
+SANRST	fcb	$0F		ASCII Shift in (restore dflt charset)
+	fcb	$1B,'[','?','2','5','h',CR,NUL	Cursor back on
 
 * Error messages for IODZHDL.
 IOPERRM	fcn	'Illegal opcode near '
@@ -4825,9 +4820,9 @@ ERRMTBL	fcn	'Data stack overflow'	Error 0
 * A-list used for numeric literal base prefixes.
 BASALST	fcc	'$'		Hexadecimal prefix
 	fcb	16
-*	fcc	'&'		Decimal prefix (as in LWASM, VolksForth)
-*	fcb	10
-	fcc	'#'		Decimal prefix
+	fcc	'#'		Decimal prefix (standard)
+	fcb	10
+	fcc	'&'		Decimal prefix (as in LWASM, VolksForth)
 	fcb	10
 	fcc	'%'		Binary prefix
 	fcb	2

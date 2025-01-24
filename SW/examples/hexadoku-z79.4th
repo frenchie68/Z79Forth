@@ -138,7 +138,7 @@ CREATE lookup 256 ALLOT
 (       tfr     a,b            ) $1F89 ,
 (       clra                   ) $4F C,
 (       std     ,u             ) $EDC4 ,
-:noname ncb d1+! ; DROP
+:NONAME ncb d1+! ; DROP
 
 \ Compute 2^n fast, i.e. faster than LSHIFT can do it.
 \ Note: 'n' is restricted to the [0..15] range.
@@ -652,8 +652,8 @@ $1000 , $2000 , $4000 , $8000 ,
     stopon1st 0= IF
       CR display-grid
     THEN
-    INVERT EXIT
-  THEN                         \ Problem solved
+    INVERT EXIT                \ Problem solved
+  THEN
 
   DUP @                        \ S: saddr\sval
   \ The list of set bits in TOS indicate the possibilities
