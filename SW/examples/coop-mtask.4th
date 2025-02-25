@@ -54,7 +54,10 @@
 
 : rdrop R> DROP ;
 
-: rdepth $137 C@ ;               \ Release dependent!!!
+\ Release dependent!!! Likely to be stable unless global
+\ variables are added or stack sizes are altered.
+: rdepth ( -- ) $436 ( RSTBOT ) $100 @ ( RSP ) -
+  1 RSHIFT ( convert byte to cell count ) ;
 
 : nop ;
 
