@@ -46,3 +46,6 @@ Released PCB versions so far are:
 
 In the future, only PCB v0_4 will be shipped with the kit.
 
+kikad5 files are of historical interest. The really interesting files reside
+at HW/kikad6.
+
