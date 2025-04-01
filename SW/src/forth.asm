@@ -181,6 +181,8 @@ RFCS	MACRO	NOEXPAND
 
 * Global pointers.
 RSP	rmb	2		The return stack pointer
+CSP	rmb	2		The control flow stack pointer
+QUAD	rmb	4		Need for 2SWAP on the control flow stack
 TOKENSP	rmb	2		Token start pointer (STRS)
 TOKENEP	rmb	2		Token end pointer (STRE)
 LSTWAD	rmb	2		Last defined word header pointer--LAST
@@ -262,6 +264,11 @@ NSTBOT	equ	*		U's value when the data stack is empty
 RSTTOP	equ	*
 	rmb	RSTKSZ
 RSTBOT	equ	*
+
+* The control flow stack.
+CSTTOP	equ	*
+	rmb	CSTKSZ
+CSTBOT	equ	*
 
 CMDBUF	rmb	CMDBFSZ
 HEXBUF	rmb	HEXBFSZ
@@ -727,8 +734,14 @@ RCLR	ldx	#RSTBOT
 	stx	RSP
 	rts
 
+* Clear the control flow stack.
+CCLR	ldx	#CSTBOT
+	stx	CSP
+	rts
+
 FORTHIN	bsr	NCLR		Initialize the data stack
 	bsr	RCLR		Initialize the return stack
+	bsr	CCLR		Initialize the control flow stack
 * Relocate '@' code to RAM and set it up as the last dictionary entry (RO).
 	ldx	#THEEND		Source address for tfm
 	ldw	#(REALEND-THEEND) Byte count for tfm
@@ -1055,7 +1068,6 @@ LWMNRA	equ	*		LOCWRT missing word name return address
 	blo	@locwr2
 	ldb	#16		Word name is too long
 	jsr	ERRHDLR		No return
-WTOOLNG	equ	*
 @locwr2	sta	,x+		Word length to dictionary
 	ldw	,s++		16-bit word length to W
 	exg	x,y		Y points to the dictionary, X has TOKENSP
@@ -1384,9 +1396,13 @@ ERRHD1	pshs	x
 	stx	LSTWAD		Restore LAST
 @clrano	clr	ANCMPF
 @erdon2	jsr	RCLR		Clear the return stack and
-	jsr	NCLR		the control flow stack (moved here from ABORT)
+	jsr	NCLR		the data stack and
+	jsr	CCLR		the control flow stack
 	RFXT	jsr,DECIMAL+10	Back to decimal BASE, for one's sanity sake!
 	jmp	INTERP
+
+*******************************************************************************
+* Data stack primitives.
 
 * Push X to the data stack (boundary is checked).
 NPUSH	cmpu	#NSTTOP
@@ -1396,7 +1412,7 @@ NPUSH	cmpu	#NSTTOP
 @npush1	clrb			Data stack overflow
 	jsr	ERRHDLR		No return
 DPSHRA	equ	*
-	nop
+	nop			Meant to insulate NPUSH errors from NPOP's EP
 
 * Pull X from the data stack (boundary is checked).
 * D, W and Y are preserved.
@@ -1408,7 +1424,9 @@ NPOP	cmpu	#NSTBOT
 @npop1	ldb	#1		Data stack underflow
 	jsr	ERRHDLR		No return
 DPOPRA	equ	*
-	nop
+
+*******************************************************************************
+* Return stack primitives.
 
 * Eval RDEPTH (return stack depth cell count) based on the value of RSP.
 * Return computed value in A. CC will be set depending on the result of ASRD.
@@ -1440,7 +1458,7 @@ RPUSH	bsr	EVRDPTH		RDEPTH in cells to A
 @rpush1	ldb	#7		Return stack overflow
 	jsr	ERRHDLR		No return
 RPSHRA	equ	*
-	nop			Meant to insulate RPUSH errors from RPOP EP
+	nop			Meant to insulate RPUSH errors from RPOP's EP
 
 * Pull X from the return stack (boundary is checked).
 RPOP	bsr	EVRDPTH		RDEPTH in cells to A
@@ -1455,11 +1473,44 @@ RPOP	bsr	EVRDPTH		RDEPTH in cells to A
 	jsr	ERRHDLR		No return
 RPOPRA	equ	*
 
+*******************************************************************************
+* Control flow stack primitives. No introspection support.
+
+* Push X to the control flow stack (boundary is checked).
+CPUSH	pshs	y
+	ldy	CSP
+	cmpy	#CSTTOP
+	bls	CPUSH1
+	stx	,--y
+	sty	CSP
+	puls	y
+	rts
+CPUSH1	* leas 2,s		Drop Y from the system stack
+	ldb	#9		Illegal construct
+	jsr	ERRHDLR		No return
+
+* Pull X from the control flow stack (boundary is checked).
+CPOP	pshs	y
+	ldy	CSP
+	cmpy	#CSTBOT
+	bhs	CPUSH1
+	ldx	,y++
+	sty	CSP
+	puls	y
+	cmpr	0,x		Update CC based on the outcome
+	rts
+
+*******************************************************************************
+* Control structure balance checking.
+
 BALCHK	tst	BALNCD
 	bne	BALERR
 	rts
 BALERR	ldb	#9		Illegal construct
 	jsr	ERRHDLR		No return
+
+*******************************************************************************
+* Save/restore input.
 
 SAVINP	pshs	x
 	tfr	0,x
@@ -1489,6 +1540,9 @@ RSTINP	bsr	RPOP
 	stx	BSBFADR
 	com	SRCID		Set SRCID to an NZ value
 @done	rts
+
+*******************************************************************************
+* Other important business.
 
 * Derive the current input stream pointer from BLK and >IN.
 * The resulting address is returned in X. D is altered.
@@ -2306,23 +2360,41 @@ IF	fcb	$C2		ANSI (Core)
 
 * Functionally equivalent to:
 * : UNLESS POSTPONE 0= POSTPONE IF ; IMMEDIATE RESTRICT
-UNLESS	fcb	$C6		Non-standard (Perl inspired)
-	fcc	'UNLESS'
-	fdb	IF
-	RFCS
-	RFXT	ldx,#NULP+5	XT for 0=
-	jsr	EMXASXT
-	RFXT	bra,IF+5	XT for IF
+* Moved to CompactFlash.
+* UNLESS	fcb	$C6		Non-standard (Perl inspired)
+* 	fcc	'UNLESS'
+* 	fdb	IF
+* 	RFCS
+* 	RFXT	ldx,#NULP+5	XT for 0=
+* 	jsr	EMXASXT
+* 	RFXT	bra,IF+5	XT for IF
 
 * hForth prototyping code below:
 * : ELSE POSTPONE AHEAD 2SWAP POSTPONE THEN ; IMMEDIATE RESTRICT
 ELSE	fcb	$C4		ANSI (Core)
 	fcc	'ELSE'		Comp: ( C: orig1 -- orig2 )
-	fdb	UNLESS		Exec: ( -- )
+	fdb	IF		Exec: ( -- )
 	RFCS
 	RFXT	bsr,AHEAD+8
-	RFXT	jsr,TWOSWAP+8	This should be read as "1 CS-ROLL"
+* We just cannot be that brutal with a dedicated control flow stack!
+*	RFXT	jsr,TWOSWAP+8	This should be read as "1 CS-ROLL"
+	bsr	CSROL1
 	RFXT	bra,THEN+7
+@fubar	ldb	#9
+	jmp	ERRHDLR		Illegal construct
+* Make sure CSP has at least 4 cells stacked up.
+CSROL1	ldy	CSP
+	cmpy	#CSTBOT-8
+	bhi	@fubar
+	ldd	,y		[csp][0] -> D
+	ldw	2,y		[csp][1] -> W
+	stq	QUAD		Q -> QUAD
+	ldd	4,y		[csp][2] -> D
+	ldw	6,y		[csp][3] -> W
+	stq	,y 		Q -> EA(CSP[0])
+	ldq	QUAD
+	stq	4,y		QUAD -> EA(CSP[2])
+	rts
 
 * hForth prototyping code below:
 * : THEN 1- ABORT" Unbalanced IF/ELSE/THEN construct"
@@ -2662,7 +2734,9 @@ WHILE	fcb	$C5		ANSI (Core)
 	fdb	UNTIL		Exec: ( x -- )
 	RFCS
 	RFXT	jsr,IF+5
-	RFXT	jmp,TWOSWAP+8	This should be read as "1 CS-ROLL"
+* We just cannot be that brutal with a dedicated control flow stack!
+*	RFXT	jmp,TWOSWAP+8	This should be read as "1 CS-ROLL"
+	jmp	CSROL1
 
 * hForth prototyping code below:
 * : REPEAT POSTPONE AGAIN POSTPONE THEN ; RESTRICT IMMEDIATE
@@ -2673,14 +2747,14 @@ REPEAT	fcb	$C6		ANSI (Core)
 	RFXT	bsr,AGAIN+8
 	RFXT	jmp,THEN+7
 
-RFROM	fcb	$42		ANSI (Core)
+RFROM	fcb	$2		ANSI (Core) -- unrestricted
 	fcc	'R>'		( -- x ) ( R:  x -- )
 	fdb	REPEAT
 	RFCS
 	jsr	RPOP
 	jmp	NPUSH
 
-TOR	fcb	$42		ANSI (Core)
+TOR	fcb	$2		ANSI (Core) -- unrestricted
 	fcc	'>R'		( x -- ) ( R:  -- x )
 	fdb	RFROM
 	RFCS
@@ -2707,7 +2781,7 @@ LEAVE	fcb	$C5		ANSI (Core)
 	sty	DICEND
 	rts
 
-INDI	fcb	$41		ANSI (Core)
+INDI	fcb	$1		ANSI (Core) -- unrestricted
 	fcc	'I'		( -- n|u ) ( R:  loop-sys -- loop-sys )
 	fdb	LEAVE
 	RFCS
@@ -2723,34 +2797,34 @@ RPICKN	jsr	EVRDPTH		RDEPTH in cells to A
 @rpick1	ldb	#8		Return stack underflow
 	jsr	ERRHDLR		No return
 
-RFETCH	fcb	$42		ANSI (Core)
+RFETCH	fcb	$2		ANSI (Core) -- unrestricted
 	fcc	'R@'		( -- x ) ( R:  x -- x )
 	fdb	INDI
 	RFCS
 	RFXT	bra,INDI+4	XT for I
 
-INDIP	fcb	$42		79-STANDARD (REF)
+INDIP	fcb	$2		79-STANDARD (REF) -- unrestricted
 	fdb	$4927
 	fdb	RFETCH
 	RFCS
 	ldb	#1
 	bra	RPICKN
 
-INDJ	fcb	$41		ANSI (Core)
+INDJ	fcb	$1		ANSI (Core) -- unrestricted
 	fcc	'J'		Exec: ( -- n|u ) ( R: lsy1 lsy2 -- lsy1 lsy2 )
 	fdb	INDIP
 	RFCS
 	ldb	#2
 	bra	RPICKN
 
-INDJP	fcb	$42		Non-standard
+INDJP	fcb	$2		Non-standard -- unrestricted
 	fdb	$4A27
 	fdb	INDJ
 	RFCS
 	ldb	#3
 	bra	RPICKN
 
-INDK	fcb	$41		79-STANDARD (REF)
+INDK	fcb	$1		79-STANDARD (REF) -- unrestricted
 	fcc	'K'
 	fdb	INDJP
 	RFCS
@@ -4765,7 +4839,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/AI 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20241017 (C) Francois Laagel 2019'
+	fcc	'20250328 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
@@ -4786,28 +4860,33 @@ OKFEEDB	fcc	' OK'
 	ENDC			CSSNTVE
 	fcb	CR,LF,NUL
 
-SANRST	fcb	$0F		ASCII Shift in (restore dflt charset)
-	fcb	$1B,'[','?','2','5','h',CR,NUL	Cursor back on
+SANRST	fcb	CR,LF
+	fcb	$0F		ASCII Shift in (restore dflt charset)
+	fcb	$1B,'[','?','2','5','h',NUL	Cursor back on
 
 * Error messages for IODZHDL.
-IOPERRM	fcn	'Illegal opcode near '
-DV0ERRM	fcn	'Division by 0 near '
+IOPERRM	fcn	'ILOP near '
+DV0ERRM	fcn	'DIV0 near '
 
-ERRMTBL	fcn	'Data stack overflow'	Error 0
-	fcn	'Data stack underflow'	Error 1
+ERRMTBL	fcn	'Data stack OVF'	Error 0
+	fcn	'Data stack UDF'	Error 1
 	fcn	'?'			Error 2
 	fcn	'User ABORT'		Error 3
 	fcn	'OoR error'		Error 4 (formerly 'Division by zero')
 	fcn	'Missing word name'	Error 5
 	fcn	'Incorrect STATE'	Error 6
-	fcn	'Return stack overflow'	Error 7
-	fcn	'Return stack underflow' Error 8
+	fcn	'Return stack OVF'	Error 7
+	fcn	'Return stack UDF' 	Error 8
 	fcn	'Illegal construct'	Error 9
+	IFNE DEBUG
 	fcn	'Assertion failed'	Error 10
+	ELSE
+	fcn	''			Error 10
+	ENDC
 	fcn	''			Error 11 (formerly 'RO word')
 	fcn	'Missing delimiter'	Error 12
 	fcn	'Illegal argument'	Error 13
-	fcn	'No matching CREATE'	Error 14
+	fcn	'Not CREATEd'		Error 14
 	IFNE DEBUG
 	fcn	'No current buffer'	Error 15
 	ELSE

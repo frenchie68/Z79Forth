@@ -50,7 +50,7 @@ fi
 
 ./txt2blk -i ../examples/coop-mtask.4th -d $CFDEV -s 305 \
 -h '\ Cooperative Multitasking, Matthias Koch. VD 2021/01.'
-# : coopmtload 305 323 THRU ;
+# : coopmtload 305 324 THRU ;
 
 ./txt2blk -i ../examples/elevator.4th -d $CFDEV -s 340 \
 -h '\ Interactive lift simulator. Z79Forth/A     FLA March 25, 2023'
@@ -81,9 +81,11 @@ fi
 -h "\ Tetris for terminals. Z79Forth/A port: FLA April 22, 2023"
 # : ttload 650 677 THRU ;
 
+# ../examples/hexadoku-gen.4th is mastered at
+# ~/src/tmp/ef/git/frenchie68/hexadoku-generic.4th
 ./txt2blk -i ../examples/hexadoku-z79.4th -d $CFDEV -s 700 \
 -h "\ Hexadoku Solver. Z79Forth/A. Francois Laagel.    May 11, 2023"
-# : hdload 700 747 THRU ;
+# : hdload 700 749 THRU ;
 
 ./txt2blk -i ../examples/expsys.4th -d $CFDEV -s 800 \
 -h "\ Simple Forth expert system. Demitri Peynado: May 14, 2022."

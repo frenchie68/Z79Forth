@@ -221,6 +221,14 @@ REL-ANS94
         +-- txt2blk.c                        txt2blk utility source code
 </pre>
 
+## Learning Forth
+Marc Petremann has volunteered to produce a user manual for Z79Forth/A. May he
+hereby by thanked for his contribution. Hopefully this will make the platform
+more approachable than it currently is!
+
+His output is available
+[here](https://github.com/MPETREMANN11/Z79Forth/tree/master/documentation)
+
 ## Contributing/Feedback
 ### Channels
 Bug reports should be submitted as Github issues.

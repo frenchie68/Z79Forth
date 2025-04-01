@@ -1,3 +1,4 @@
+\ Hexadoku Solver. Francois Laagel.                May 11, 2023
 
 \ The interesting thing about this algorithm is that it does
 \ not work by looking for a solution. It works by systematic
@@ -15,10 +16,13 @@
 \ number of solutions it was able to come across. Performance
 \ and statistical data will only be shown in the solver mode.
 \
-\ This can also be run under GNU Forth 0.7.3.
-
-\ "[Agent Smith] Never send a human to do a machine's job."
-\ from "The Matrix" movie, 1999.
+\ This code targets GNU Forth 0.7.3 (8 byte cell). It can also
+\ be run SwiftForth 3.12.0 (4 byte cell), VFX Forth 64
+\ 5.41 or Z79Forth/A.
+\
+\ "There's no excuse for not writing programs that are
+\ portable." Captain Grace Hopper, 1982.
+\ https://www.youtube.com/watch?v=_bP14OzIJWI
 
 \ -------------------------------------------------------------
 \ Glossary:
@@ -52,24 +56,26 @@
 DECIMAL
 MARKER wasteit
 
-: gf? 1 CELLS 8 = ;          \ TRUE if GNU Forth
-
-: IFZ7 [ gf?    ] LITERAL IF POSTPONE \ THEN ;
-: IFGF [ gf? 0= ] LITERAL IF POSTPONE \ THEN ;
-
 \ Following code block borrowed from GNU Forth 0.7.3 vt100.fs.
-IFZ7 : pn    BASE @ SWAP DECIMAL 0 U.R BASE ! ;
-IFZ7 : ;pn   [CHAR] ; EMIT pn ;
-IFZ7 : ESC[  #27 EMIT [CHAR] [ EMIT ;
-IFZ7 : AT-XY 1+ SWAP 1+ SWAP ESC[ pn ;pn [CHAR] H EMIT ;
+: pn    BASE @ SWAP DECIMAL 0 U.R BASE ! ;
+: ;pn   [CHAR] ; EMIT pn ;
+: esc[  #27 EMIT [CHAR] [ EMIT ;
+: AT-XY 1+ SWAP 1+ SWAP esc[ pn ;pn [CHAR] H EMIT ;
 
-IFZ7 : mach-dep-wait ;
-IFZ7 : CELL/ 1 RSHIFT ;
-IFZ7 : 2CELLS/ 2 RSHIFT ;
+: log2 -1 BEGIN
+    OVER 
+  WHILE
+    1+ SWAP 1 RSHIFT SWAP
+  REPEAT NIP ;
 
-IFGF : mach-dep-wait ( 10 MS ) ; \ For better vis. effect only!
-IFGF : CELL/ 3 RSHIFT ;
-IFGF : 2CELLS/ 4 RSHIFT ;
+\ The colon-sys aberration in the 1994 standard prevents us
+\ from being smart. colon-sys may or not be of size zero and
+\ the control flow stack may or may not be the data stack.
+1 CELLS log2 CONSTANT cellrshft
+: cell/   [ cellrshft    ] LITERAL RSHIFT ;
+: 2cells/ [ cellrshft 1+ ] LITERAL RSHIFT ;
+
+: 2nip 2SWAP 2DROP ;           \ VfX requires this as well
 
 : 16* 4 LSHIFT ;
 : 16/mod DUP $F AND SWAP 4 RSHIFT ;
@@ -79,7 +85,7 @@ IFGF : 2CELLS/ 4 RSHIFT ;
 \ -------------------------------------------------------------
 \ Variables and constants.
 
-TRUE  CONSTANT stopon1st       \ User tunable. No vis. if FALSE
+FALSE CONSTANT stopon1st       \ User tunable. No vis. if FALSE
 FALSE VALUE logtrans   \ If NZ, log changes to the trans. stack
 BL CONSTANT wildc
 VARIABLE unknowns
@@ -114,17 +120,19 @@ CREATE ncb 2 CELLS ALLOT       \ # of calls to countbits double
 : d1+! DUP 2@ 1. D+ ROT 2! ;
 
 \ -------------------------------------------------------------
+\ Bit count utilities.
+
 \ Adapted from "Hacker's Delight" Second Edition
 \ by Henry S. Warren Jr., Edt by Addison-Wesley
 \ Chapter 5 "Counting bits", page 82.
 
-: _countbits ( uu -- #bits )
+: countbits ( uu -- #bits )
+  ncb d1+!
   DUP 1 RSHIFT $5555 AND -
   DUP $3333 AND SWAP 2 RSHIFT $3333 AND +
   DUP 4 RSHIFT + $0F0F AND
   DUP 8 RSHIFT +
   $1F AND ;
-: countbits ncb d1+! _countbits ;
 
 \ Compute 2^n fast, i.e. faster than LSHIFT can do it.
 \ Note: 'n' is restricted to the [0..15] range.
@@ -136,6 +144,10 @@ $1000 , $2000 , $4000 , $8000 ,
 
 : 2^n ( n -- 2^n ) CELLS exptbl + @ ;
 
+\ Contributed by Bob Armstrong.
+: pow2? ( n -- f )
+  DUP DUP 1- AND 0= SWAP 0<> AND ;
+
 \ -------------------------------------------------------------
 \ Incremental grid visualization.
 
@@ -143,12 +155,10 @@ $1000 , $2000 , $4000 , $8000 ,
   grid - cell/ 16/mod ;
 
 : |visual ( val saddr -- val saddr )
-  \ No visualization if looking for for multiple solutions.
+  \ No visualization if looking for multiple solutions.
   stopon1st 0= IF EXIT THEN
 
-  OVER countbits 1 <> IF
-    wildc
-  ELSE                         \ Spot value is known
+  OVER pow2? IF                \ Spot value is known
     OVER 16 0 DO
       DUP I 2^n = IF
         DROP I
@@ -156,22 +166,25 @@ $1000 , $2000 , $4000 , $8000 ,
         + LEAVE
       THEN
     LOOP
+  ELSE
+    wildc
   THEN
 
   \ S: val\saddr\char-from-val
   \ Return immediately if char==wildc and bitcount(saddr@)<>1
   \ This corresponds to a situation where a given cell's mask
   \ changes but the spot remains unresolved.
-  OVER @ countbits 1 <> OVER wildc = AND IF
+  OVER @ pow2? 0= OVER wildc = AND IF
     DROP EXIT
   THEN
 
   OVER getxy-from-grid-addr    \ S: val\saddr\char-from-val\x\y
-  SWAP 2* SWAP AT-XY EMIT mach-dep-wait ;
+  SWAP 2* SWAP AT-XY EMIT ;
 
 \ -------------------------------------------------------------
 \ Transaction stack handling (undo log).
 
+\ The following does not exist in GForth/0.7.3 or Z79Forth/A.
 : cell- 1 CELLS - ;
 
 : tstk-push ( begin-flag ptr -- )
@@ -181,8 +194,8 @@ $1000 , $2000 , $4000 , $8000 ,
 
   \ Extract x and y from the 'ptr' pointer.
   DUP >R
-  grid - cell/ 16/mod          \ S: begin-flag\x\y
-  SWAP ROT                     \ S: y\x\begin-flag
+  getxy-from-grid-addr         \ R: ptr, S: begin-flag\x\y
+  SWAP ROT                     \ R: ptr, S: y\x\begin-flag
   IF $80 OR THEN
   8 LSHIFT OR
 
@@ -209,8 +222,9 @@ $1000 , $2000 , $4000 , $8000 ,
 
   \ Check whether we are going from resolved to unresolved.
   \ If so increment 'unknowns' accordingly.
-  DUP @ countbits 1 = IF       \ S: begin-flg\bitmask\saddr
-    OVER countbits 1 > IF
+  DUP @ pow2? IF               \ S: begin-flg\bitmask\saddr
+    \ XXX: this assumes 'bitmsk' is NZ!!!
+    OVER pow2? 0= IF
       unknowns 1+!
     THEN
   THEN
@@ -235,13 +249,14 @@ $1000 , $2000 , $4000 , $8000 ,
     ELSE
       [CHAR] : <> IF CELL+ THEN
     THEN
-  LOOP 2DROP ;
+  LOOP
+  2DROP ;
 
 : inits ( -- )
   0 solutions !
   256 unknowns !
   grid 256 0 DO
-    DUP $FFFF SWAP !
+    $FFFF OVER !
     CELL+
   LOOP
   DROP
@@ -293,9 +308,9 @@ $1000 , $2000 , $4000 , $8000 ,
   FALSE TO logtrans
 
   \ Statistical data initialization.
-  0. ncb 2!
-  0 nbt !
-  0. reclev ! reclevmax ! ;
+  0. ncb 2!                    \ Number of calls to countbits
+  0 nbt !                      \ Number of backtracks
+  0. reclev ! reclevmax ! ;    \ Recursion level inits
 
 \ -------------------------------------------------------------
 \ Visualization.
@@ -321,8 +336,7 @@ $1000 , $2000 , $4000 , $8000 ,
   #27 EMIT ." [?25h" ;
 
 : mask>char ( mask -- char )
-  DUP countbits                \ S: mask\nbits
-  1 = IF
+  DUP pow2? IF                 \ S: mask\nbits
     16 0 DO
       DUP I 2^n = IF
         DROP I UNLOOP
@@ -355,8 +369,8 @@ $1000 , $2000 , $4000 , $8000 ,
     2DROP EXIT
   THEN
 
-  \ This update resolves the spot point to by 'saddr'.
-  OVER countbits 1 = IF unknowns 1-! THEN
+  \ This update resolves the spot pointed to by 'saddr'.
+  OVER pow2? IF unknowns 1-! THEN
 
   logtrans IF                  \ Transaction is logged
     FALSE OVER tstk-push
@@ -376,7 +390,7 @@ $1000 , $2000 , $4000 , $8000 ,
       3 PICK I +               \ Absolute col#
       3 PICK J + 16* +
       CELLS grid +
-      @ DUP countbits 1 = IF
+      @ DUP pow2? IF
         \ S: xcol\yrow\check\mask\val
         ROT OVER  \ S: xcol\yrow\mask\val\check\val
         2DUP AND  \ S: xcol\yrow\mask\val\check\val\(check&val)
@@ -395,7 +409,7 @@ $1000 , $2000 , $4000 , $8000 ,
     LOOP
   LOOP
   \ S: xcol\yrow\check\mask
-  NIP -rot 2DROP FALSE ;
+  NIP NIP NIP FALSE ;
 
 : setmask4 ( xcol yrow mask -- failure-flag )
   \ If 'mask' is zero, it means that all cells in that 4x4
@@ -409,7 +423,9 @@ $1000 , $2000 , $4000 , $8000 ,
       OVER I +                 \ Absolute col#
       OVER J + 16* +
       CELLS grid +             \ S: mask\xcol\yrow\saddr
-      DUP @ DUP countbits 1 <> IF
+      DUP @ DUP pow2? IF
+        2DROP
+      ELSE
         \ S: mask\xcol\yrow\saddr\sval
         4 PICK AND           \ S: mask\xcol\yrow\saddr\sval-new
         ?DUP IF
@@ -417,12 +433,11 @@ $1000 , $2000 , $4000 , $8000 ,
         ELSE \ Mask application would result in zero spot value
           2DROP 2DROP UNLOOP UNLOOP TRUE EXIT
         THEN
-      ELSE
-        2DROP
       THEN
       \ S: mask\xcol\yrow
     LOOP
-  LOOP DROP 2DROP FALSE ;
+  LOOP
+  DROP 2DROP FALSE ;
 
 \ 4x4 block logic: either a spot is known or the list
 \ of alternatives must exclude all known spots values.
@@ -437,7 +452,8 @@ $1000 , $2000 , $4000 , $8000 ,
         UNLOOP UNLOOP TRUE EXIT
       THEN
     LOOP
-  LOOP FALSE ;
+  LOOP
+  FALSE ;
 
 \ -------------------------------------------------------------
 \ Horizontal exclusion/filtering.
@@ -445,7 +461,7 @@ $1000 , $2000 , $4000 , $8000 ,
 \ ANS94 3.2.3.3 Return stack:
 \ A program shall not access from within a DO-LOOP values
 \ placed on the return stack before the loop was entered.
-\ Note: this is enforced in SwiftForth but not in Gforth.
+\ Note: this is enforced in SwiftForth but not in GForth.
 
 \ No side effects.
 : get-horiz-mask ( yrow -- mask\FALSE | TRUE )
@@ -454,7 +470,7 @@ $1000 , $2000 , $4000 , $8000 ,
   $FFFF                        \ Initial mask
   16 0 DO                      \ Iterate over columns
     \ srow-addr\check\mask
-    2 PICK I CELLS + @ DUP countbits 1 = IF
+    2 PICK I CELLS + @ DUP pow2? IF
       \ srow-addr\check\mask\val
       ROT OVER \ srow-addr\mask\val\check\val
       2DUP AND \ srow-addr\mask\val\check\val\(check&val)
@@ -481,7 +497,9 @@ $1000 , $2000 , $4000 , $8000 ,
   SWAP
   16* CELLS grid +
   16 0 DO                      \ Iterate over columns
-    DUP @ DUP countbits 1 <> IF
+    DUP @ DUP pow2? IF
+      DROP
+    ELSE
       \ S: mask\saddr\sval
       2 PICK AND               \ S: mask\saddr\sval-new
       ?DUP IF
@@ -489,12 +507,11 @@ $1000 , $2000 , $4000 , $8000 ,
       ELSE \ Mask application would result in zero spot value
         2DROP UNLOOP TRUE EXIT
       THEN
-    ELSE
-      DROP
     THEN
     \ S: mask\saddr
     CELL+
-  LOOP 2DROP FALSE ;
+  LOOP
+  2DROP FALSE ;
 
 \ -------------------------------------------------------------
 \ Vertical exclusion/filtering.
@@ -506,7 +523,7 @@ $1000 , $2000 , $4000 , $8000 ,
   $FFFF                        \ Initial mask
   16 0 DO                      \ Iterate over rows
     \ scol-addr\check\mask
-    2 PICK I 16* CELLS + @ DUP countbits 1 = IF
+    2 PICK I 16* CELLS + @ DUP pow2? IF
       \ scol-addr\check\mask\val
       ROT OVER \ scol-addr\mask\val\check\val
       2DUP AND \ scol-addr\mask\val\check\val\(check&val)
@@ -533,7 +550,9 @@ $1000 , $2000 , $4000 , $8000 ,
   SWAP
   CELLS grid +                 \ Beginning of column address
   16 0 DO                      \ Iterate over rows
-    DUP @ DUP countbits 1 <> IF
+    DUP @ DUP pow2? IF
+      DROP
+    ELSE
       \ S: mask\saddr\sval
       2 PICK AND               \ S: mask\saddr\sval-new
       ?DUP IF
@@ -541,12 +560,11 @@ $1000 , $2000 , $4000 , $8000 ,
       ELSE \ Mask application would result in zero spot value
         2DROP UNLOOP TRUE EXIT
       THEN
-    ELSE
-      DROP
     THEN
     \ S: mask\saddr
     16 CELLS +
-  LOOP 2DROP FALSE ;
+  LOOP
+  2DROP FALSE ;
 
 : reduceall ( -- failure-flag )
   reduce4x4 IF                 \ Constraint violated
@@ -585,7 +603,7 @@ $1000 , $2000 , $4000 , $8000 ,
 
 \ "[Gordon Gekko]: The point is ladies and gentlemen that
 \ greed, for lack of a better word, is good." from the "Wall
-\ Street" movie, 1987.
+\ Street" movie by Oliver Stone, 1987.
 : get-unresolved ( -- grid-cell-addr | FALSE )
   grid DUP @ countbits          \ minp\minp@#bits
   OVER CELL+                    \ minp\minp@#bits\curp
@@ -616,7 +634,8 @@ $1000 , $2000 , $4000 , $8000 ,
     THEN
 
     CELL+                      \ minp\minp@#bits\curp
-  LOOP DROP                    \ minp\minp@#bits
+  LOOP
+  DROP                         \ minp\minp@#bits
 
   \ If the minimum bit count is 1 the problem is solved.
   1 = IF DROP FALSE THEN ;
@@ -637,8 +656,8 @@ $1000 , $2000 , $4000 , $8000 ,
     stopon1st 0= IF
       CR display-grid
     THEN
-    INVERT EXIT
-  THEN                         \ Problem solved
+    INVERT EXIT                \ Problem solved
+  THEN
 
   DUP @                        \ S: saddr\sval
   \ The list of set bits in TOS indicate the possibilities
@@ -686,21 +705,18 @@ $1000 , $2000 , $4000 , $8000 ,
   \ From here on, everything that could be inferred is in.
   TRUE TO logtrans
 
+  speculate DROP
+
   stopon1st IF
-    speculate DROP
-
-    PAGE display-grid
     31 15 AT-XY
-
     CR ." Maximum recursion level: " reclevmax ?
     CR ." Problem solved at level: " reclev ?
-    CR ." 'countbits' called " ncb 2@ <# #S #> TYPE ."  times"
-    CR ." Backtracked " nbt ? ." times"
-    +cursor
   ELSE
-    speculate DROP
     CR solutions ? ." solution(s) found"
-  THEN ;
+  THEN
+  CR ." 'countbits' called " ncb 2@ <# #S #> TYPE ."  times"
+  CR ." Backtracked " nbt ? ." times"
+  +cursor ;
 
 main \ 7 EMIT wasteit
 

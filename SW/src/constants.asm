@@ -28,9 +28,12 @@ RELFEAT	set	0		(HVNMI and HVNMI2) disable RELFEAT
 RELFEAT	set	0
 DEBUG	set	0
 
-* Control flow stack implemented on the top of the data stack.
-CSPUSH	EQU	NPUSH
-CSPOP	EQU	NPOP
+* * Control flow stack implemented on the top of the data stack.
+* CSPUSH	EQU	NPUSH
+* CSPOP	EQU	NPOP
+* Control flow stack on its own.
+CSPUSH	EQU	CPUSH
+CSPOP	EQU	CPOP
 
 * Memory map.
 RAMSTRT	equ	$0000
@@ -173,6 +176,7 @@ XON	equ	$11		Aka DC1
 * Stack sizes.
 NSTKSZ	equ	256		Expressed in bytes. Now only limited by RAM size
 RSTKSZ	equ	254		Expressed in bytes. Up to 127 nested loops
+CSTKSZ	equ	254		Expressed in bytes. Up to 127 cells
 
 * Buffer sizes.
 CMDBFSZ	equ	132		Command line entry buffer
