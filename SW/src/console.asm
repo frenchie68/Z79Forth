@@ -100,7 +100,7 @@ PUTCH	pshs	b
 	beq	@tdrdrn		Drain the transmit data register
 @wfxon	tst	XMITOK		Software flow control on output
 	beq	@wfxon		Wait for XON
-	sta	ACIADAT		Transmit data
+	sta	ACIADAT         Transmit data
 	puls	b,pc		RTS implied
 
 * Send NUL terminated string pointed to by X to the ACIA.

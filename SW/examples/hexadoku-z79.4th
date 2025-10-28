@@ -60,7 +60,7 @@ MARKER wasteit
 : AT-XY 1+ SWAP 1+ SWAP esc[ pn ;pn [CHAR] H EMIT ;
 
 \ : log2 -1 BEGIN
-\     OVER 
+\     OVER
 \   WHILE
 \     1+ SWAP 1 RSHIFT SWAP
 \   REPEAT NIP ;
@@ -105,8 +105,8 @@ VARIABLE tstkp
 
 VARIABLE reclev                \ Current recursion level
 VARIABLE reclevmax             \ Maximum recursion level
-CREATE nbt 2 CELLS ALLOT       \ # backtracks (double)
-CREATE ncb 2 CELLS ALLOT       \ # refs to countbits (double)
+CREATE   nbt 2 CELLS ALLOT     \ # backtracks (double)
+CREATE   ncb 2 CELLS ALLOT     \ # refs to countbits (double)
 
 : d1+! DUP 2@ 1. D+ ROT 2! ;
 : 2@ud. 2@ <# #S #> TYPE ;
@@ -730,7 +730,7 @@ $1000 , $2000 , $4000 , $8000 ,
     CR solutions ? ." solution(s) found"
   THEN
   CR ." 'countbits' called " ncb 2@ud. ."  times"
-  CR ." Backtracked " nbt 2@ud. ." times"
+  CR ." Backtracked " nbt 2@ud. ."  times"
   +cursor ;
 
 main \ 7 EMIT wasteit

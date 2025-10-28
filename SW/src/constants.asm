@@ -1,10 +1,10 @@
 * Begin tunable parameters section.
 
 CSSNTVE	equ	0		Words and HEX numbers are case sensitive if NZ
-SSDFEAT	equ	1		Set to 1 to enable the symbolic stack dump feat.
+SSDFEAT	equ	1		Set to 1 to enable the symbolic stack dump feat
 RELFEAT	set	1		Set to 1 to enable the reliability feature
 
-RTCFEAT	equ	0		Cool but the reliability feature must go...
+RTCFEAT	equ	0		Not really properly implemented yet
 DEBUG	set	0		Enforce assertions and miscellaneous checks
 HVNMI	equ	1		NMI handler support
 HVNMI2	equ	0		NMI handler support (async input debugging)
@@ -14,46 +14,28 @@ MSLCNT	equ	794		at 4 MHz native mode
 
 * End tunable parameters section.
 
-	IFNE	RTCFEAT
-RELFEAT	set	0		RTCFEAT disables RELFEAT
-	ELSE
-	IFNE	HVNMI
-	IFNE	HVNMI2
-RELFEAT	set	0		(HVNMI and HVNMI2) disable RELFEAT
-	ENDC			HVNMI2
-	ENDC			HVNMI
-	ENDC			RTCFEAT
-
-* Intrinsic ANS94 support prevents both DEBUG and the reliability feature.
-RELFEAT	set	0
-DEBUG	set	0
-
-* * Control flow stack implemented on the top of the data stack.
-* CSPUSH	EQU	NPUSH
-* CSPOP	EQU	NPOP
 * Control flow stack on its own.
 CSPUSH	EQU	CPUSH
 CSPOP	EQU	CPOP
 
 * Memory map.
 RAMSTRT	equ	$0000
-RAMSIZE	equ	$8000
-IOSTRT	equ	$C000
-ROMSTRT	equ	$E000
+ROMSTRT	equ	$C000
+IOSTRT	equ	$C100		Requires a matching setting on the CPU board
 VECTBL	equ	$FFF0
 
 * Base address for global variables (direct page addressed).
-VARSPC	equ	$100
+VARSPC	equ	(RAMSTRT+$100)
 
-* The 74HCT138 (U7) IO address decoder maps one 1 KB area per usable device.
-DEV0	equ	$C000		Compact Flash memory module (optional)
-DEV1	equ	$C400
-DEV2	equ	$C800
-DEV3	equ	$CC00
-DEV4	equ	$D000
-DEV5	equ	$D400		MC146818 RTC (optional)
-DEV6	equ	$D800		HD63B50 unit 0
-DEV7	equ	$DC00
+* These definitions should all be relative to IOSTRT, the IO page base address.
+DEV0	equ	IOSTRT+$C0	Compact Flash memory module (optional)
+* DEV1	equ	$C400
+* DEV2	equ	$C800
+* DEV3	equ	$CC00
+* DEV4	equ	$D000
+* DEV5	equ	$D400		MC146818 RTC (optional)
+DEV6	equ	IOSTRT+8	HD63B50 unit 0
+* DEV7	equ	$DC00
 
 ACIACTL	equ	DEV6
 ACIADAT	equ	DEV6+1
@@ -61,7 +43,7 @@ ACIADAT	equ	DEV6+1
 * ACIA control register bits.
 ACRST	equ	%00000011	ACIA master reset
 
-* 1.84320 MHz Y1: 115200 bps in the direct path, 38400 bps in the DIV3 path
+* 4.9152 MHz Oscillator. Actual baud rate is controlled by a DIP4 switch.
 ACDIV16	equ	%00000001	ACIA div 16
 
 AC8N1	equ	%00010100	ACIA 8N1
@@ -162,7 +144,6 @@ RTB24	equ	2		Set to 1 for 24 hour format
 * Register C bits.
 RTCPF	equ	$40		Periodic interrupt pending flag
 	ENDC			RTCFEAT
-
 * ASCII trivia.
 NUL	equ	0		End of string marker
 ETX	equ	3		Control-C (intr)

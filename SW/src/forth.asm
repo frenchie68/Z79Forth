@@ -210,6 +210,7 @@ UBLK	rmb	2		User variable for BLK
 USCR	rmb	2		User variable for SCR (output for LIST)
 TIKSHI	rmb	2		RTC clock ticks updated on FIRQ
 TIKSLOW	rmb	2		RTC clock ticks updated on FIRQ
+RAMEND	rmb	2		RAMSTRT + RAM size in bytes
 	IFNE	DEBUG
 CCREG	rmb	2		A DEBUG variable for predicates (see CMP2)
 	ENDC			DEBUG
@@ -297,7 +298,7 @@ WDICSPC	equ	*
 *******************************************************************************
 * ROM code begins.
 
-	org	ROMSTRT
+	org	ROMSTRT+$200
 * Trap handler: division by zero or illegal opcode. See page 4-10 of "The 6309
 * Book" for a description of interrupt stacks in native 6309 mode.
 IODZHDL	bitmd	#$40		Illegal opcode?
@@ -353,14 +354,16 @@ INIT	ldb	#ACITDRE
 	sta	ACIADAT		Transmit data
 	bra	@init0		Next char, if any
 
-* RAM0 32 KB self test (destructive).
+* RAM self test (destructive).
 RAMCHK	ldx	#RAMSTRT
 @ramch1	stx	,x
 	cmpx	,x
-	bne	RAMFAIL
+	bne	@ramend
 	leax	2,x
-	cmpx	#RAMSTRT+RAMSIZE
-	bne	@ramch1
+	bra	@ramch1
+@ramend	cmpx	#RAMSTRT	End of RAM reached
+	beq	RAMFAIL
+	tfr	x,v		Preserve RAMEND before we wipe out everything
 	bra	RAMOK
 
 RAMFAIL	ldb	#128		Busy waiting between consecutive probes
@@ -375,17 +378,21 @@ RAMFAIL	ldb	#128		Busy waiting between consecutive probes
 * RAM Initialization to all $C7 if DEBUG mode is enabled else zeroes.
 RAMOK	ldx	#RAMSTRT
 	leay	1,x
-	ldw	#RAMSIZE-1
+	tfr	v,w		Provisional RAMEND to W
+	subr	x,w		Academic but RAMSTRT may be NZ
+	decw			W has actual RAM size minus one byte
 	IFNE	DEBUG
 	lda	#ILLOPC
 	sta	,x
 	ELSE
 	clr	,x
 	ENDC			DEBUG
-	tfm	x+,y+
+	tfm	x+,y+		Ye old Z80/LDIR trick
+	tfr	v,d
+	std	RAMEND		Committed at long last
 
 * Initialize the system stack pointer and the direct page base address register.
-	lds	#RAMSTRT+RAMSIZE
+	tfr	d,s
 	lda	#VARSPC/256
 	tfr	a,dp
 	SETDP	VARSPC/256
@@ -405,10 +412,31 @@ RAMOK	ldx	#RAMSTRT
 	lda	#1		Initialize software flow control on output
 	sta	XMITOK
 
-	ldx	#RAMOKM
-	jsr	PUTS
 	jsr	FORTHIN		Global variables initialization
+
+	ldx	#RAMOKM1
+	jsr	PUTS
+
+* We want the actual (probed) RAM size printed here
+	ldx	RAMEND
+	leax	-RAMSTRT,x	Just in case this is NZ...
+	tfr	x,d
+	lsra			4 -> 2
+	lsra			2 -> 1
+	tfr	a,b
+	clra
+	tfr	d,x		RAM KB size count to X
+	jsr	NPUSH
+	jsr	PTOP0		All this jazz just to skip leading spaces...
+
+	ldx	#RAMOKM2
+	jsr	PUTS		The ' KB' suffix
+
+	IFNE	DEBUG
+	clr	CFCARDP
+	ENDC			DEBUG
 	jsr	CFINIT		CompactFlash card initialization
+
 	IFNE	RTCFEAT
 	jsr	RTCINIT		Real time clock initialization
 	ENDC			RTCFEAT
@@ -1371,11 +1399,11 @@ ERRHD1	pshs	x
 	cmpy	#IODZHDL
 	beq	@wastrp		We're just back from the trap handler
 	leas	2,s		Point to the next item on the stack
-@wastrp	cmps	#RAMSTRT+RAMSIZE
+@wastrp	cmps	RAMEND
 	bhs	@errdon		We're done here
 	ldy	,s
 	bra	@dmptos
-@errdon	lds	#RAMSTRT+RAMSIZE
+@errdon	lds	RAMEND
 	tst	USTATE+1	We do ignore the upper byte
 	beq	@erdon2		No pointers to restore if we were interpreting
 * We were compiling: clear STATE; restore DICEND and LSTWAD, if not :NONAME.
@@ -2829,7 +2857,7 @@ QUIT	fcb	4		ANSI (Core)
 	RFCS
 	clr	USTATE+1
 	jsr	RCLR		Clear the return stack
-	lds	#RAMSTRT+RAMSIZE Reset the system stack pointer
+	lds	RAMEND		Reset the system stack pointer
 	jsr	PUTCR
 	jmp	INTERP
 
@@ -4835,7 +4863,8 @@ BOOTMSG	fcb	CR,LF
 	fcc	'20251005 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
-RAMOKM	fcc	'RAM OK: 32 KB'
+RAMOKM1	fcn	'RAM OK: '
+RAMOKM2	fcc	'KB'
 CRLFSTR	fcb     CR,LF,NUL
 
 RAMFM	fcc	'RAM check failed'
@@ -4861,15 +4890,15 @@ SANRST	fcb	CR,LF
 IOPERRM	fcn	'ILOP near '
 DV0ERRM	fcn	'DIV0 near '
 
-ERRMTBL	fcn	'Data stack OVF'	Error 0
-	fcn	'Data stack UDF'	Error 1
-	fcn	'?'			Error 2
+ERRMTBL	fcn	'Data stack overflow'	Error 0
+	fcn	'Data stack underflow'	Error 1
+	fcn	'Undefined'			Error 2
 	fcn	'User ABORT'		Error 3
 	fcn	'OoR error'		Error 4 (formerly 'Division by zero')
 	fcn	'Missing word name'	Error 5
 	fcn	'Incorrect STATE'	Error 6
-	fcn	'Return stack OVF'	Error 7
-	fcn	'Return stack UDF' 	Error 8
+	fcn	'Return stack overflow'	Error 7
+	fcn	'Return stack underflow' Error 8
 	fcn	'Illegal construct'	Error 9
 	IFNE DEBUG
 	fcn	'Assertion failed'	Error 10
@@ -4879,7 +4908,7 @@ ERRMTBL	fcn	'Data stack OVF'	Error 0
 	fcn	''			Error 11 (formerly 'RO word')
 	fcn	'Missing delimiter'	Error 12
 	fcn	'Illegal argument'	Error 13
-	fcn	'Not CREATEd'		Error 14
+	fcn	'Not a CREATEd word'	Error 14
 	IFNE DEBUG
 	fcn	'No current buffer'	Error 15
 	ELSE
@@ -4887,7 +4916,7 @@ ERRMTBL	fcn	'Data stack OVF'	Error 0
 	ENDC				DEBUG
 	fcn	'Name too long'		Error 16
 	fcn	'IO error'		Error 17
-	fcn	'>IN OoR'		Error 18
+	fcn	'>IN out of range'	Error 18
 
 * A-list used for numeric literal base prefixes.
 BASALST	fcc	'$'		Hexadecimal prefix

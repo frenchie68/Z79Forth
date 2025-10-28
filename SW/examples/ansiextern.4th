@@ -51,8 +51,10 @@
 : ENVIRONMENT? ( c-addr u -- false | i*x true )
   2DROP FALSE ;               \ ANSI (Core)
 
+\ This ain't quite right since the RAM is dynamically sized
+\ on the MECB-6309!
 : UNUSED ( -- u )             \ ANSI (Core ext)
-  $7C00 HERE - ;              \ 32 KB RAM, 1KB for sysstk
+  $BC00 HERE - ;              \ 48 KB RAM, 1KB for sysstk
 
 : ABORT"                      \ ANSI (Core)
   ( Compilation: "ccc<quote>" -- )
