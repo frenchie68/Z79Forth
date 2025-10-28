@@ -92,8 +92,7 @@ GETCH	pshs	x,d
 	inca
 	anda	#SERBSZ-1	Modulo arithmetic
 	sta	SERBDEQ
-	puls	d,x		Same as it ever was
-	rts
+	puls	d,x,pc		Same as it ever was (RTS implied)
 
 PUTCH	pshs	b
 	ldb	#ACITDRE
@@ -101,24 +100,21 @@ PUTCH	pshs	b
 	beq	@tdrdrn		Drain the transmit data register
 @wfxon	tst	XMITOK		Software flow control on output
 	beq	@wfxon		Wait for XON
-	sta	ACIADAT         Transmit data
-	puls	b
-	rts
+	sta	ACIADAT		Transmit data
+	puls	b,pc		RTS implied
 
 * Send NUL terminated string pointed to by X to the ACIA.
 PUTS	pshs	x,d
 @puts1	lda	,x+
-	beq	@puts2         NUL marks the end of the string
+	beq	@puts2		NUL marks the end of the string
 	bsr	PUTCH
 	bra	@puts1
-@puts2	puls	d,x
-	rts
+@puts2	puls	d,x,pc		RTS implied
 
 PUTCR	pshs	x
 	ldx	#CRLFSTR
 	bsr	PUTS
-	puls	x
-	rts
+	puls	x,pc		RTS implied
 
 _BS	lda	#BS
 	bsr	PUTCH          Output BS
@@ -165,6 +161,5 @@ GETS	tstb
 	tfr	x,d
 	subd	2,s		Actual number of characters entered
 	stb	1,s		Stored to B (through the system stack).		
-	puls	d,x
-	rts
+	puls	d,x,pc		RTS implied
 

@@ -59,11 +59,11 @@ MARKER wasteit
 : esc[  #27 EMIT [CHAR] [ EMIT ;
 : AT-XY 1+ SWAP 1+ SWAP esc[ pn ;pn [CHAR] H EMIT ;
 
-: log2 -1 BEGIN
-    OVER 
-  WHILE
-    1+ SWAP 1 RSHIFT SWAP
-  REPEAT NIP ;
+\ : log2 -1 BEGIN
+\     OVER 
+\   WHILE
+\     1+ SWAP 1 RSHIFT SWAP
+\   REPEAT NIP ;
 
 : cell/ 1 RSHIFT ;
 : 2cells/ 2 RSHIFT ;
@@ -105,10 +105,11 @@ VARIABLE tstkp
 
 VARIABLE reclev                \ Current recursion level
 VARIABLE reclevmax             \ Maximum recursion level
-VARIABLE nbt                   \ # of backtracks
-CREATE ncb 2 CELLS ALLOT       \ # of calls to countbits double
+CREATE nbt 2 CELLS ALLOT       \ # backtracks (double)
+CREATE ncb 2 CELLS ALLOT       \ # refs to countbits (double)
 
 : d1+! DUP 2@ 1. D+ ROT 2! ;
+: 2@ud. 2@ <# #S #> TYPE ;
 
 \ -------------------------------------------------------------
 \ Bit count utilities.
@@ -131,9 +132,9 @@ CREATE lookup 256 ALLOT
     I DUP _countbits SWAP lookup + C!
   LOOP ;
 
-' NEGATE 1+ @ CONSTANT min1pst
+\ ' NEGATE 1+ @ CONSTANT min1pst
 : countbits ; -1 ALLOT         \ Drop the trailing RTS
-(       jsr     min1pst        ) $BD C, min1pst ,
+(       jsr     min1pst        ) ( $BD C, min1pst , )
 (       ldx     #lookup        ) $8E C, lookup ,
 (       tfr     x,v            ) $1F17 ,
 (       ldb     1,u            ) $E641 ,
@@ -323,7 +324,7 @@ $1000 , $2000 , $4000 , $8000 ,
 
   \ Statistical data initialization.
   0. ncb 2!                    \ Number of calls to countbits
-  0 nbt !                      \ Number of backtracks
+  0. nbt 2!                    \ Number of backtracks
   0. reclev ! reclevmax ! ;    \ Recursion level inits
 
 \ -------------------------------------------------------------
@@ -695,7 +696,7 @@ $1000 , $2000 , $4000 , $8000 ,
 
       \ Backtrack up to the last transaction boundary.
       BEGIN tstk-pop UNTIL
-      nbt 1+!                  \ Increment #backtracks
+      nbt d1+!                 \ Increment #backtracks
     ELSE
       R> DROP
     THEN
@@ -728,8 +729,8 @@ $1000 , $2000 , $4000 , $8000 ,
   ELSE
     CR solutions ? ." solution(s) found"
   THEN
-  CR ." 'countbits' called " ncb 2@ <# #S #> TYPE ."  times"
-  CR ." Backtracked " nbt ? ." times"
+  CR ." 'countbits' called " ncb 2@ud. ."  times"
+  CR ." Backtracked " nbt 2@ud. ." times"
   +cursor ;
 
 main \ 7 EMIT wasteit

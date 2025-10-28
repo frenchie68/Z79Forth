@@ -124,6 +124,7 @@ BOBLKNO	equ	BLKSIZ+2	Base buffer to the 'blknum' field offset
 
 BFDISP	equ	BUF1-BUF0	Offset between resident buffers
 
+	IFNE	RTCFEAT
 * MC146818 RTC registers.
 RTAS	equ	DEV5		Latch target register address offset
 RTDS	equ	(DEV5+1)	Actual target register access
@@ -160,6 +161,7 @@ RTB24	equ	2		Set to 1 for 24 hour format
 
 * Register C bits.
 RTCPF	equ	$40		Periodic interrupt pending flag
+	ENDC			RTCFEAT
 
 * ASCII trivia.
 NUL	equ	0		End of string marker
@@ -176,7 +178,7 @@ XON	equ	$11		Aka DC1
 * Stack sizes.
 NSTKSZ	equ	256		Expressed in bytes. Now only limited by RAM size
 RSTKSZ	equ	254		Expressed in bytes. Up to 127 nested loops
-CSTKSZ	equ	254		Expressed in bytes. Up to 127 cells
+CSTKSZ	equ	252		Expressed in bytes. Up to 126 double cells
 
 * Buffer sizes.
 CMDBFSZ	equ	132		Command line entry buffer

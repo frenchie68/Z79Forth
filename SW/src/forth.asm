@@ -28,8 +28,8 @@
 * Control flow constructs have been re-implemented based on Wonyong Koh's
 * hForth for the 8086. The original code can be consulted at
 * https://github.com/nealcrook/hForth. Of particular interest is
-* 8086/HF86RAM.ASM. Entries on the control flow stack (implemented on the
-* data stack here) are two cell entities that consist of a parameter
+* 8086/HF86RAM.ASM. Entries on the control flow stack (implemented on a
+* dedicated stack) are two cell entities that consist of a parameter
 * (an address), on the top of which a tag identifying the type of address
 * is pushed. They are:
 *
@@ -173,7 +173,7 @@ RFCS	MACRO	NOEXPAND
 * RAM definitions. We cannot initialize globals from the assembly defs.
 * All we can do here is define addresses and size things up.
 
-* RAMSTART is 0. We leave page 0 unused as a bug proof area.
+* RAMSTRT is 0. We leave page 0 unused as a bug proof area.
 * When compiled in debug mode, this area is filled with illegal
 * instruction opcodes ($C7).
 
@@ -363,7 +363,7 @@ RAMCHK	ldx	#RAMSTRT
 	bne	@ramch1
 	bra	RAMOK
 
-RAMFAIL	ldb	#128
+RAMFAIL	ldb	#128		Busy waiting between consecutive probes
 @ramf1	ldy	#$8000
 @ramf2	leay	-1,y
 	bne	@ramf2
@@ -553,8 +553,7 @@ HEX1D	pshs	b
 	ldb	#'A-10
 @hex1d1	addr	b,a
 	sta	,y+
-	puls	b
-	rts
+	puls	b,pc		RTS implied
 
 ADIV16	lsra
 	lsra
@@ -574,18 +573,16 @@ HDMP4	pshs	d
 	bsr	HEX1D
 	lda	1,s
 	bsr	HEX1D
-	puls	d
 	clr	,y
-	rts
+	puls	d,pc		RTS implied
 
 HDMP2	pshs	d
 	bsr	ADIV16
 	bsr	HEX1D
 	lda	,s
 	bsr	HEX1D
-	puls	d
 	clr	,y
-	rts
+	puls	d,pc		RTS implied
 
 	IFNE	HVNMI
 * Add string pointed to by X starting at the address stored in Y.
@@ -593,8 +590,7 @@ ADDS	pshs	a
 @adds1	lda	,x+
 	sta	,y+
 	bne	@adds1
-	puls	a
-	rts
+	puls	a,pc		RTS implied
 
 NMI2DM	bsr	ADDS
 	leay	-1,y		Backward over NUL
@@ -720,8 +716,7 @@ SLEN	pshs	x
 	lda	,x+
 	bne	@slen1
 	decw
-	puls	x
-	rts
+	puls	x,pc		RTS implied
 
 	include	console.asm
 
@@ -1163,8 +1158,7 @@ FDCTSYM	pshs	y,x
 	cmpx	DICEND
 	blo	@fdsmtc
 @fdsnom	clra			No match (Z is set)
-	puls	x,y
-	rts
+	puls	x,y,pc		RTS implied
 @fdsmtc	ldx	LSTWAD		Potential match. Scan upward from LAST
 * X points to the latest word header, Y has an execution token.
 	ldw	DICEND		W points to the end of the code section
@@ -1205,9 +1199,8 @@ FDCTSYM	pshs	y,x
 	sta	,y+
 	puls	a		Restore the offset's MSB
 	jsr	HDMP4		Dump hex incarnation of the offset to Y
-@skoffs	puls	x,y
-	andcc	#^ZFLAG		Clear ZFLAG
-	rts
+@skoffs	andcc	#^ZFLAG		Clear ZFLAG
+	puls	x,y,pc		RTS implied
 * Point to the next word.
 @fdsnwd	pulsw			Retrieve current word header address
 	tstd
@@ -1243,8 +1236,7 @@ FINDSYM	pshs	y,x
 	sta	,y+
 	bne	@fsmfn2
 @dctmfn	leas	2,s		Drop X from the system stack
-	puls	y
-	rts
+	puls	y,pc		RTS implied
 
 * Non-dictionary well known symbols.
 NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
@@ -1442,8 +1434,7 @@ EVRDPTH	pshs	d		Make debugging a little bit easier
 	tfr	cc,a
 	stb	,s		A's value upon return. This affects CC
 	tfr	a,cc
-	puls	d		this does not
-	rts
+	puls	d,pc		this does not (RTS implied)
 
 * Push X to the return stack (boundary is checked).
 RPUSH	bsr	EVRDPTH		RDEPTH in cells to A
@@ -1483,8 +1474,7 @@ CPUSH	pshs	y
 	bls	CPUSH1
 	stx	,--y
 	sty	CSP
-	puls	y
-	rts
+	puls	y,pc		RTS implied
 CPUSH1	* leas 2,s		Drop Y from the system stack
 	ldb	#9		Illegal construct
 	jsr	ERRHDLR		No return
@@ -1496,9 +1486,8 @@ CPOP	pshs	y
 	bhs	CPUSH1
 	ldx	,y++
 	sty	CSP
-	puls	y
 	cmpr	0,x		Update CC based on the outcome
-	rts
+	puls	y,pc		RTS implied
 
 *******************************************************************************
 * Control structure balance checking.
@@ -1524,8 +1513,7 @@ SAVINP	pshs	x
 	bsr	RPUSH		Push >IN on the return stack
 	ldx	ISLEN
 	bsr	RPUSH		Push ISLEN on the return stack
-	puls	x
-	rts
+	puls	x,pc		RTS implied
 
 RSTINP	bsr	RPOP
 	stx	ISLEN		Restore ISLEN from the return stack
@@ -1561,10 +1549,9 @@ BKIN2PT	pshs	y
 	ldd	ISLEN
 	leay	d,y
 	sty	ISEADDR		Update the end of input stream address
-	puls	y
 	ldd	UTOIN
 	leax	d,x		Add the current offset. Return the result via X
-	rts
+	puls	y,pc		RTS implied
 @notblk	ldx	#CMDBUF		Assume we are returning to the console
 	tst	SRCID		Are we running under EVALUATE?
 	beq	@rsolvd		No
@@ -1671,8 +1658,7 @@ WBIFDRT	pshs	y,d
 	anda	#^BDIRTY	Clear the dirty bit
 	sta	,x		and update the 'flags' field
 @alldon	puls	x		Restore X
-	puls	d,y		and D/Y
-	rts
+	puls	d,y,pc		and D/Y (RTS implied)
 
 FLUSH	fcb	5		ANSI (Block)
 	fcc	'FLUSH'		( -- )
@@ -1968,12 +1954,18 @@ CREAT1	sty	DICEND
 	stx	LSTWAD
 	rts
 
+* An empty DOES> clause might result in no code being compiled and,
+* eventually, we might jump to some world where no man has been before.
+* We use the FWDREF mehcanism to prevent that from happening when ;
+* is invoked.
 DOES	fcb	$C5		ANSI (Core)
 	fcc	'DOES>'
 	fdb	CREATE
 	RFCS
 	ldx	#DOESEX		JSR #DOESEX is compiled (no actual return)
-	jmp	EMXASXT		Set as action component
+	jsr	EMXASXT		Set as action component. On return Y has HERE
+	sty	FWDREF		Support for empty DOES> clauses
+	rts
 
 DOESEX	ldx	LSTWAD		Header of the last dictionary entry
 	ldb	,x+
@@ -3003,8 +2995,8 @@ NONAME	fcb	$7		ANSI (Core ext)
 
 * Tail call optimization notes:
 * 1: if JSRLAST is 0, emit an RTS, the end.
-* 2: if HERE - 3 == JSRLAST: replace JSR by a JMP.
-* 3: if FWDREF == HERE, emit an RTS.
+* 2: if FWDREF == HERE, emit an RTS, the end.
+* 3: if HERE - 3 == JSRLAST: replace JSR by a JMP else emit an RTS.
 * The end means finalize with DEBUG code and an update of HERE (DICEND).
 COMPR	fcb	$C1		ANSI (Core)
 	fcc	';'
@@ -3021,18 +3013,19 @@ COMPR	fcb	$C1		ANSI (Core)
 @wasano	clr	ANCMPF
 	jsr	NPUSH		Anonynous execution token to the data stack
 @cont	ldx	DICEND		HERE to X
-* Optimization: replace the last JSR by a JMP, if possible.
 	ldd	JSRLAST
-	beq	@rtsreq		Case #1
+	beq	@rtsreq		Case #1 applies
+	ldy	FWDREF
+	cmpr	x,y
+	beq	@rtsreq		Case #2 applies
+* Optimization: replace the last JSR by a JMP, if possible.
 	leay	-3,x		Y has HERE - 3, D has JSRLAST
 	cmpr	d,y
 	bne	@rtsreq
-* Tail call optimization applies (Case #2).
+* Tail call optimization applies (Case #3).
 	lda	#JMPOPC
 	sta	,y
-	ldy	FWDREF
-	cmpr	x,y
-	bne	@finalz		Case #3
+	bra	@finalz
 @rtsreq	lda	#RTSOPC		RTS inherent
 	sta	,x+
 @finalz
@@ -4839,7 +4832,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/AI 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20250328 (C) Francois Laagel 2019'
+	fcc	'20251005 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
