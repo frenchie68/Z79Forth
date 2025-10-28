@@ -1956,7 +1956,7 @@ CREAT1	sty	DICEND
 
 * An empty DOES> clause might result in no code being compiled and,
 * eventually, we might jump to some world where no man has been before.
-* We use the FWDREF mehcanism to prevent that from happening when ;
+* We use the FWDREF mechanism to prevent that from happening when ;
 * is invoked.
 DOES	fcb	$C5		ANSI (Core)
 	fcc	'DOES>'

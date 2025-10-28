@@ -178,7 +178,7 @@ XON	equ	$11		Aka DC1
 * Stack sizes.
 NSTKSZ	equ	256		Expressed in bytes. Now only limited by RAM size
 RSTKSZ	equ	254		Expressed in bytes. Up to 127 nested loops
-CSTKSZ	equ	252		Expressed in bytes. Up to 126 double cells
+CSTKSZ	equ	252		Expressed in bytes. Up to 63 double cells
 
 * Buffer sizes.
 CMDBFSZ	equ	132		Command line entry buffer
