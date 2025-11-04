@@ -1626,9 +1626,23 @@ EMPTYB	clrd			The following cannot fail so it's OK to clear
 	std	,x		Clear terminator and flags fields
 	rts
 
+DIOPG	fcb	6
+	fcc	'IOPAGE'
+	fdb	EBUFS
+	RFCS
+	ldx	#IOSTRT
+	jmp	NPUSH
+
+DRAME	fcb	6
+	fcc	'RAMEND'
+	fdb	DIOPG
+	RFCS
+	ldx	RAMEND
+	jmp	NPUSH
+
 MCCABE	fcb	3		Non-standard
 	fcc	'MCC'		( -- mcc ) Returns the cyclomatic complexity
-	fdb	EBUFS		of the latest compiled word
+	fdb	DRAME		of the latest compiled word
 	RFCS
 	clra
 	ldb	CYCLO
@@ -1653,7 +1667,7 @@ CELLP	fcb	5		ANSI (Core)
 	fcc	'CELL+'		( a-addr1 -- a-addr2 )
 	fdb	CHARS
 	RFCS
-	bsr	MIN1PST		We need at least one cell stacked up
+	jsr	MIN1PST		We need at least one cell stacked up
 	ldd	,u
 	addd	#2
 	std	,u
@@ -4860,7 +4874,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/AI 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20251005 (C) Francois Laagel 2019'
+	fcc	'20251104 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM1	fcn	'RAM OK: '

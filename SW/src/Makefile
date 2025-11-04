@@ -1,6 +1,6 @@
 SHELL	= /bin/sh
 
-all:	forth.hex
+all:	forth.hex forth.pro
 
 rebuild: clean all
 
@@ -25,7 +25,7 @@ forth.hex: forth.asm console.asm storage.asm rtc.asm constants.asm
 # field provided it is in the range ['C'..''F']--physical to ROM (logical)
 # address translation. Also convert the file from DOS text format to Unix.
 forth.pro: forth.hex
-	@sed -e 's/$$//; /^:\(..\)0\(...\)00/d; s/^:\(..\)C\(...\)00/:\14\200/; s/^:\(..\)D\(...\)00/:\15\200/; s/^:\(..\)E\(...\)00/:\16\200/; s/^:\(..\)F\(...\)00/:\17\200/' $< > $@; \
+	sed -e 's/$$//; /^:\(..\)0\(...\)00/d; s/^:\(..\)C\(...\)00/:\14\200/; s/^:\(..\)D\(...\)00/:\15\200/; s/^:\(..\)E\(...\)00/:\16\200/; s/^:\(..\)F\(...\)00/:\17\200/' $< > $@; \
 	./chksum-fix.py $@ > _$@; mv _$@ $@
 
 prog: forth.pro
