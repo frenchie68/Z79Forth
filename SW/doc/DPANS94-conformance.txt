@@ -435,6 +435,11 @@ The recommended terminal size is 25 lines by 80 columns. DUMP (see SW/examples/
 dump.4th) assumes 80 columns are available. LWVI only requires 18 lines by 64
 columns.
 
+Hardware control flow support (RTS/CTS) is mandatory. Optionally, software
+flow control (XON/XOFF) might be required to support scrolling display with
+regular Unix control sequences (Control-S, Control-Q) or when dealing with
+DEC terminals.
+
 2 The optional Block word set
 -----------------------------
 

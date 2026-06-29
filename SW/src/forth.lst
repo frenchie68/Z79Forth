@@ -306,7 +306,7 @@
                       (    constants.asm):00178         * Stack sizes.
      0100             (    constants.asm):00179         NSTKSZ  equ     256             Expressed in bytes. Now only limited by RAM size
      00FE             (    constants.asm):00180         RSTKSZ  equ     254             Expressed in bytes. Up to 127 nested loops
-     00FC             (    constants.asm):00181         CSTKSZ  equ     252             Expressed in bytes. Up to 126 double cells
+     00FC             (    constants.asm):00181         CSTKSZ  equ     252             Expressed in bytes. Up to 63 double cells
                       (    constants.asm):00182         
                       (    constants.asm):00183         * Buffer sizes.
      0084             (    constants.asm):00184         CMDBFSZ equ     132             Command line entry buffer
@@ -2668,7 +2668,7 @@ EC5E 39               (        forth.asm):01955 (4)             rts
                       (        forth.asm):01956         
                       (        forth.asm):01957         * An empty DOES> clause might result in no code being compiled and,
                       (        forth.asm):01958         * eventually, we might jump to some world where no man has been before.
-                      (        forth.asm):01959         * We use the FWDREF mehcanism to prevent that from happening when ;
+                      (        forth.asm):01959         * We use the FWDREF mechanism to prevent that from happening when ;
                       (        forth.asm):01960         * is invoked.
 EC5F C5               (        forth.asm):01961         DOES    fcb     $C5             ANSI (Core)
 EC60 444F45533E       (        forth.asm):01962                 fcc     'DOES>'
@@ -5551,7 +5551,7 @@ FE6A 5A3739466F727468 (        forth.asm):04832                 fcc     'Z79Fort
      6D
                       (        forth.asm):04833                 ENDC                    RTCFEAT
 FE8B 0D0A             (        forth.asm):04834                 fcb     CR,LF
-FE8D 3230323531303035 (        forth.asm):04835                 fcc     '20251005 (C) Francois Laagel 2019'
+FE8D 3230323531303238 (        forth.asm):04835                 fcc     '20251028 (C) Francois Laagel 2019'
      2028432920467261
      6E636F6973204C61
      6167656C20323031

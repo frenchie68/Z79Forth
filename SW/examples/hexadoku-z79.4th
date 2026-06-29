@@ -730,7 +730,7 @@ $1000 , $2000 , $4000 , $8000 ,
     CR solutions ? ." solution(s) found"
   THEN
   CR ." 'countbits' called " ncb 2@ud. ."  times"
-  CR ." Backtracked " nbt 2@ud. ." times"
+  CR ." Backtracked " nbt 2@ud. ."  times"
   +cursor ;
 
 main \ 7 EMIT wasteit

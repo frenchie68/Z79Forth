@@ -4832,7 +4832,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/AI 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20251005 (C) Francois Laagel 2019'
+	fcc	'20251028 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
