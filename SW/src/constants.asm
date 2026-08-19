@@ -1,8 +1,9 @@
 * Begin tunable parameters section.
 
 CSSNTVE	equ	0		Words and HEX numbers are case sensitive if NZ
-SSDFEAT	equ	1		Set to 1 to enable the symbolic stack dump feat.
+SSDFEAT	equ	1		Set to 1 to enable the symbolic stack dump feat
 RELFEAT	set	1		Set to 1 to enable the reliability feature
+MCCABE	set	0		Exception support require this to be disabled
 
 RTCFEAT	equ	0		Cool but the reliability feature must go...
 DEBUG	set	0		Enforce assertions and miscellaneous checks
@@ -27,13 +28,6 @@ RELFEAT	set	0		(HVNMI and HVNMI2) disable RELFEAT
 * Intrinsic ANS94 support prevents both DEBUG and the reliability feature.
 RELFEAT	set	0
 DEBUG	set	0
-
-* * Control flow stack implemented on the top of the data stack.
-* CSPUSH	EQU	NPUSH
-* CSPOP	EQU	NPOP
-* Control flow stack on its own.
-CSPUSH	EQU	CPUSH
-CSPOP	EQU	CPOP
 
 * Memory map.
 RAMSTRT	equ	$0000
@@ -110,7 +104,7 @@ CFWSCTS	equ	$30		Write Sectors
 
 * Buffer in-memory structure:
 * data: 1024 bytes.
-* terminator: 1 byte set to 0.
+* term: Deprecated: 1 byte set to 0.
 * flags: 1 byte.
 * blknum: 2 bytes.
 BINUSE	equ	1		Buffer is allocated (the blknum field is valid)
@@ -118,8 +112,9 @@ BMAPPD	equ	2		Block has been read from the CF device
 BDIRTY	equ	4		Block has been marked for update
 BLKSIZ	equ	2*CFSCSZ	Block size is 2 CF sectors (1 KB)
 * Buffer field offsets.
-BOTERM	equ	BLKSIZ		Base buffer to the 'terminator' field offset
-BOFLAGS	equ	BLKSIZ+1	Base buffer to the 'flag' field offset
+* BOTERM is deprecated in the ANS94 implementation.
+*BOTERM	equ	BLKSIZ	Base buffer to the 'term' field offset
+BOFLAGS	equ	BLKSIZ+1	Base buffer to the 'flags' field offset
 BOBLKNO	equ	BLKSIZ+2	Base buffer to the 'blknum' field offset
 
 BFDISP	equ	BUF1-BUF0	Offset between resident buffers
@@ -177,8 +172,9 @@ XON	equ	$11		Aka DC1
 
 * Stack sizes.
 NSTKSZ	equ	256		Expressed in bytes. Now only limited by RAM size
-RSTKSZ	equ	254		Expressed in bytes. Up to 127 nested loops
-CSTKSZ	equ	252		Expressed in bytes. Up to 63 double cells
+RSTKSZ	equ	256		Expressed in bytes. Up to 64 nested loops
+CSTKSZ	equ	128		Expressed in bytes. Up to 32 double cells
+ESTKSZ	equ	(8*6)		Expressed in bytes. 8 exception frames.
 
 * Buffer sizes.
 CMDBFSZ	equ	132		Command line entry buffer
@@ -230,4 +226,28 @@ RAMFTCH	set	WDICSPC+4	Dictionary header overhead is word's length + 3
 	IFNE	RELFEAT		The reliability features adds one byte to the
 RAMFTCH	set	WDICSPC+5	header: a checksum.
 	ENDC
+
+* Error condition codes passed through Breg to SYSTHR8.
+EABORT	equ	-1	STD -- ABORT
+EABRTQ	equ	-2	STD -- ABORT"
+EDSOVF	equ	-3	STD -- DS overflow
+EDSUDF	equ	-4	STD -- DS underflow
+ERSOVF	equ	-5	STD -- RS overflow
+ERSUDF	equ	-6	STD -- RS underflow
+ESSEGV	equ	-9	STD -- Illegal argument (CHAR FIND PICK EXECUTE)
+EOORNG	equ	-11	STD -- OoR error
+EUNDEF	equ	-13	STD -- ? / Undefined word
+ESTATE	equ	-14	STD -- Incorrect STATE
+ENONAM	equ	-16	STD -- Missing word (POSTPONE : CREATE)
+ENAMLN	equ	-19	STD -- Name too long
+ERONLY	equ	-20	STD -- RO word
+ENOSUP	equ	-21	STD -- IO error or TRAP (DIV0 ILOP)
+EILCST	equ	-22	STD -- Illegal construct
+EUINTR	equ	-28	STD -- SIGINT
+ENOCRE	equ	-31	STD -- Not CREATEd
+* Allocated against the standard specification. These are not catchable--i.e.
+* we branch directly to ERRHDLR (under the 16 bit interface). They're not
+* recoverable anyway.
+EINOOR	equ	-32	>IN OoR
+EESOVF	equ	-33	ES overflow
 

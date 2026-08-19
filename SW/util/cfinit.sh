@@ -68,6 +68,8 @@ fi
 -h "\ Z79Forth test suite. Based on Hayes/Jackson's Forth2012."
 ./txt2blk -i ../testsuite/stringtest.4th -d $CFDEV -s 602 \
 -h "\ Z79Forth test suite. Based on Hayes/Jackson's Forth2012."
+./txt2blk -i ../testsuite/exceptiontest.4th -d $CFDEV -s 628 \
+-h "\ Z79Forth test suite. Based on Hayes/Jackson's Forth2012."
 
 # : f12testload 400 403 THRU  \ Test infrastructure setup
 #   404 472 THRU              \ Core word set test
@@ -75,6 +77,7 @@ fi
 #   527 567 THRU              \ Block word set test
 #   568 601 THRU              \ Double word set test
 #   602 627 THRU              \ String word set test
+#   628 635 THRU              \ Exception word set test
 # ;
 
 ./txt2blk -i ../examples/tetris.4th -d $CFDEV -s 650 \
@@ -90,6 +93,10 @@ fi
 ./txt2blk -i ../examples/expsys.4th -d $CFDEV -s 800 \
 -h "\ Simple Forth expert system. Demitri Peynado: May 14, 2022."
 # : expsysload 800 809 THRU ;
+
+./txt2blk -i ../examples/hexadoku-z79e.4th -d $CFDEV -s 820 \
+-h "\ Hexadoku Solver. Z79Forth/A. Francois Laagel. August 14, 2026"
+# : hdload 820 873 THRU ;
 
 ./txt2blk -i ../examples/ansiextern.4th -d $CFDEV -s 1000 \
 -h "\ ANSI non-EEPROM resident words. FLA Sep 10, 2022."

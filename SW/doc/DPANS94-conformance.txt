@@ -11,9 +11,9 @@ as stated by ANSI-X3.215-1994.
 - providing KEY? PAGE from the Facility word set
 - providing MS from the Facility Extension word set
 - providing the Programming-Tools word set
-- providing AHEAD BYE STATE from the Programming-Tools
-  Extension word set
+- providing AHEAD BYE STATE from the Programming-Tools Extension word set
 - providing -TRAILING BLANK CMOVE CMOVE> COMPARE from the String word set
+- providing the Exception word set
 
 1 The Core words
 ----------------
@@ -52,10 +52,9 @@ as stated by ANSI-X3.215-1994.
   Control flow constructs have been re-implemented based on Wonyong Koh's
   hForth for the 8086. The original code can be consulted at
   https://github.com/nealcrook/hForth. Of particular interest is
-  8086/HF86RAM.ASM. Entries on the control flow stack (implemented on the
-  data stack here) are two cell entities that consist of a parameter
-  (an address), on the top of which a tag identifying the type of address
-  is pushed. They are:
+  8086/HF86RAM.ASM. Entries on the control flow stack (residing on a dedicated
+  stack) are two cell entities that consist of a parameter (an address), on
+  the top of which a tag identifying the type of address is pushed. They are:
  
   Control-flow stack item    Representation (parameter and type)
   -----------------------    -------------------------------------
@@ -78,9 +77,16 @@ as stated by ANSI-X3.215-1994.
   The cursor is moved to the end of the entered string. If the input is
   terminated using the Enter key, a space is typed.
 
-- exception abort sequence (as in 6.1.0680 ABORT"): the string passed as an
-  argument is displayed to the terminal and the error handler is invoked with
-  the error code 3 (User ABORT). Please note that exceptions are not supported.
+- exception abort sequence (as in 6.1.0680 ABORT"): if the condition is met,
+  the string passed as an argument is stacked up to the data stack and -2
+  is thrown. If, subsequently, that exception is uncaught, the corresponding
+  error notification will be displayed and all stack contents will be discarded.
+  If the exception is caught, it is the responsibility of the user defined
+  handler to manage how to handle that stacked up string. That process is
+  anything but standard compliant though.
+
+: foo ABORT" Gottya!" ;
+1 ' foo CATCH DROP 1- CR COUNT TYPE
 
 - input line terminator (3.2.4.1 User input device): CarriageReturn (ASCII 13)
   is the input line terminator.
@@ -111,7 +117,7 @@ as stated by ANSI-X3.215-1994.
 
 - number representation and arithmetic (3.2.1.1 Internal number representation):
   One cell is two bytes long. It is stored in memory with the most signficant
-  byte first, in binary two’s complement form.
+  byte first, in binary two's complement form.
 
 - ranges for n, +n, u, d, +d, and ud (3.1.3 Single-cell types,
   3.1.4 Cell-pair types):
@@ -163,12 +169,11 @@ as stated by ANSI-X3.215-1994.
 - type of division rounding (3.2.2.1 Integer division, 6.1.0100 */, 6.1.0110
   */MOD, 6.1.0230 /, 6.1.0240 /MOD, 6.1.1890 MOD): floored division is used.
 
-- values of 6.1.2250 STATE when true: 255.
+- values of 6.1.2250 STATE when true: -1.
 
 - values returned after arithmetic overflow (3.2.2.2 Other integer operations):
-  when arithmetic overflows occur and are detected, control is transferred to
-  the error handler under error code 4 ('OoR error'). No value is returned to
-  the application.
+  when arithmetic overflows occur and are detected, exception -11 (EOORNG)
+  is thrown.
 
 - whether the current definition can be found after 6.1.1250 DOES> (6.1.0450 :):
   no. 
@@ -178,12 +183,11 @@ as stated by ANSI-X3.215-1994.
 Generic error conditions:
 
 - a name is neither a valid definition name nor a valid number during text
-  interpretation (3.4 The Forth text interpreter): control is transferred to
-  the error handler under error code 2 ('?' undefined word).
+  interpretation (3.4 The Forth text interpreter): exception -13 (EUNDEF)
+  is thrown.
 
 - a definition name exceeded the maximum length allowed (3.3.1.2 Definition
-  names): control is transferred to the error handler under error code 16
-  ('Word name too long').
+  names): exception -19 (ENAMLN) is thrown.
 
 - addressing a region not listed in 3.3.3 Data Space: may result in
   unpredictable outcomes.
@@ -194,26 +198,26 @@ Generic error conditions:
   stack offers some limited data type management but only to the extent
   necessary to ensure the sanity of control flow constructs used by a program.
 
+  In some instances (CHAR FIND PICK EXECUTE), this will result in exception
+  -9 (ESSEGV) being thrown.
+
 - attempting to obtain the execution token, (e.g., with 6.1.0070 ',
   6.1.1550 FIND, etc.) of a definition with undefined interpretation semantics:
-  will result in the actual execution being returned, regardless of the state
-  of the 'compilation only' flag. Applying EXECUTE to such a token will result
-  in the execution token to be run, as one would expect.
+  will result in the actual execution token being returned, regardless of the
+  state of the 'compilation only' flag. Applying EXECUTE to such a token will
+  result in the execution token to be run, as one would expect.
 
 - dividing by zero (6.1.0100 */, 6.1.0110 */MOD, 6.1.0230 /, 6.1.0240 /MOD,
   6.1.1561 FM/MOD, 6.1.1890 MOD, 6.1.2214 SM/REM, 6.1.2370 UM/MOD,
   8.6.1.1820 M*/):
-  + */ */MOD / /MOD and MOD: a 6309 division by zero trap occurs. Control will
-    be transferred to the error handler under error code 3 ("User ABORT').
-  + FM/MOD SM/REM and UM/MOD: Control will
-    be transferred to the error handler under error code 4 ("OoR error').
+  + */ */MOD / /MOD and MOD: a 6309 division by zero trap occurs. Exception
+    -21 (ENOSUP) will be thrown.
+  + FM/MOD SM/REM and UM/MOD: exception -11 (EOORNG) will be thrown.
   + M*/ is unsupported.
 
 - insufficient data-stack space or return-stack space (stack overflow):
-  + data stack: the error handler is invoked with error code 0 ('Data stack
-    overflow').
-  + return stack: the error handler is invoked with error code 7 ('Return stack
-    overflow').
+  + data stack: exception -3 (EDSOVF) will be thrown.
+  + return stack: exception -5 (ERSOVF) will be thrown.
 
 - insufficient space for loop-control parameters: a return stack overflow
   condition is triggered (see above).
@@ -221,12 +225,8 @@ Generic error conditions:
 - insufficient space in the dictionary: this will go undetected leading to
   a complete system failure due to an inconsistent dictionary state.
 
-- interpreting a word with undefined interpretation semantics: if this happens
-  via the interpreter, control will be transferred to the error handler with
-  error code 6 ('Incorrect STATE'). However this can also be achieved by using
-  ' and then applying EXECUTE to the execution token returned, in which case no
-  error condition will be detected but unexepected system behaviour is likely
-  to emerge.
+- interpreting a word with undefined interpretation semantics: exception -14
+  (ESTATE) will be thrown.
 
 - modifying the contents of the input buffer or a string literal
   (3.3.3.4 Text-literal regions, 3.3.3.5 Input buffers): These are located in
@@ -247,32 +247,30 @@ Generic error conditions:
   + * will not detect overflow conditions. If reliable artithmetic is needed
     M* should be used instead.
   + */ and */MOD do not generate overflow conditions.
-  + >NUMBER will transfer control to the error handler under error code
-    4 ("OoR error').
+  + >NUMBER will throw -11 (EOORNG).
   + FM/MOD SM/REM UM/MOD may or may not detect overflow conditions. Should this
-    happen, control would be transferred to the error handler under error code
-    4 ("OoR error').
+    happen, exception -11 (EOORNG) will be thrown.
   + CONVERT and M*/ are not unsupported.
 
 - reading from an empty data stack or return stack (stack underflow);
-  + data stack: the error handler is invoked with error code 1 ('Data stack
-    underflow').
-  + return stack: the error handler is invoked with error code 8 ('Return stack
-    underflow').
+  + data stack: -4 (EDSUDF) will be thrown.
+  + return stack: -6 (ERSUDF) will be thrown.
 
 - unexpected end of input buffer, resulting in an attempt to use a zero-length
-  string as a name: control is transferred to the error handler under error
-  code 5 ('Missing word name'). This applies to : CREATE VARIABLE and CONSTANT.
+  string as a name: -16 (ENONAM) will be thrown. This applies to : CREATE
+  VARIABLE and CONSTANT.
 
 Word specific error conditions:
-- >IN greater than size of input buffer (3.4.1 Parsing): control will be
-  transferred to the error handler under error code 18 ('>IN Out of range').
+- >IN greater than size of input buffer (3.4.1 Parsing): -32 (EINOOR) will be
+  thrown internally. This exception is allocated outside of the standard
+  exception numbering scheme and is not catchable.
 
 - 6.1.2120 RECURSE appears after 6.1.1250 DOES>: this condition is undetected.
   RECURSE will simply issue a call to the word being defined (in DOES> context).
 
 - argument input source different than current input source for 6.2.2148
-  RESTORE-INPUT: not applicable as RESTORE-INPUT is not supported.
+  RESTORE-INPUT: not applicable as RESTORE-INPUT is not supported, from a
+  user's perspective.
 
 - data space containing definitions is de-allocated (3.3.3.2 Contiguous
   regions): only MARKER and ALLOT with a negative byte count provide a way
@@ -286,28 +284,27 @@ Word specific error conditions:
   a potential recipe for system instability.
 
 - data space read/write with incorrect alignment (3.3.3.1 Address alignment):
-  there are no alignment requirements.
+  there are no such alignment requirements.
 
 - data-space pointer not properly aligned (6.1.0150 ,, 6.1.0860 C,): there are
-  no alignment requirements.
+  no such alignment requirements.
 
-- less than u+2 stack items (6.2.2030 PICK, 6.2.2150 ROLL): control is
-  transferred to the error handler under error code 13 ('Invalid argument').
+- less than u+2 stack items (6.2.2030 PICK, 6.2.2150 ROLL): -0 (ESSEGV) will
+  be thrown.
 
 - loop-control parameters not available ( 6.1.0140 +LOOP, 6.1.1680 I,
-  6.1.1730 J, 6.1.1760 LEAVE, 6.1.1800 LOOP, 6.1.2380 UNLOOP): control is
-  transferred to the error handler under error code 7 ('Return stack undeflow').
+  6.1.1730 J, 6.1.1760 LEAVE, 6.1.1800 LOOP, 6.1.2380 UNLOOP): -6 (ERSUDF)
+  will be thrown.
 
 - most recent definition does not have a name (6.1.1710 IMMEDIATE): unchecked.
   IMMEDIATE only applies to the most recently named definition.
 
-- name not defined by 6.2.2405 VALUE used by 6.2.2295 TO: unchecked. This
-  will only work if the name in question was a CONSTANT, which is very close
-  to what VALUE comes down to.
+- name not defined by 6.2.2405 VALUE used by 6.2.2295 TO: unchecked. Any
+  CREATEd entity is a valid target for TO. If the object of a TO is undefined,
+  -13 (EUNDEF) will be thrown.
 
 - name not found (6.1.0070 ', 6.1.2033 POSTPONE, 6.1.2510 ['],
-  6.2.2530 [COMPILE]): control is transferred to the error handler under error
-  code 2 ('?' undefined word).
+  6.2.2530 [COMPILE]): -13 (EUNDEF) will be thrown.
 
 - parameters are not of the same type (6.1.1240 DO, 6.2.0620 ?DO,
   6.2.2440 WITHIN): Parameters are treated as if they were of the same type.
@@ -324,8 +321,7 @@ Word specific error conditions:
   6.1.2162 RSHIFT): 0 is returned.
 
 - word not defined via 6.1.1000 CREATE (6.1.0550 >BODY, 6.1.1250 DOES>):
-  control is transferred to the error handler under error code 14 ('No matching
-  CREATE').
+  -31 (ENOCRE) is thrown.
 
 - words improperly used outside 6.1.0490 <# and 6.1.0040 #> (6.1.0030 #,
   6.1.0050 #S, 6.1.1670 HOLD, 6.1.2210 SIGN): unchecked. If the data stack is
@@ -352,10 +348,10 @@ HERE, i.e. the current end of the dictionary.
 ----------------------------------
 Z79Forth/A is an EEPROM resident implementation. Which means that most words
 from the Core wordset are immediately available. However the following words
-are defined in CompactFlash storage: >BODY ABORT" ENVIRONMENT? LSHIFT RSHIFT
-and WITHIN. On a fully functional system where the supplied CompactFlash image
-has been transferred to a medium, they will be transparently loaded (block #1
-will be auto-loaded).
+are defined in CompactFlash storage: ABORT" ALIGNED >BODY CHARS CHAR+
+ENVIRONMENT? LSHIFT RSHIFT and WITHIN. On a fully functional system where the
+supplied CompactFlash image has been transferred to a medium, they will be
+transparently loaded (block #1 will be auto-loaded).
 
 1.3.3 System dictionary space
 -----------------------------
@@ -370,7 +366,7 @@ Upon system initialization, the ROM based flavor of '@' is relocated to SRAM,
 starting at the address WDICSPC (see SW/src/constants.asm for details). After
 the material loaded automatically from mass storage is in and taking into
 account the space required for global variables and buffers, this leaves about
-26 KB of application space. This can be verified interactively by resorting to:
+25 KB of application space. This can be verified interactively by resorting to:
 
         UNUSED .
 
@@ -378,14 +374,13 @@ account the space required for global variables and buffers, this leaves about
 ------------------------
 The return stack size is configurable through the RSTKSZ tunable parameter
 (defined in SW/src/constants.asm) and is expressed in bytes. It defaults to
-128 (64 cells). The RPICKN implementation contraints it to be no higher than
-510 bytes (255 cells).
+256 (128 cells).
 
 1.3.6 Data stack space
 ----------------------
 The data stack size is configurable through the NSTKSZ tunable parameter
 (defined in SW/src/constants.asm) and is expressed in bytes. It defaults to
-192 (96 cells). The upper limit is only constrained by the SRAM size.
+256 (128 cells).
 
 1.3.7 Mass storage requirements
 -------------------------------
@@ -394,10 +389,10 @@ CompactFlash device programmed in 8 bit mode. There is no minimum storage
 requirement. Z79Forth will work even in the absence of a CF card. However,
 the following standard words are expected to be loaded from mass storage:
 
-Core word set:		ABORT" >BODY ENVIRONMENT? LSHIFT RSHIFT
-Core ext word set:	.( 2>R 2R> 2R@ ERASE TO UNUSED VALUE WITHIN
-Tools word set:		DUMP SEE
-String word set:	/STRING -TRAILING
+Core word set:	   ABORT" ALIGNED >BODY CHAR+ CHARS ENVIRONMENT? LSHIFT RSHIFT
+Core ext word set: .( 2>R 2R> 2R@ ERASE TO UNUSED VALUE WITHIN
+Tools word set:	   DUMP SEE
+String word set:   /STRING -TRAILING
 
 The maximum number of addressable blocks is the full range of unsigned block
 numbers (64 MB).
@@ -440,6 +435,10 @@ flow control (XON/XOFF) might be required to support scrolling display with
 regular Unix control sequences (Control-S, Control-Q) or when dealing with
 DEC terminals.
 
+^C on input will generate exception -28 (EUINTR), which may or may not be
+caught. If caught, it will give a chance to an application program to perform
+some cleanup operations before exiting.
+
 2 The optional Block word set
 -----------------------------
 
@@ -455,11 +454,9 @@ DEC terminals.
 ------------------------
 - correct block read was not possible: this can happen in one of two
   situations: either the CompactFlash was not detected on bootup or an I/O
-  error occurred. In either case, control is transferred to the error handler
-  under error code 17 ('IO error').
+  error occurred. In either case, exception -21 (ENOSUP) will be thrown.
 
-- I/O exception in block transfer: control is transferred to the error handler
-  under error code 17 ('IO error').
+- I/O exception in block transfer: exception -21 (ENOSUP) will be thrown.
 
 - invalid block number: this is not possible if the minimum storage requirements
   are met (i.e. a minimum of 128 MB of CompactFlash).
@@ -509,7 +506,7 @@ DEC terminals.
 - fewer than u+1 items on the control-flow stack (CS-PICK, CS-ROLL): CS-PICK
   and CS-ROLL are not implemented in Z79Forth/A.
 
-- name can’t be found (FORGET): FORGET is not implemented in Z79Forth/A.
+- name can't be found (FORGET): FORGET is not implemented in Z79Forth/A.
 
 - name not defined via CREATE: ;CODE is not implemented in Z79Forth/A.
 
@@ -520,4 +517,14 @@ DEC terminals.
 
 - removing a needed definition (FORGET): FORGET is not implemented in
   Z79Forth/A.
+
+5 The optional Exception word set
+---------------------------------
+
+5.1 Implementation Defined Options
+----------------------------------
+- THROW-codes used in the system: they range from -1 to -31 in the officially
+  allocated range. Most of them have an associated error message. Additionally,
+  -32 (>IN OoR) and -33 (exception stack overflow) can be triggered internally
+  but cannot be caught by a user program.
 

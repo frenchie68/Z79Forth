@@ -1,5 +1,8 @@
 \ ANSI Miscellaneous primitives for Z79Forth
 
+: CHARS ;      : CHAR+ 1+ ;
+: ALIGNED ;
+
 \ Stolen from GNU Forth--literally!
 \ This works, although I do not fully understand why or how!!!
 : -TRAILING ( c-addr u1 -- c-addr u2 )
@@ -58,8 +61,9 @@
   ( Compilation: "ccc<quote>" -- )
   ( Runtime: i*x x1 --  | i*x ) ( R: j*x --  | j*x )
   POSTPONE IF
-    POSTPONE ."
-    POSTPONE ABORT
+    POSTPONE S"
+    -2 POSTPONE LITERAL
+    POSTPONE THROW
   POSTPONE THEN ; IMMEDIATE RESTRICT
 
 \ From forth-standard.org. ruv's 1st entry of 2021-05-21 22:33
@@ -78,7 +82,7 @@
   DUP DUP C@ $8E =            \ $8E: opcode for LDX immediate
   OVER 1+ @ ROT 9 + = AND
   UNLESS                      \ UNLESS is 0= IF
-    HEX CR U. ." Not a CREATEd word" ABORT
+    CR U. -31 THROW       \ Not CREATEd
   THEN
   9 + ;
 
@@ -104,9 +108,9 @@
   >IN @                       \ symSrcStartAddress
   ' ?DUP  IF                  \ symSrcStartAddress\xt
     NIP  STATE @  IF          \ We are compiling
-      POSTPONE LITERAL  POSTPONE 1+  POSTPONE !
+      POSTPONE LITERAL  POSTPONE >BODY  POSTPONE !
     ELSE                      \ We are interpreting
-      1+ !
+      >BODY !
     THEN
   ELSE                        \ symSrcStartAddress
     >IN !                     \ Symbol not found

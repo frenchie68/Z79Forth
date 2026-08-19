@@ -48,6 +48,8 @@
 \ A spot having zero for its value indicates a dead end in the
 \ current problem resolution state. This program strives to
 \ behave so as to avoid that from ever happening.
+\
+\ OOB means out of bounds.
 
 \ -------------------------------------------------------------
 DECIMAL
@@ -60,7 +62,7 @@ MARKER wasteit
 : AT-XY 1+ SWAP 1+ SWAP esc[ pn ;pn [CHAR] H EMIT ;
 
 \ : log2 -1 BEGIN
-\     OVER 
+\     OVER
 \   WHILE
 \     1+ SWAP 1 RSHIFT SWAP
 \   REPEAT NIP ;
@@ -85,9 +87,9 @@ VARIABLE solutions
 CREATE grid 256 CELLS ALLOT    \ 16x16 is the problem size
 
 \ A transaction is the unit of rollbacks (undos). It is defined
-\ as the set of grid saved states between the time we make a
-\ speculative choice and the time when a constraint violation
-\ is detected or when a nested speculative choice is made
+\ as a set of grid saved states between the time we make a
+\ speculative choice and the time when an inconsistency is
+\ detected or when a nested speculative choice is made
 \ (excluded).
 
 4096 CONSTANT tstk-nitems
@@ -98,7 +100,7 @@ HERE CONSTANT tstk-bottom
 \ TOS+1: mxxx.xxxx:yyyy.yyyy    1 CELL
 \       bit #15:        beginning of transaction marker.
 \       bits #14-8:     xcol: 0..15
-\       bit #7-0:       yrow: 0..15
+\       bits #7-0:      yrow: 0..15
 VARIABLE tstkp
 
 \ Statistical data support.
@@ -177,8 +179,8 @@ $1000 , $2000 , $4000 , $8000 ,
     OVER 16 0 DO
       DUP I 2^n = IF
         DROP I
-        DUP 10 < IF [CHAR] 0 ELSE [CHAR] 7 THEN
-        + LEAVE
+        DUP 9 > IF 7 + THEN [CHAR] 0 +
+        LEAVE
       THEN
     LOOP
   ELSE
@@ -237,7 +239,7 @@ $1000 , $2000 , $4000 , $8000 ,
   \ Check whether we are going from resolved to unresolved.
   \ If so increment 'unknowns' accordingly.
   DUP @ pow2? IF               \ S: begin-flg\bitmask\saddr
-    \ XXX: this assumes 'bitmsk' is NZ!!!
+    \ XXX: this assumes 'bitmask' is NZ!!!
     OVER pow2? 0= IF
       unknowns 1+!
     THEN
@@ -355,8 +357,8 @@ $1000 , $2000 , $4000 , $8000 ,
     16 0 DO
       DUP I 2^n = IF
         DROP I UNLOOP
-        DUP 10 < IF [CHAR] 0 ELSE [CHAR] 7 THEN
-        + EXIT
+        DUP 9 > IF  7 + THEN [CHAR] 0 +
+        EXIT
       THEN
     LOOP
     1 ABORT" WTF?"             \ This should never be executed

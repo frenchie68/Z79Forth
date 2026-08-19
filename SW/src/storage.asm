@@ -155,8 +155,8 @@ CF1SRD	lda	CFSTATR
 	tfm	y,x+
 	puls	cc		Restore previous interrupt handling mode
 	rts
-IOERR	ldb	#17
-	jsr	ERRHDLR		No return
+IOERR	ldb	#ENOSUP		IO error
+	jsr	SYSTHR8		No return
 CFR1SRA	nop			For symbolic stack dump debugging purposes
 
 * Write one sector. The LBA parameters are assumed to have been set previously.
@@ -193,37 +193,29 @@ CF1BPRE	jsr	CFWAIT
 * ,s has the return address
 * 2,s has the target block number
 * 4,s has the buffer base address
-* Upon return, Y will be preserved.
 CF1BKRD	tst	CFCARDP
 	bne	@ctnued
 	bra	IOERR		Card not present--CF subsystem not initialized
-@ctnued tfr	y,v
-	bsr	CF1BPRE
+@ctnued bsr	CF1BPRE
 	ldb	#CFRSCTS	Issue a "Read sectors" CF command
 	jsr	CFCMDIS
 	ldx	4,s		Target buffer address to X
 	bsr	CF1SRD		Read the even sector from CF device
 	jsr	CFWAIT		Wait for next sector to become available
-	bsr	CF1SRD		and read the odd sector
-	tfr	v,y
-	rts
+	bra	CF1SRD		and read the odd sector
 
 * Write one block to CF device. Upon entry:
 * ,s has the return address
 * 2,s has the target block number
 * 4,s has the buffer base address
-* Upon return, Y will be preserved.
 CF1BKWR	tst	CFCARDP
 	bne	@ctnued
 	bra	IOERR		Card not present--CF subsystem not initialized
-@ctnued	tfr	y,v
-	bsr     CF1BPRE
+@ctnued	bsr     CF1BPRE
 	ldb	#CFWSCTS	Issue a "Write sectors" CF command
 	jsr	CFCMDIS
 	ldx	4,s		Source buffer address to X
 	bsr	CF1SWR		Write the even sector to CF device
 	jsr	CFWAIT		Wait for next sector to become available
-	bsr	CF1SWR		and write the odd sector
-	tfr	v,y
-	rts
+	bra	CF1SWR		and write the odd sector
 
