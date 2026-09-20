@@ -96,7 +96,7 @@ fi
 
 ./txt2blk -i ../examples/hexadoku-z79e.4th -d $CFDEV -s 820 \
 -h "\ Hexadoku Solver. Z79Forth/A. Francois Laagel. August 14, 2026"
-# : hdload 820 873 THRU ;
+# : hdload 820 874 THRU ;
 
 ./txt2blk -i ../examples/ansiextern.4th -d $CFDEV -s 1000 \
 -h "\ ANSI non-EEPROM resident words. FLA Sep 10, 2022."

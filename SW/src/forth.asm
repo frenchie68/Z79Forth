@@ -307,30 +307,38 @@ WDICSPC	equ	*
 * ROM code begins.
 
 	org	ROMSTRT
+
 * Trap handler: division by zero or illegal opcode. See page 4-10 of "The 6309
 * Book" for a description of interrupt stacks in native 6309 mode.
-IODZHDL	bitmd	#$40		Illegal opcode?
-	beq	@iodzh1
-	ldx	#IOPERRM	Yes
-	bra	@iodzh2
-@iodzh1	bitmd	#$80		Division by zero?
-	beq	@iodzh3		And you may say to yourself, well
-*				How did I get here?
-	ldx	#DV0ERRM	Division by zero it is!
-@iodzh2 jsr	PUTS
+IODZHDL	ldx	#DV0ERRM	Assume division by zero TRAP
+	ldb	#EDIVZR		"Division by zero" error code
+	bitmd	#$80		Division by zero?
+	bne	@reslvd
+	bitmd	#$40		Illegal opcode...
+	ldx	#IOPERRM	...is the only other possibility
+	ldb	#ENOSUP		"Operation not supported" error code
+@reslvd stb	2,s		Pass error code to SYSTHR8 (via B)
+	jsr	PUTS
 	ldd	12,s		Return code address (PC)
 	ldy	#HEXBUF
 	jsr	HDMP4	
 	ldx	#HEXBUF
 	jsr	PUTS
 	jsr	PUTSP
-	ldd	#SYSTHRO
-	std	12,s		Resume execution in the exception dispatcher
-	ldd	#IODZHDL
-	std	8,s		With Y set to IODZHDL
-	ldd	#ENOSUP		And user "Operation not supported" error code
-	std	1,s		Passed back through D
-@iodzh3	rti
+
+* Observability: preserve the user return address in the system stack.
+* This is similar to what we do in FIRQ/@sigint, except that the interrupt
+* stack is much deeper.
+* Note: not preserving W is safe in this context.
+	tfr	s,x		Source address
+	leas	-2,s		One extra cell on the system stack
+	tfr	s,u		Destination address
+	ldw	#14		Block length in bytes
+	tfm	x+,u+		Memory move
+
+	ldx	#SYSTHR8
+	stx	12,s		Resume execution in the exception dispatcher
+	rti
 
 SWI3HDL	equ	*
 SWI2HDL	equ	*
@@ -1255,9 +1263,7 @@ FINDSYM	pshs	y,x
 	puls	y,pc		RTS implied
 
 * Non-dictionary well known symbols.
-NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
-	fcn	'IODZHDL'
-	fdb	DPOPRA		Data stack underflow
+NDCTWKS	fdb	DPOPRA		Data stack underflow
 	fcn	'DPOPRA'
 	fdb	DPSHRA		Data stack overflow
 	fcn	'DPSHRA'
@@ -1317,9 +1323,9 @@ NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
 PRBLKIN	pshs	y
 	ldy	#HEXBUF
 	lda	#SP
-	sta	,y+
-*	lda	#'(
 *	sta	,y+
+*	lda	#'(
+	sta	,y+
 	ldd	UBLK
 	jsr	HDMP4
 	lda	#'/
@@ -1465,7 +1471,7 @@ EVRDPTH	ldd	#RSTBOT
 * They really should not!!!
 
 * Push X to the return stack (boundary is checked).
-RPUSH	bsr	EVRDPTH		RDEPTH in cells to B
+RPUSH	bsr	EVRDPTH		RDEPTH in cells to Dreg
 	cmpd	#RSTKSZ/2	But RSTKZ is expressed in bytes
 	beq	@rpush1
 	tfr	y,v
@@ -1480,7 +1486,7 @@ RPSHRA	equ	*
 	nop			Meant to insulate RPUSH errors from RPOP's EP
 
 * Pull X from the return stack (boundary is checked).
-RPOP	bsr	EVRDPTH		RDEPTH in cells to B
+RPOP	bsr	EVRDPTH		RDEPTH in cells to Dreg
 	tstd
 	beq	@rpop1
 	tfr	y,v
@@ -1653,8 +1659,8 @@ THROW	fcb	5		ANSI (Exception)
 	rts			just EXIT if 'n' is 0
 
 * Compatibility entry point for 8 bit system generated exceptions.
-* Note: B never is zero if we enter via this inferface.
-SYSTHR8	sex			Sign extension B to D
+* Note: Breg never is zero if we enter via this inferface.
+SYSTHR8	sex			Sign extension Breg to Dreg
 
 * Exception number is in D. Route it to ERRHDLR or to the user code just
 * following the latest call to CATCH, depending on the state of the exception
@@ -1662,11 +1668,11 @@ SYSTHR8	sex			Sign extension B to D
 SYSTHRO	pshs	x
 	ldx	ESP		The exception stack pointer
 	cmpx	#ESTBOT
-	puls	x		This does not affect CC
+	puls	x		This does not affect CCreg
 	lbeq	ERRHDLR		Stack is empty, invoke the default handler
 * At this point we need to return control just after the latest call to CATCH.
 	orcc	#FFLAG		Disable FIRQ
-	bsr	EPOP		Does not affect D or Y
+	bsr	EPOP		Does not affect Dreg or Yreg
 	tfr	x,s		Restore Sreg
 	bsr	EPOP
 	stx	RSP		E> rp!
@@ -4888,7 +4894,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/AE 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20260817 (C) Francois Laagel 2019'
+	fcc	'20260916 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
@@ -4929,18 +4935,18 @@ ERRMTBL	fcn	'ABORT'			-1
 	fcn	''			-7: Not implemented
 	fcn	''			-8: Not implemented
 	fcn	'SIGSEGV'		-9
-	fcn	''			-10: Not implemented
-	fcn	'OoR error'		-11: formerly 'Division by zero'
+	fcn	'Division by 0'		-10: Division by zero
+	fcn	'Out of range'		-11: Out of range error
 	fcn	''			-12: Not implemented
 	fcn	'?'			-13
 	fcn	'Incorrect STATE'	-14
 	fcn	''			-15: Not implemented
-	fcn	'Missing word name'	-16
+	fcn	'Missing name'		-16
 	fcn	''			-17: Not implemented
 	fcn	''			-18: Not implemented
 	fcn	'Name too long'		-19
-	fcn	'RO word'		-20: formerly 'RO word'
-	fcn	'IO err/TRAP'		-21
+	fcn	'RO word'		-20
+	fcn	'IOerr/TRAP'		-21
 	fcn	'Illegal construct'	-22
 	fcn	''			-23: Not implemented
 	fcn	''			-24: Not implemented
@@ -4952,20 +4958,16 @@ ERRMTBL	fcn	'ABORT'			-1
 	fcn	''			-30: Not implemented
 	fcn	'Not CREATEd'		-31
 * Allocated against the standard specification...
-	fcn	'>IN OoR'
-	fcn	'ES ovf'
+	fcn	'>IN OoR'		-32
+	fcn	'ES ovf'		-33
 
-* A-list used for numeric literal base prefixes.
+* A-list used for numeric literal base prefixes. Standard material only.
 BASALST	fcc	'$'		Hexadecimal prefix
 	fcb	16
-	fcc	'#'		Decimal prefix (standard)
+	fcc	'#'		Decimal prefix
 	fcb	10
-*	fcc	'&'		Decimal prefix (as in LWASM, VolksForth)
-*	fcb	10
 	fcc	'%'		Binary prefix
 	fcb	2
-	fcc	'@'		Octal prefix
-	fcb	8
 	fcb	0		End of list marker
 
 * Under no circumstance should the following symbol be negative!

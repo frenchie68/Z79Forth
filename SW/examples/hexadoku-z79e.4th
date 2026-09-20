@@ -53,13 +53,8 @@ MARKER wasteit
 : esc[  #27 EMIT [CHAR] [ EMIT ;
 : AT-XY 1+ SWAP 1+ SWAP esc[ pn ;pn [CHAR] H EMIT ;
 
-\ GNU Forth material.
-\ : cell/   3 RSHIFT ;
-\ : 2cells/ 4 RSHIFT ;
-
-\ Z79Forth material.
-  : cell/   1 RSHIFT ;
-  : 2cells/ 2 RSHIFT ;
+: cell/   1 RSHIFT ;
+: 2cells/ 2 RSHIFT ;
 
 : 16* 4 LSHIFT ;
 : 16/mod DUP $F AND SWAP 4 RSHIFT ;
@@ -105,30 +100,45 @@ CREATE ncb 2 CELLS ALLOT       \ # calls to countbits (double)
 CREATE #zgcv 2 CELLS ALLOT     \ # zero grid cell values dcd
 CREATE #cvio 2 CELLS ALLOT     \ # constraint violations dcd
 
-\ -------------------------------------------------------------
-\ Bit count utilities.
-
 : d1+! DUP 2@ 1. D+ ROT 2! ;
 : 2@ud. 2@ <# #S #> TYPE SPACE ;
+
+\ -------------------------------------------------------------
+\ Bit count utilities.
 
 \ Adapted from "Hacker's Delight" Second Edition
 \ by Henry S. Warren Jr., Edt by Addison-Wesley
 \ Chapter 5 "Counting bits", page 82.
-: countbits ( uu -- #bits )
-  ncb d1+!
+
+: _countbits ( uu -- #bits )
   DUP 1 RSHIFT $5555 AND -
   DUP $3333 AND SWAP 2 RSHIFT $3333 AND +
   DUP 4 RSHIFT + $0F0F AND
   DUP 8 RSHIFT +
   $1F AND ;
 
-\ h. is standard equipment in SwiftForth and yet its behavior
-\ is different between the 32 and 64 bit implementations.
-\ So you will get a warning here, which can safely be ignored.
-: h. ( n -- )
-  BASE @ >R
-  [CHAR] $ EMIT HEX U.
-  R> BASE ! ;
+CREATE lookup 256 ALLOT
+
+: lookup-init
+  256 0 DO
+    I DUP _countbits SWAP lookup + C!
+  LOOP ;
+
+\ ' NEGATE 1+ @ CONSTANT min1pst
+: countbits ; -1 ALLOT         \ Drop the trailing RTS
+(       jsr     min1pst        ) ( $BD C, min1pst , )
+(       ldx     #lookup        ) $8E C, lookup ,
+(       ldb     1,u            ) $E641 ,
+(       abx                    ) $3A C,
+(       lda     ,x             ) $A684 ,
+(       ldb     ,u             ) $E6C4 ,
+(       ldx     #lookup        ) $8E C, lookup ,
+(       abx                    ) $3A C,
+(       adda    ,x             ) $AB84 ,
+(       tfr     a,b            ) $1F89 ,
+(       clra                   ) $4F C,
+(       std     ,u             ) $EDC4 ,
+:NONAME ncb d1+! ; DROP
 
 \ Compute 2^n fast, i.e. faster than LSHIFT can do it.
 \ Note: 'n' is restricted to the [0..15] range.
@@ -139,10 +149,10 @@ $100  , $200  , $400  , $800  ,
 $1000 , $2000 , $4000 , $8000 ,
 
 : 2^n ( n -- 2^n )
-  DUP 0 16 WITHIN 0= IF
-    CR ." 2^n: illegal argument: "
-    h. ABORT
-  THEN
+\ DUP 0 16 WITHIN 0= IF
+\   CR ." 2^n: illegal argument: "
+\   h. ABORT
+\ THEN
   CELLS exptbl + @ ;
 
 \ Contributed by Bob Armstrong.
@@ -274,6 +284,7 @@ $1000 , $2000 , $4000 , $8000 ,
   2DROP ;
 
 : inits ( -- )
+  lookup-init                 \ Implementation specific!
   256 #unknown !
   grid 256 0 DO
     $FFFF OVER !
@@ -481,8 +492,7 @@ $1000 , $2000 , $4000 , $8000 ,
         2DUP AND  \ S: xcol\yrow\mask\val\check\val\(check&val)
 
         IF                     \ Bit already set!!!
-          #cvio d1+!
-          ecvio THROW       \ Constraint violation detected
+          ecvio THROW          \ Constraint violation detected
         THEN
 
         \ xcol\yrow\mask\val\check\val
@@ -517,7 +527,6 @@ $1000 , $2000 , $4000 , $8000 ,
         ?DUP IF
           SWAP update-spot
         ELSE
-          #zgcv d1+!
           ezgcv THROW       \ Zero grid cell value detected
         THEN
       THEN
@@ -558,8 +567,7 @@ $1000 , $2000 , $4000 , $8000 ,
       2DUP AND \ srow-addr\mask\val\check\val\(check&val)
 
       IF                       \ Bit is already set!!!
-        #cvio d1+!
-        ecvio THROW         \ Constraint violation detected
+        ecvio THROW            \ Constraint violation detected
       THEN
 
       \ srow-addr\mask\val\check\val
@@ -588,7 +596,6 @@ $1000 , $2000 , $4000 , $8000 ,
       ?DUP IF
         OVER update-spot
       ELSE
-        #zgcv d1+!
         ezgcv THROW         \ Zero grid cell value detected
       THEN
     THEN
@@ -613,7 +620,6 @@ $1000 , $2000 , $4000 , $8000 ,
       2DUP AND \ S: scol-addr\mask\val\check\val\(check&val)
 
       IF                       \ Bit is already set!!!
-        #cvio d1+!
         ecvio THROW         \ Constraint violation detected
       THEN
 
@@ -643,8 +649,7 @@ $1000 , $2000 , $4000 , $8000 ,
       ?DUP IF
         OVER update-spot       \ S: mask\saddr
       ELSE
-        #zgcv d1+!
-        ezgcv THROW         \ Zero grid cell value detected
+        ezgcv THROW            \ Zero grid cell value detected
       THEN
     THEN
     \ S: mask\saddr
@@ -653,8 +658,8 @@ $1000 , $2000 , $4000 , $8000 ,
   2DROP ;
 
 \ We do not not have to check for inconsistencies at all.
-\ They will result in exceptions being raised by 'update-spot'.
-: reduceall ( -- | exception-triggered )
+\ They will result in exceptions being raised.
+: _reduceall ( -- | exception-triggered )
   4x4-reduce-allquads
 
   16 0 DO
@@ -662,18 +667,23 @@ $1000 , $2000 , $4000 , $8000 ,
     I DUP vert-getmask  vert-setmask
   LOOP ;
 
+: reduceall ( -- )
+  ['] _reduceall CATCH
+  DUP ezgcv = IF #zgcv d1+! THEN
+  DUP ecvio = IF #cvio d1+! THEN
+  THROW ;
+
 \ -------------------------------------------------------------
 \ Speculation.
 
 : infer ( -- success-flag )
   256                          \ '#unknown' worst case scenario
   BEGIN
-    ['] reduceall CATCH >R     \ S: unkmax R: exc# | 0
+    ['] reduceall CATCH >R    \ S: unkmax R: exc# | 0
     R@ 0<> R@ ezgcv <> AND R@ ecvio <> AND IF
       \ The exception caught is not one of ours.
       0 16 AT-XY  +cursor
-      ." infer: caught exception " R> .
-      CR QUIT
+      R> THROW
     THEN
     \ S: unkmax R: exc# | 0
     R> IF DROP FALSE EXIT THEN  \ A known exception occurred
@@ -730,9 +740,7 @@ $1000 , $2000 , $4000 , $8000 ,
 : rl- ( -- ) reclev 1-! ;
 
 : emergency-exit ( ... -- )
-  \ Drain the data stack.
-  BEGIN DEPTH WHILE DROP REPEAT
-  CR QUIT ;                    \ Clear the return stack
+  666 THROW ;                  \ Game over...
 
 : speculate ( -- success-flag )
   rl+                          \ Increment recursion level

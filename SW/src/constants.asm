@@ -235,13 +235,14 @@ EDSUDF	equ	-4	STD -- DS underflow
 ERSOVF	equ	-5	STD -- RS overflow
 ERSUDF	equ	-6	STD -- RS underflow
 ESSEGV	equ	-9	STD -- Illegal argument (CHAR FIND PICK EXECUTE)
+EDIVZR	equ	-10	STD -- Division by zero (TRAP)
 EOORNG	equ	-11	STD -- OoR error
 EUNDEF	equ	-13	STD -- ? / Undefined word
 ESTATE	equ	-14	STD -- Incorrect STATE
 ENONAM	equ	-16	STD -- Missing word (POSTPONE : CREATE)
 ENAMLN	equ	-19	STD -- Name too long
 ERONLY	equ	-20	STD -- RO word
-ENOSUP	equ	-21	STD -- IO error or TRAP (DIV0 ILOP)
+ENOSUP	equ	-21	STD -- IO error or TRAP (ILOP)
 EILCST	equ	-22	STD -- Illegal construct
 EUINTR	equ	-28	STD -- SIGINT
 ENOCRE	equ	-31	STD -- Not CREATEd
