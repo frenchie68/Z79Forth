@@ -756,10 +756,13 @@ ECLR	ldx	#ESTBOT
 	stx	ESP
 	rts
 
-FORTHIN	bsr	NCLR		Initialize the data stack
+* Clear all stacks.
+ACLR	bsr	NCLR		Initialize the data stack
 	bsr	RCLR		Initialize the return stack
 	bsr	CCLR		Initialize the control flow stack
-	bsr	ECLR		Initialize the exception stack
+	bra	ECLR		Initialize the exception stack
+
+FORTHIN	bsr	ACLR
 * Relocate '@' code to RAM and set it up as the last dictionary entry (RO).
 	ldx	#THEEND		Source address for tfm
 	ldw	#(REALEND-THEEND) Byte count for tfm
@@ -1323,8 +1326,8 @@ NDCTWKS	fdb	DPOPRA		Data stack underflow
 PRBLKIN	pshs	y
 	ldy	#HEXBUF
 	lda	#SP
-*	sta	,y+
-*	lda	#'(
+	sta	,y+
+	lda	#'(
 	sta	,y+
 	ldd	UBLK
 	jsr	HDMP4
@@ -1332,8 +1335,8 @@ PRBLKIN	pshs	y
 	sta	,y+
 	ldd	UTOIN
 	jsr	HDMP4
-*	lda	#')
-*	sta	,y+
+	lda	#')
+	sta	,y+
 	clr	,y
 	ldx	#HEXBUF
 	jsr	PUTS
@@ -1342,19 +1345,20 @@ PRBLKIN	pshs	y
 
 * Handle error condition. Error code is in B. This error code is essentially
 * an 8 bit signed exception number. We reserve the value 0 for future use.
-* If B is #EUNDEF X points to a string of length CURTOKL that has the
+* If B is #EUNDEF TOKENSP points to a string of length CURTOKL that has the
 * offending word.
 ERRHDLR ldy	,s		Invoking return address
-	pshs	x,d
+	pshs	d
 	ldx	#SANRST		Reset terminal. Implied CR (as in GNU Forth)
 	jsr	PUTS
 	RFXT	jsr,DECIMAL+10	Back to decimal BASE, for one's sanity sake!
-	puls	d,x
+	puls	d
 	cmpd	#EUNDEF		Undefined symbol?
 	bne	@ernext		No
 	tfr	d,v		Backup exception number
 	lda	#''		Begin quote
 	jsr	PUTCH
+	ldx	TOKENSP
 @psym	lda	,x+		Display undefined symbol name
 	jsr	PUTCH
 	dec	CURTOKL
@@ -1419,10 +1423,7 @@ ERRHDLR ldy	,s		Invoking return address
 	ldx	BLSTWAD
 	stx	LSTWAD		Restore LAST
 @clrano	clr	ANCMPF
-@erdon2	jsr	RCLR		Clear the return stack and
-	jsr	NCLR		the data stack and
-	jsr	CCLR		the control flow stack and
-	jsr	ECLR		the exception stack
+@erdon2	jsr	ACLR		Clear all stacks
 	jmp	INTERP
 * Unhandled positive (or zero) exception number processing.
 @uncgt	ldx	#UNCEXC		'Uncaught #' message address
@@ -4894,7 +4895,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/AE 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20260916 (C) Francois Laagel 2019'
+	fcc	'20260922 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
