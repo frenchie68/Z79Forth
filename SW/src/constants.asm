@@ -3,9 +3,11 @@
 CSSNTVE	equ	0		Words and HEX numbers are case sensitive if NZ
 SSDFEAT	equ	1		Set to 1 to enable the symbolic stack dump feat
 RELFEAT	set	1		Set to 1 to enable the reliability feature
-MCCABE	set	0		Exception support require this to be disabled
-
+MCCFEAT	set	0		McCabe cyclomatic complexity evaluator.
+*				Exception support require this to be disabled
 RTCFEAT	equ	0		Cool but the reliability feature must go...
+TCRFEAT equ	1		Tail call removal feature is enabled by default
+
 DEBUG	set	0		Enforce assertions and miscellaneous checks
 HVNMI	equ	1		NMI handler support
 HVNMI2	equ	0		NMI handler support (async input debugging)

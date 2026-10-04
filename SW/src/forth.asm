@@ -241,7 +241,7 @@ CFCARDP	rmb	1		NZ if CF card present
 CFCMMIR	rmb	1		Last CF command issued
 CFERRCD	rmb	1		and the corresponding error code
 SRCID	rmb	1		ANSI SOURCE-ID (internal only)
-	IFNE	MCCABE
+	IFNE	MCCFEAT
 CYCLO	rmb	1		McCabe cyclomatic complexity counter
 	ENDC
 SQUOTFN	rmb	1		NZ only if running WORD from S" (or .")
@@ -1343,9 +1343,11 @@ PRBLKIN	pshs	y
 	puls	y
 	jmp	PUTCR
 
-* Handle error condition. Error code is in B. This error code is essentially
-* an 8 bit signed exception number. We reserve the value 0 for future use.
-* If B is #EUNDEF TOKENSP points to a string of length CURTOKL that has the
+* Handle error condition. Error code is in D. This error code is essentially
+* a 16 bit signed exception number. A value of zero is only allowed when the
+* tail call removal feature is disabled (via 'BARF'). This intended to
+* improve observability in extremely dire circumstances.
+* If D is #EUNDEF TOKENSP points to a string of length CURTOKL that has the
 * offending word.
 ERRHDLR ldy	,s		Invoking return address
 	pshs	d
@@ -1353,6 +1355,11 @@ ERRHDLR ldy	,s		Invoking return address
 	jsr	PUTS
 	RFXT	jsr,DECIMAL+10	Back to decimal BASE, for one's sanity sake!
 	puls	d
+	IFEQ	TCRFEAT
+	ldx	#BARFMSG
+	tstd
+	beq	@perrm
+	ENDC
 	cmpd	#EUNDEF		Undefined symbol?
 	bne	@ernext		No
 	tfr	d,v		Backup exception number
@@ -1375,6 +1382,7 @@ ERRHDLR ldy	,s		Invoking return address
 	bra	@perrm2
 @ermscn	tstd
 	bge	@uncgt		Uncaught >= 0 exception
+* This is utterly wrong since exceptions on input are 16 bit wide, Oh well...
 	ldx	#ERRMTBL	Regular error handling. Scan for B error code
 	incb
 @nxterr	beq	@perrm
@@ -1383,7 +1391,7 @@ ERRHDLR ldy	,s		Invoking return address
 	incb
 	bra	@nxterr
 @perrm	jsr	PUTS		Print error message
-@perrm2	bsr	PRBLKIN		Print BLK and >IN values (in hex)
+@perrm2	jsr	PRBLKIN		Print BLK and >IN values (in hex)
 @dmptos	tfr	y,d		Dump top of the system stack contents
 	IFNE	SSDFEAT
 	pshs	d
@@ -1632,7 +1640,7 @@ EMPTYB	clrd			The following cannot fail so it's OK to clear
 @clrflg	sta	BOFLAGS,x	Clear the 'flag' field
 	rts
 
-	IFNE	MCCABE
+	IFNE	MCCFEAT
 MCC	fcb	3		Non-standard
 	fcc	'MCC'		( -- mcc ) Returns the cyclomatic complexity
 	fdb	EBUFS		of the latest compiled word
@@ -1642,16 +1650,16 @@ MCC	fcb	3		Non-standard
 	tfr	d,x
 	leax	1,x		1 + number of BNE opcodes generated
 	jmp	NPUSH
-	ENDC			MCCABE
+	ENDC			MCCFEAT
 
 *******************************************************************************
 THROW	fcb	5		ANSI (Exception)
 	fcc	'THROW'		( k*x n -- k*x | i*x n )
-	IFNE	MCCABE
+	IFNE	MCCFEAT
 	fdb	MCC
 	ELSE
 	fdb	EBUFS
-	ENDC			MCCABE
+	ENDC			MCCFEAT
 	RFCS
 	jsr	NPOP
 	tfr	x,d
@@ -1737,9 +1745,26 @@ CELLP	fcb	5		ANSI (Core)
 	stx	,u		In place TOS update
 	rts
 
+*******************************************************************************
+* Non-standard direct access to the error handler. We directly THROW zero.
+* This is only enabled when tail call removal is disbled (TCRFEAT is zero).
+	IFEQ	TCRFEAT
+BARF	fcb	4
+	fcc	'BARF'
+	fdb	CELLP
+	clrd
+	jsr	ERRHDLR		No return
+	nop
+	ENDC
+
+*******************************************************************************
 SAVBUF	fcb	12		ANSI (Block)
 	fcc	'SAVE-BUFFERS'	( -- )
+	IFNE	TCRFEAT
 	fdb	CELLP
+	ELSE
+	fdb	BARF
+	ENDC
 	RFCS
 	ldx	#BUF0
 	bsr	WBIFDRT
@@ -2249,9 +2274,9 @@ QDO	fcb	$C3		ANSI (Core ext)
 	RFCS
 	ldx	#QDOEX
 	jsr	EMXASXT		Compile "JSR QDOEX"
-	IFNE	MCCABE
+	IFNE	MCCFEAT
 	inc	CYCLO		Update MCC counter
-	ENDC			MCCABE
+	ENDC			MCCFEAT
 * The rest of this code looks very much like IF, except that 1 is not pushed
 * to the control flow stack to indicate an IF. This is done later on when
 * the RAKE code is executed by LOOP.
@@ -2290,9 +2315,9 @@ DO	fcb	$C2		ANSI (Core)
 	RFCS
 	ldx	#DOEX
 	jsr	EMXASXT		Compile "JSR DOEX"
-	IFNE	MCCABE
+	IFNE	MCCFEAT
 	inc	CYCLO		Update MCC counter
-	ENDC			MCCABE
+	ENDC			MCCFEAT
 	tfr	0,x		ANS:do-sys/addr (?DO-orig) is 0 for DO
 	jsr	CPUSH
 	tfr	y,x		ANS:do-sys/type (DO-dest) is HERE
@@ -2421,9 +2446,9 @@ IF	fcb	$C2		ANSI (Core)
 	jsr	EMXASXT		Compile "JSR NPOP"
 	ldd	#BNEOPC
 	std	,y++		Compile "BNE *+5"
-	IFNE	MCCABE
+	IFNE	MCCFEAT
 	inc	CYCLO		Update MCC counter
-	ENDC			MCCABE
+	ENDC			MCCFEAT
 	bra	AHEAD1
 
 * Functionally equivalent to:
@@ -2745,9 +2770,9 @@ AGAIN1	lda	#JMPOPC		JMP extended
 	jsr	VARCON2
 	sty	DICEND
 	dec	BALNCD
-	IFNE	MCCABE
+	IFNE	MCCFEAT
 	inc	CYCLO		Update MCC counter
-	ENDC			MCCABE
+	ENDC			MCCFEAT
 	rts
 
 * The standard does not require this as being immediate but I do.
@@ -2756,6 +2781,7 @@ EXIT	fcb	$C4		ANSI (Core)
 	fdb	AGAIN
 	RFCS
 	ldx	DICEND
+	IFNE	TCRFEAT
 	leax	-3,x
 	ldy	JSRLAST
 	cmpr	y,x
@@ -2764,6 +2790,7 @@ EXIT	fcb	$C4		ANSI (Core)
 	sta	,x
 	rts
 @noopt	leax	3,x		Point back to HERE
+	ENDC			TCRFEAT
 	lda	#RTSOPC		RTS inherent
 	sta	,x+
 	stx	DICEND
@@ -3043,9 +3070,9 @@ COMPC1	ldd	#-1
 	sta	USTATE+1
 	comd			0 to D
 	sta	BALNCD
-	IFNE	MCCABE
+	IFNE	MCCFEAT
 	sta	CYCLO		Initialize cyclomatic complexity counter
-	ENDC			MCCABE
+	ENDC			MCCFEAT
 	std	JSRLAST
 	std	FWDREF
 	tst	ANCMPF		Anonymous compilation?
@@ -3084,6 +3111,7 @@ COMPR	fcb	$C1		ANSI (Core)
 @wasano	clr	ANCMPF
 	jsr	NPUSH		Anonynous execution token to the data stack
 @cont	ldx	DICEND		HERE to Xreg
+	IFNE	TCRFEAT
 	ldd	JSRLAST
 	beq	@rtsreq		Case #1 applies
 	ldy	FWDREF
@@ -3100,6 +3128,7 @@ COMPR	fcb	$C1		ANSI (Core)
 	lda	#JMPOPC
 	sta	,y
 	bra	@finalz
+	ENDC			TCRFEAT
 @rtsreq	lda	#RTSOPC		RTS inherent
 	sta	,x+
 @finalz	stx	DICEND		Update HERE
@@ -4895,7 +4924,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/AE 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20260922 (C) Francois Laagel 2019'
+	fcc	'20261004 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
@@ -4961,6 +4990,10 @@ ERRMTBL	fcn	'ABORT'			-1
 * Allocated against the standard specification...
 	fcn	'>IN OoR'		-32
 	fcn	'ES ovf'		-33
+
+	IFEQ	TCRFEAT
+BARFMSG	fcn	'BARF'
+	ENDC
 
 * A-list used for numeric literal base prefixes. Standard material only.
 BASALST	fcc	'$'		Hexadecimal prefix
