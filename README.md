@@ -6,7 +6,7 @@ of caution.
 
 In particular, it relies on yet unpublished GAL equations
 for the CPU board, the IO board, not to mention a yet to
-be specified CompactFlasg interface.
+be specified CompactFlash interface.
 
 In other words, this is work in progress which, of course,
 does not mean it does not have my full time attention and
