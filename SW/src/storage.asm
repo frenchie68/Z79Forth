@@ -157,7 +157,7 @@ CF1SRD	lda	CFSTATR
 	rts
 IOERR	ldb	#ENOSUP		IO error
 	jsr	SYSTHR8		No return
-CFR1SRA	nop			For symbolic stack dump debugging purposes
+* CFR1SRA	equ	*	For symbolic stack dump debugging purposes
 
 * Write one sector. The LBA parameters are assumed to have been set previously.
 * On input X points to the sending (at least 512 bytes long) buffer.
@@ -194,9 +194,8 @@ CF1BPRE	jsr	CFWAIT
 * 2,s has the target block number
 * 4,s has the buffer base address
 CF1BKRD	tst	CFCARDP
-	bne	@ctnued
-	bra	IOERR		Card not present--CF subsystem not initialized
-@ctnued bsr	CF1BPRE
+	beq	IOERR		Card not present--CF subsystem not initialized
+	bsr	CF1BPRE
 	ldb	#CFRSCTS	Issue a "Read sectors" CF command
 	jsr	CFCMDIS
 	ldx	4,s		Target buffer address to X
@@ -209,9 +208,8 @@ CF1BKRD	tst	CFCARDP
 * 2,s has the target block number
 * 4,s has the buffer base address
 CF1BKWR	tst	CFCARDP
-	bne	@ctnued
-	bra	IOERR		Card not present--CF subsystem not initialized
-@ctnued	bsr     CF1BPRE
+	beq	IOERR		Card not present--CF subsystem not initialized
+	bsr     CF1BPRE
 	ldb	#CFWSCTS	Issue a "Write sectors" CF command
 	jsr	CFCMDIS
 	ldx	4,s		Source buffer address to X

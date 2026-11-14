@@ -50,7 +50,7 @@ CR .( *** Start of String word tests) CR
 
 \ begin Z79Forth/A glue code.
 
-: $" POSTPONE S" ; IMMEDIATE
+: $" ['] S" EXECUTE ; IMMEDIATE
 
 \ end Z79Forth/A glue code.
 

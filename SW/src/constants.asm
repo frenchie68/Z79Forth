@@ -1,12 +1,12 @@
 * Begin tunable parameters section.
 
 CSSNTVE	equ	0		Words and HEX numbers are case sensitive if NZ
-SSDFEAT	equ	1		Set to 1 to enable the symbolic stack dump feat
+SSDFEAT	equ	1		Symbolic stack dump is enabled by default
 RELFEAT	set	1		Set to 1 to enable the reliability feature
-MCCFEAT	set	0		McCabe cyclomatic complexity evaluator.
+MCCFEAT	equ	0		McCabe cyclomatic complexity evaluator
 *				Exception support require this to be disabled
 RTCFEAT	equ	0		Cool but the reliability feature must go...
-TCRFEAT equ	1		Tail call removal feature is enabled by default
+TCRFEAT	equ	1		Tail call removal feature is enabled by default
 
 DEBUG	set	0		Enforce assertions and miscellaneous checks
 HVNMI	equ	1		NMI handler support
@@ -39,7 +39,7 @@ ROMSTRT	equ	$E000
 VECTBL	equ	$FFF0
 
 * Base address for global variables (direct page addressed).
-VARSPC	equ	$100
+VARSPC	equ	(RAMSTRT+$100)
 
 * The 74HCT138 (U7) IO address decoder maps one 1 KB area per usable device.
 DEV0	equ	$C000		Compact Flash memory module (optional)
@@ -115,7 +115,7 @@ BDIRTY	equ	4		Block has been marked for update
 BLKSIZ	equ	2*CFSCSZ	Block size is 2 CF sectors (1 KB)
 * Buffer field offsets.
 * BOTERM is deprecated in the ANS94 implementation.
-*BOTERM	equ	BLKSIZ	Base buffer to the 'term' field offset
+*BOTERM	equ	BLKSIZ		Base buffer to the 'term' field offset
 BOFLAGS	equ	BLKSIZ+1	Base buffer to the 'flags' field offset
 BOBLKNO	equ	BLKSIZ+2	Base buffer to the 'blknum' field offset
 
