@@ -1,7 +1,7 @@
 \ ANSI Miscellaneous primitives for Z79Forth
 
 : CHARS ;      : CHAR+ 1+ ;
-: ALIGNED ;
+: ALIGNED ;    : ALIGN ;
 
 \ Stolen from GNU Forth--literally!
 \ This works, although I do not fully understand why or how!!!

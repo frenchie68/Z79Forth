@@ -390,8 +390,14 @@ RAMFAIL	ldb	#128		Busy waiting between consecutive probes
 	ldx	#RAMFM
 	bra	INIT		Here we go again
 
+* Initialize the system stack pointer and the direct page base address register.
+RAMOK	tfr	x,s
+	lda	#VARSPC/256
+	tfr	a,dp
+	SETDP	VARSPC/256
+
 * RAM Initialization to all $C7 if DEBUG mode is enabled else zeroes.
-RAMOK	ldx	#RAMSTRT
+	ldx	#RAMSTRT
 	leay	1,x
 	ldw	#RAMSIZE-1
 	IFNE	DEBUG
@@ -401,12 +407,6 @@ RAMOK	ldx	#RAMSTRT
 	clr	,x
 	ENDC			DEBUG
 	tfm	x+,y+		Ye old Z80/LDIR trick
-
-* Initialize the system stack pointer and the direct page base address register.
-	lds	#RAMSTRT+RAMSIZE
-	lda	#VARSPC/256
-	tfr	a,dp
-	SETDP	VARSPC/256
 
 * Serial buffer parameters initialization. We are doing this here because
 * PUTS requires prior software flow control initialization.
@@ -520,7 +520,7 @@ COMPLRA	jsr	BKIN2PT		Derive X from BLK, >IN
 	stx	TOKENEP
 	bra	_INTERP		Branch back to the interpreter
 @notimd	tfr	y,x
-	bsr	EMXASXT		Emit X as an execution token
+	jsr	EMXASXT		Emit X as an execution token
 @cmpdon	ldx	TOKENEP
 	bra	_INTERP
 @cmpnum	jsr	NUMCVT
@@ -538,18 +538,6 @@ NMCVCRA	equ	*
 	jsr	LITER		MSC
 	leau	4,u		2DROP
 	bra	@cmpdon
-
-* Emit (in a code generation understanding) X as an execution token.
-* In essence, this simply inserts JSR <X> at HERE.
-* Note: this code provides support for trailing JSR elimination.
-* On input: X has the target execution token.
-* On output: Y will have HERE, A will be altered, X will be preserved.
-EMXASXT	ldy	DICEND
-	sty	JSRLAST		JSRLAST points to the latest JSR code emission
-	lda	#JSROPC		JSR extended
-	jsr	VARCON2		Compile a JSR to the execution token
-	sty	DICEND
-	rts
 
 * Derive UTOIN from D's current value. D is altered.
 U2INFRD	subd	BSBFADR
@@ -1128,24 +1116,32 @@ LWMNRA	equ	*		LOCWRT missing word name return address
 	pulsw
 	rts
 
-* Compile 'ldx	#X; jsr NPUSH'.
-* DICEND is updated and returned in Y.
-LITER	ldy	DICEND
-	lda	#LDXOPC		LDX immediate
-	bsr	VARCON2
-	lda	#JSROPC		JSR extended
-	sty	JSRLAST		JSRLAST points to the latest JSR code emission
-	bsr	VARCON1
-	sty	DICEND
-	rts
-
 * Compile 'jmp	NPUSH'.
 * Y points to the end of the dictionary on entry and on exit.
 VARCON	lda	#JMPOPC		JMP extended
 VARCON1	ldx	#NPUSH
 VARCON2	sta	,y+
 	stx	,y++
+	sty	DICEND		Update HERE
 	rts
+
+* Compile 'ldx	#X; jsr NPUSH'.
+* DICEND is updated and returned in Y.
+LITER	ldy	DICEND
+	lda	#LDXOPC		LDX immediate
+	bsr	VARCON2		Compile LDX #X
+	ldx	#NPUSH		Set NPUSH as action component
+*				Fallthru!
+
+* Emit (in a code generation understanding) X as an execution token.
+* In essence, this simply inserts JSR <X> at HERE.
+* Note: this code provides support for trailing JSR elimination.
+* On input: X has the target execution token.
+* On output: Y will have HERE, A will be altered, X will be preserved.
+EMXASXT	ldy	DICEND
+	sty	JSRLAST		JSRLAST points to the latest JSR code emission
+	lda	#JSROPC		JSR extended
+	bra	VARCON2		Compile a JSR to the execution token
 
 * Used by U<, U>, <, >.
 CMP2	jsr	MIN2PST		At least 2 cells must be stacked up
@@ -1351,8 +1347,7 @@ PRBLKIN	pshs	y
 	clr	,y
 	ldx	#HEXBUF
 	jsr	PUTS
-	puls	y
-	jmp	PUTCR
+	puls	y,pc		RTS implied
 
 * Handle error condition. Error code is in D. This error code is essentially
 * a 16 bit signed exception number. A value of zero is only allowed when the
@@ -1402,7 +1397,8 @@ ERRHDLR ldy	,s		Invoking return address
 	incb
 	bra	@nxterr
 @perrm	jsr	PUTS		Print error message
-@perrm2	jsr	PRBLKIN		Print BLK and >IN values (in hex)
+@perrm2	bsr	PRBLKIN		Print BLK and >IN values (in hex)
+	jsr	PUTCR
 @dmptos	tfr	y,d		Dump top of the system stack contents
 	IFNE	SSDFEAT
 	pshs	d
@@ -1686,11 +1682,9 @@ SYSTHR8	sex			Sign extension Breg to Dreg
 
 * Exception number is in D. Route it to ERRHDLR or to the user code just
 * following the latest call to CATCH, depending on the state of the exception
-* stack. Preserve X and D before resorting to ERRHDLR (unhandled exception).
-SYSTHRO	pshs	x
-	ldx	ESP		The exception stack pointer
+* stack. Preserve D before resorting to ERRHDLR (unhandled exception).
+SYSTHRO	ldx	ESP		The exception stack pointer
 	cmpx	#ESTBOT
-	puls	x		This does not affect CCreg
 	lbeq	ERRHDLR		Stack is empty, invoke the default handler
 * At this point we need to return control just after the latest call to CATCH.
 	orcc	#FFLAG		Disable FIRQ
@@ -2028,18 +2022,10 @@ LIST	fcb	4		ANSI (Block ext)
 	bne	@loop
 	rts
 
-* This is supposed to align HERE (DICEND), presumably on a cell boundary.
-* We have no such constraint on the 6309.
-ALIGN	fcb	5		ANSI Core
-	fcc	'ALIGN'		( -- )
-	fdb	LIST
-	RFCS
-	rts
-
 * Convert a single cell to a double.
 STOD	fcb	3		ANSI Core
 	fcc	'S>D'		( n -- d )
-	fdb	ALIGN
+	fdb	LIST
 	RFCS
 	jsr	NPOP		N to X
 	UCNPUSH			Push back low order cell
@@ -2118,21 +2104,18 @@ LITERAL	fcb	$87		ANSI (Core)
 	RFCS
 	jsr	NPOP
 	tst	USTATE+1
-	bne	@comp
+	lbne	LITER
 	rts			The standard defines no semantics in interp mode
-@comp	ldy	DICEND
-	lda	#LDXOPC		LDX immediate
-	jsr	VARCON2		Compile LDX #X
-	sty	DICEND		Update HERE
-	ldx	#NPUSH
-	jmp	EMXASXT		Set NPUSH as action component
 
 * Functionally: : CONSTANT CREATE , DOES> @ ;
+* I give up on monitoring CONSTANT changes. They are, in fact, indistiguishable
+* from VALUEs. The 79-STANDARD (master branch) could do it, at a great cost
+* in code size and with no concerns for VALUEs whatsoever.
 CONS	fcb	8		ANSI (Core)
 	fcc	'CONSTANT'	Comp: ( x "<spaces>name" -- )
 	fdb	LITERAL		Exec: ( -- x )
 	RFCS
-	RFXT	jsr,CREATE+9
+	RFXT	bsr,CREATE+9
 	RFXT	jsr,COMMA+4
 	bsr	DOESEX
 	jmp	RAMFTCH		XT for the RAM resident '@'
@@ -2352,7 +2335,6 @@ LOOP1	jsr	EMXASXT
 	jsr	CPOP		ANS:do-sys/type (DO-dest): loop begin. addr.
 	lda	#JMPOPC
 	jsr	VARCON2		Compile "JMP DO-dest"
-	sty	DICEND
 	sty	FWDREF		Last recorded forward reference
 * RAKE: Y has HERE, which all (if any) LEAVE forward references
 * should resolve to.
@@ -2779,7 +2761,6 @@ AGAIN	fcb	$C5		ANSI (Core ext)
 	sty	JSRLAST
 AGAIN1	lda	#JMPOPC		JMP extended
 	jsr	VARCON2
-	sty	DICEND
 	dec	BALNCD
 	IFNE	MCCFEAT
 	inc	CYCLO		Update MCC counter
@@ -3209,10 +3190,10 @@ EXCT	fcb	7		ANSI (Core)
 	fdb	MARKER
 	RFCS
 	jsr	NPOP		Although the standard does not specify that
-	bne	@gotox		a NUL address should trigger an error, I do
-	ldb	#ESSEGV		Illegal argument
+	beq	@flsegv		a NUL address should trigger an error, I do
+	tfr	x,pc		Branch to the XT--not good for observability!
+@flsegv	ldb	#ESSEGV		Illegal argument
 	jsr	SYSTHR8		No return
-@gotox	tfr	x,pc		Branch to the XT--not good for observability!
 
 BYE	fcb	3		ANSI (Programming tools ext)
 	fcc	'BYE'
@@ -3803,7 +3784,7 @@ DOT	fcb	1		ANSI (Core)
 	lda	#1
 	sta	CVISSGN		Force a signed number conversion
 PTOP0	jsr	NPOP		N to X
-	jsr	CVNSTR
+PTOP1	jsr	CVNSTR		This EP is for handling LOAD exceptions
 	ldx	#TBUFF
 	lda	#SP
 @ptop1	cmpa	,x+		Skip leading spaces
@@ -3979,13 +3960,27 @@ LOAD1	jsr	SAVINP		Save input parameters. X is preserved
 	std	ISLEN		Set input stream length
 	clrd
 	sta	SRCID		Not invoked in EVALUATE context
+* Entry point from EVALUATE.
 LOAD2	std	UTOIN		Clear >IN
 	std	ISEADDR		End of input stream address (excluded)
 * Map the new BLK in, interpret code from there.
 	RFXT	ldx,#TERPRET+12	XT for INTERPRET
 	jsr	NPUSH		to the data stack
 	RFXT	jsr,CATCH+8	['] INTERPRET CATCH
-	jsr	RSTINP		Restore input parameters
+* Check for NZ exception on TOS and log it, should it have occurred.
+	ldx	,u		Was an exception thrown during INTERPRET?
+	beq	@load3		No
+	jsr	PUTCR
+	ldx	#LDEXMSG	'LOAD exception: '
+	jsr	PUTS
+        lda	#1
+	sta	CVISSGN		Conversion is signed
+	ldx	,u		X has the thrown exception number (from TOS)
+	jsr	PTOP1
+	lda	#BS
+	jsr	PUTCH		Emit backspace, for cosmetic reasons
+	jsr	PRBLKIN
+@load3	jsr	RSTINP		Restore input parameters
 	jsr	BKIN2PT		Map BLK in (if needed) and update BSBFADR
 * We need to throw back the caught exception (if any) before returning.
 	RFXT	jmp,THROW+8	Observability concerns here
@@ -4019,7 +4014,7 @@ THRU	fcb	4		ANSI (Block ext)
 	rts
 @cont	pshs	x,y		Backup loop parameters
 	UCNPUSH			Current block number to the data stack
-	RFXT	bsr,LOAD+7	XT for LOAD
+	RFXT	jsr,LOAD+7	XT for LOAD
 	puls	y,x		Retrieve loop parameters
 	leax	1,x		Iterate over to the next screen
 	bra	@thrlop
@@ -4956,7 +4951,7 @@ BOOTMSG	fcb	CR,LF
 	fcc	'Z79Forth/AE 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20261114 (C) Francois Laagel 2019'
+	fcc	'20261118 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM	fcc	'RAM OK: 32 KB'
@@ -4985,6 +4980,9 @@ UNCEXC	fcn	'Uncaught #'
 * Error messages for IODZHDL.
 IOPERRM	fcn	'ILOP@'
 DV0ERRM	fcn	'DIV0@'
+
+* LOAD Exception handling.
+LDEXMSG	fcn	'LOAD exception: '
 
 * A note about the weirdness of ABORT" (-2). If caught, no message is
 * displayed. If uncaught, a user defined message is displayed...
