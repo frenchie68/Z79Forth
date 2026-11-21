@@ -14,7 +14,8 @@
 * benchmarking code (see https://theultimatebenchmark.org/); Gerry Jackson and
 * Steve R. Palmer (see https://github.com/gerryjackson/forth2012-test-suite)
 * for selected bits and pieces of the Forth2012 test suite
-* (see https://forth-standard.org/). Ruvim Pinka provided expertise on the
+* (see https://forth-standard.org/). Leon Wagner helped me with proper input
+* stream handling in exception context. Ruvim Pinka provided expertise on the
 * nitty-gritty details of a correct POSTPONE implementation.
 *
 * This is a native Forth. Not a threaded interpretive implementation.
@@ -398,7 +399,6 @@ RAMOK	tfr	x,s
 
 * RAM Initialization to all $C7 if DEBUG mode is enabled else zeroes.
 	ldx	#RAMSTRT
-	leay	1,x
 	ldw	#RAMSIZE-1
 	IFNE	DEBUG
 	lda	#ILLOPC
@@ -406,6 +406,7 @@ RAMOK	tfr	x,s
 	ELSE
 	clr	,x
 	ENDC			DEBUG
+	leay	1,x
 	tfm	x+,y+		Ye old Z80/LDIR trick
 
 * Serial buffer parameters initialization. We are doing this here because
@@ -426,6 +427,7 @@ RAMOK	tfr	x,s
 	ldx	#RAMOKM
 	jsr	PUTS
 
+* Need to call FORTHIN before PTOP1!!!
 	jsr	FORTHIN		Global variables initialization
 
 	IFNE	DEBUG
@@ -3967,6 +3969,8 @@ LOAD2	std	UTOIN		Clear >IN
 	RFXT	ldx,#TERPRET+12	XT for INTERPRET
 	jsr	NPUSH		to the data stack
 	RFXT	jsr,CATCH+8	['] INTERPRET CATCH
+	tst	SRCID
+	bne	@load3		No logging if we're back from EVALUATE
 * Check for NZ exception on TOS and log it, should it have occurred.
 	ldx	,u		Was an exception thrown during INTERPRET?
 	beq	@load3		No
