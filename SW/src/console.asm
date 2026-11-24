@@ -51,10 +51,17 @@ FIRQHDL	pshs	x,d
 	lda	SERBDEQ
 	sta	SERBENQ
 	clr	SERBCNT		Serial input buffer has been emptied
-	ldy	1,s		Saved PC from the FIRQ stack
-	ldx	#ERRHD1
-	stx	1,s		Execution continues in the error handler
-	ldb	#3		with ABORT error code passed through B
+* We have an FIRQ stack here: PC\CC and we want to insert the original
+* return address below it before performing an RTI. The RTI PC address needs
+* to be #SYSTHR8. Essentially, we're shifting up the system stack by two bytes,
+* while keeping the original return address on the system stack for debugging
+* purposes.
+	leas	-2,s
+	lda	2,s		Original CC
+	sta	,s
+	ldx	#SYSTHR8	Execution continues in the exception dispatcher
+	stx	1,s		User level return address for RTI
+	ldb	#EUINTR		EUINTR error code is passed through B
 	rti
 @outngo	clra
 	bra	@sxmsta
@@ -94,13 +101,19 @@ GETCH	pshs	x,d
 	sta	SERBDEQ
 	puls	d,x,pc		Same as it ever was (RTS implied)
 
+* BL EMIT is such a common thing...
+PUTSP	pshs	a
+	lda	#SP
+	bsr	PUTCH
+	puls	a,pc
+
 PUTCH	pshs	b
 	ldb	#ACITDRE
 @tdrdrn	bitb	ACIACTL
 	beq	@tdrdrn		Drain the transmit data register
 @wfxon	tst	XMITOK		Software flow control on output
 	beq	@wfxon		Wait for XON
-	sta	ACIADAT         Transmit data
+	sta	ACIADAT		Transmit data
 	puls	b,pc		RTS implied
 
 * Send NUL terminated string pointed to by X to the ACIA.

@@ -14,7 +14,9 @@
 * benchmarking code (see https://theultimatebenchmark.org/); Gerry Jackson and
 * Steve R. Palmer (see https://github.com/gerryjackson/forth2012-test-suite)
 * for selected bits and pieces of the Forth2012 test suite
-* (see https://forth-standard.org/).
+* (see https://forth-standard.org/). Leon Wagner helped me with proper input
+* stream handling in exception context. Ruvim Pinka provided expertise on the
+* nitty-gritty details of a correct POSTPONE implementation.
 *
 * This is a native Forth. Not a threaded interpretive implementation.
 * Worth noticing is the fact that the return stack does not hold return
@@ -55,9 +57,9 @@
 * BCSOPC	$2503	BCS *+5	(relative) Used in LOOP, +LOOP
 * BNEOPC	$2603	BNE *+5	(relative) Used in ?DO, IF, UNTIL
 *
-* On error, the system stack pointer is reset. The return stack pointer also is.
-* The data stack will be cleared as well since it is used as the control flow
-* stack. ABORT and QUIT enforce their own ANS94 standard behaviour.
+* On error (uncaught exception), all stacks will be cleared, BASE will be set to
+* decimal and the system stack pointer (Sreg) will be reset.
+* ABORT ABORT" and QUIT enforce their own ANS94 standard behaviour.
 *
 * RESTRICT is non-standard. It comes from GNU Forth (VolksForth). The " OK"
 * non-prompt string also does, by the way. Thanks to Anton Ertl for his terse
@@ -182,7 +184,8 @@ RFCS	MACRO	NOEXPAND
 * Global pointers.
 RSP	rmb	2		The return stack pointer
 CSP	rmb	2		The control flow stack pointer
-QUAD	rmb	4		Need for 2SWAP on the control flow stack
+ESP	rmb	2		The exception stack pointer
+QUAD	rmb	4		Needed for CSROL1 on the control flow stack
 TOKENSP	rmb	2		Token start pointer (STRS)
 TOKENEP	rmb	2		Token end pointer (STRE)
 LSTWAD	rmb	2		Last defined word header pointer--LAST
@@ -204,13 +207,14 @@ BSBFADR	rmb	2		Base buffer address for the input stream
 UBASE	rmb	2		Base for numbers input and output--BASE
 USTATE	rmb	2		0 if interpreting, 255 if compiling--STATE
 ISLEN	rmb	2		Input stream length
-ISEADDR	rmb	2		End of input stream address (included)
+ISEADDR	rmb	2		End of input stream address (excluded)
 UTOIN	rmb	2		User variable for >IN
 UBLK	rmb	2		User variable for BLK
 USCR	rmb	2		User variable for SCR (output for LIST)
 TIKSHI	rmb	2		RTC clock ticks updated on FIRQ
 TIKSLOW	rmb	2		RTC clock ticks updated on FIRQ
 RAMEND	rmb	2		RAMSTRT + RAM size in bytes
+
 	IFNE	DEBUG
 CCREG	rmb	2		A DEBUG variable for predicates (see CMP2)
 	ENDC			DEBUG
@@ -241,7 +245,9 @@ CFCARDP	rmb	1		NZ if CF card present
 CFCMMIR	rmb	1		Last CF command issued
 CFERRCD	rmb	1		and the corresponding error code
 SRCID	rmb	1		ANSI SOURCE-ID (internal only)
+	IFNE	MCCFEAT
 CYCLO	rmb	1		McCabe cyclomatic complexity counter
+	ENDC			MCCFEAT
 SQUOTFN	rmb	1		NZ only if running WORD from S" (or .")
 
 * Serial buffer parameters. Queing happens on FIRQ.
@@ -252,11 +258,17 @@ SERBCNT	rmb	1		Buffer byte count
 XMITOK	rmb	1		Software flow control on output flag
 SERBUF	rmb	SERBSZ		The actual buffer
 
+TBUFF	rmb	TBUFSZ		Output for CVNSTR
+HEXBUF	rmb	HEXBFSZ
+CMDBUF	rmb	CMDBFSZ
+
 PADBUF	rmb	PADBSZ		PAD lives here.
 APADBUF	rmb	PADBSZ		Alternate PAD here. Used by <#, #, #S, #>
 
 * The normal (data) stack.
 	align	2
+* Overflow area for exception processing.
+	rmb	2		2 bytes for the uncaught exception number
 NSTTOP	equ	*		U's value when the data stack is full
 	rmb	NSTKSZ
 NSTBOT	equ	*		U's value when the data stack is empty
@@ -271,10 +283,10 @@ CSTTOP	equ	*
 	rmb	CSTKSZ
 CSTBOT	equ	*
 
-CMDBUF	rmb	CMDBFSZ
-HEXBUF	rmb	HEXBFSZ
-
-TBUFF	rmb	TBUFSZ		Output for CVNSTR
+* The exception stack.
+ESTTOP	equ	*
+	rmb	ESTKSZ
+ESTBOT	equ	*
 
 	align	16
 BUF0	rmb	BLKSIZ+4
@@ -298,31 +310,39 @@ WDICSPC	equ	*
 *******************************************************************************
 * ROM code begins.
 
-	org	ROMSTRT+$200
+	org	ROMSTRT+$200	One guard page and the IO page
+
 * Trap handler: division by zero or illegal opcode. See page 4-10 of "The 6309
 * Book" for a description of interrupt stacks in native 6309 mode.
-IODZHDL	bitmd	#$40		Illegal opcode?
-	beq	@iodzh1
-	ldx	#IOPERRM
-	bra	@iodzh2
-@iodzh1	bitmd	#$80		Division by zero?
-	beq	@iodzh3		And you may ask yourself, well
-*				How did I get here?
-	ldx	#DV0ERRM	Division by zero it is!
-@iodzh2 jsr	PUTS
+IODZHDL	ldx	#DV0ERRM	Assume division by zero TRAP
+	ldb	#EDIVZR		"Division by zero" error code
+	bitmd	#$80		Division by zero?
+	bne	@reslvd
+	bitmd	#$40		Illegal opcode...
+	ldx	#IOPERRM	...is the only other possibility
+	ldb	#ENOSUP		"Operation not supported" error code
+@reslvd	stb	2,s		Pass error code to SYSTHR8 (via B)
+	jsr	PUTS
 	ldd	12,s		Return code address (PC)
 	ldy	#HEXBUF
-	jsr	HDMP4	
+	jsr	HDMP4
 	ldx	#HEXBUF
 	jsr	PUTS
-	jsr	PUTCR
-	ldx	#ERRHD1
-	stx	12,s		Resume execution in the error handler
-	ldx	#IODZHDL
-	stx	8,s		With Y set to IODZHDL
-	lda	#3		And user ABORT error code
-	sta	2,s		Passed back through B
-@iodzh3	rti
+	jsr	PUTSP
+
+* Observability: preserve the user return address in the system stack.
+* This is similar to what we do in FIRQ/@sigint, except that the interrupt
+* stack is much deeper.
+* Note: not preserving W is safe in this context.
+	tfr	s,x		Source address
+	leas	-2,s		One extra cell on the system stack
+	tfr	s,u		Destination address
+	ldw	#14		Block length in bytes
+	tfm	x+,u+		Memory move
+
+	ldx	#SYSTHR8
+	stx	12,s		Resume execution in the exception dispatcher
+	rti
 
 SWI3HDL	equ	*
 SWI2HDL	equ	*
@@ -362,9 +382,7 @@ RAMCHK	ldx	#RAMSTRT
 	leax	2,x
 	bra	@ramch1
 @ramend	cmpx	#RAMSTRT	End of RAM reached
-	beq	RAMFAIL
-	tfr	x,v		Preserve RAMEND before we wipe out everything
-	bra	RAMOK
+	bne	RAMOK
 
 RAMFAIL	ldb	#128		Busy waiting between consecutive probes
 @ramf1	ldy	#$8000
@@ -375,10 +393,15 @@ RAMFAIL	ldb	#128		Busy waiting between consecutive probes
 	ldx	#RAMFM
 	bra	INIT		Here we go again
 
+* Initialize the system stack pointer and the direct page base address register.
+RAMOK	tfr	x,s
+	lda	#VARSPC/256
+	tfr	a,dp
+	SETDP	VARSPC/256
+
 * RAM Initialization to all $C7 if DEBUG mode is enabled else zeroes.
-RAMOK	ldx	#RAMSTRT
-	leay	1,x
-	tfr	v,w		Provisional RAMEND to W
+	tfr	x,w		Provisional RAMEND to W
+	ldx	#RAMSTRT
 	subr	x,w		Academic but RAMSTRT may be NZ
 	decw			W has actual RAM size minus one byte
 	IFNE	DEBUG
@@ -387,15 +410,9 @@ RAMOK	ldx	#RAMSTRT
 	ELSE
 	clr	,x
 	ENDC			DEBUG
+	leay	1,x
 	tfm	x+,y+		Ye old Z80/LDIR trick
-	tfr	v,d
-	std	RAMEND		Committed at long last
-
-* Initialize the system stack pointer and the direct page base address register.
-	tfr	d,s
-	lda	#VARSPC/256
-	tfr	a,dp
-	SETDP	VARSPC/256
+	sty	RAMEND		Committed at long last
 
 * Serial buffer parameters initialization. We are doing this here because
 * PUTS requires prior software flow control initialization.
@@ -412,10 +429,11 @@ RAMOK	ldx	#RAMSTRT
 	lda	#1		Initialize software flow control on output
 	sta	XMITOK
 
-	jsr	FORTHIN		Global variables initialization
-
 	ldx	#RAMOKM1
 	jsr	PUTS
+
+* Need to call FORTHIN before PTOP1!!!
+	jsr	FORTHIN		Global variables initialization
 
 * We want the actual (probed) RAM size printed here
 	ldx	RAMEND
@@ -426,8 +444,7 @@ RAMOK	ldx	#RAMSTRT
 	tfr	a,b
 	clra
 	tfr	d,x		RAM KB size count to X
-	jsr	NPUSH
-	jsr	PTOP0		All this jazz just to skip leading spaces...
+	jsr	PTOP1		All this jazz just to skip leading spaces...
 
 	ldx	#RAMOKM2
 	jsr	PUTS		The ' KB' suffix
@@ -461,7 +478,7 @@ INTERP	clrd
 	bsr	_INTERP
 MINTLRA	bra	INTERP
 
-* The interpreter itself.
+* The interpreter itself, as a subroutine.
 _INTERP	jsr	SCNSTOK		Scan for the beginning of a word at address X
 	beq	@oeistr		This is the end
 	tst	USTATE+1	We do ignore the upper byte
@@ -480,13 +497,13 @@ NMCVIRA	equ	*
 @done	rts			We're done here
 @feedbk	ldx	#OKFEEDB	Provide OK feedback
 	tst	USTATE+1	No OK feedback if we're compiling, just CRLF
-	beq	@fullfb
+	beq	@okfb
 	leax	3,x		Skip the ' OK' string when compiling
-@fullfb	jmp	PUTS		Back to whoever invoked us
+@okfb	jmp	PUTS		Back to whoever invoked us
 @exec	lda	DEFFLG
 	beq	@introk		Compilation only flag is not set
-	ldb	#6		Incorrect STATE
-	jsr	ERRHDLR		No return
+	ldb	#ESTATE		Incorrect STATE
+	jsr	SYSTHR8		No return
 INTISRA	equ	*		For symbolic stack debugging purposes
 @introk	bsr	WIEN2IN		Ask Vienna for its opinion about >IN
 	ldx	#INTRPRA	The return address
@@ -524,7 +541,7 @@ COMPLRA	jsr	BKIN2PT		Derive X from BLK, >IN
 	stx	TOKENEP
 	bra	_INTERP		Branch back to the interpreter
 @notimd	tfr	y,x
-	bsr	EMXASXT		Emit X as an execution token
+	jsr	EMXASXT		Emit X as an execution token
 @cmpdon	ldx	TOKENEP
 	bra	_INTERP
 @cmpnum	jsr	NUMCVT
@@ -542,18 +559,6 @@ NMCVCRA	equ	*
 	jsr	LITER		MSC
 	leau	4,u		2DROP
 	bra	@cmpdon
-
-* Emit (in a code generation understanding) X as an execution token.
-* In essence, this simply inserts JSR <X> at HERE.
-* Note: this code provides support for trailing JSR elimination.
-* On input: X has the target execution token.
-* On output: Y will have HERE, A will be altered, X will be preserved.
-EMXASXT	ldy	DICEND
-	sty	JSRLAST		JSRLAST points to the latest JSR code emission
-	lda	#JSROPC		JSR extended
-	jsr	VARCON2		Compile a JSR to the execution token
-	sty	DICEND
-	rts
 
 * Derive UTOIN from D's current value. D is altered.
 U2INFRD	subd	BSBFADR
@@ -762,9 +767,18 @@ CCLR	ldx	#CSTBOT
 	stx	CSP
 	rts
 
-FORTHIN	bsr	NCLR		Initialize the data stack
+* Clear the exception stack.
+ECLR	ldx	#ESTBOT
+	stx	ESP
+	rts
+
+* Clear all stacks.
+ACLR	bsr	NCLR		Initialize the data stack
 	bsr	RCLR		Initialize the return stack
 	bsr	CCLR		Initialize the control flow stack
+	bra	ECLR		Initialize the exception stack
+
+FORTHIN	bsr	ACLR
 * Relocate '@' code to RAM and set it up as the last dictionary entry (RO).
 	ldx	#THEEND		Source address for tfm
 	ldw	#(REALEND-THEEND) Byte count for tfm
@@ -799,10 +813,10 @@ ISERCHD	pshs	d
 	std	ISEADDR
 @cont	cmpr	x,d		CC = (D - X)
 	puls	d
-	blo	@inpovf
+	blo	@inoor
 	rts
-@inpovf	ldb	#18		>IN Out of range
-	jsr	ERRHDLR		No return
+@inoor	ldd	#EINOOR		>IN Out of range
+	jsr	ERRHDLR		An uncatchable exception. No return
 
 * Scan for the next non-space character pointed to by X.
 * Return with ZFLAG set if an end of input stream condition is recognized,
@@ -927,20 +941,21 @@ NUMCVT	clr	ISNEGF		Assume the result is positive
 * Single cell number adjustments.
 @ncadj	ldd	,u++		MSC Should be zero
 	beq	@cvsnok
-	ldb	#4		Out of range error if not
-	jsr	ERRHDLR		No return
+	bsr	RSBSPFX		Restore BASE if a prefix was specified
+	ldb	#EOORNG		Out of range error if not
+	jsr	SYSTHR8		No return
 @cvsnok	tst	ISNEGF		Are we dealing with a negative number?
 	beq	RSBSPFX		No. Restore BASE if needed--the end
 	RFXT	jsr,NEGATE+9	Acknowledge the negativity
 	bra	RSBSPFX		Restore BASE if needed--the end
 @ncnogo	leau	4,u		Drop two cells from the data stack
+	bsr	RSBSPFX		Restore BASE if a prefix was specified
 	lda	SVCTOKL
 	sta	CURTOKL		Restore CURTOKL's original value
 	ldx	TOKENSP		Beginning address of the current token
-	ldb	#2		Undefined (X points to the offending word)
-	jsr	ERRHDLR		No return
+	ldb	#EUNDEF		Undefined (X points to the offending word)
+	jsr	SYSTHR8		No return
 NUMCVRA	equ	*		For symbolic stack dump purposes
-	nop
 
 * Restore BASE if a numeric literal BASE prefix was detected.
 * X is to be preserved at all cost!
@@ -950,8 +965,9 @@ RSBSPFX	lda	BASBKUP
 @theend	rts
 
 * Convert number stored in X to a string (depending on BASE value).
-* Output is stored in the global TBUFF buffer. X is preserved.
-CVNSTR	clr	ISNEGF
+* Output is stored in the global TBUFF buffer. X and W are preserved.
+CVNSTR	pshsw
+	clr	ISNEGF
 	tfr	x,d
 	tst	CVISSGN		Are we to perform a signed conversion?
 	beq	@cvnst1
@@ -983,6 +999,7 @@ CVNSTR	clr	ISNEGF
 	ldb	#SP
 @cvnst5	cmpy	#TBUFF
 	bne	@cvnst6
+	pulsw
 	rts
 @cvnst6	stb	,-y
 	bra	@cvnst5
@@ -1067,8 +1084,8 @@ LOCWRT	pshsw
 	IFNE	DEBUG
 	cmpx	#ROMSTRT
 	bcs	@locwr0
-	ldb	#10		Assertion failure (trying to write to ROM!)
-	jsr	ERRHDLR		No return
+	ldb	#ERONLY		Assertion failure (trying to write to ROM!)
+	jsr	SYSTHR8		No return
 LWAFRA	equ	*
 @locwr0
 	ENDC			DEBUG
@@ -1078,8 +1095,8 @@ LWAFRA	equ	*
 	jsr	BKIN2PT		Derive X from BLK, >IN
 	jsr	SCNSTOK		Locate token starting address
 	bne	@locwr1
-	ldb	#5		EOIS condition recognized: missing word name
-	jsr	ERRHDLR		No return
+	ldb	#ENONAM		EOIS condition recognized: missing word name
+	jsr	SYSTHR8		No return
 LWMNRA	equ	*		LOCWRT missing word name return address
 @locwr1	jsr	SCNETOK		X has TOKENEP, B has CURTOKL
 	ldy	TOKENSP
@@ -1089,8 +1106,8 @@ LWMNRA	equ	*		LOCWRT missing word name return address
 	lda	1,s		Word length LSB in the system stack
 	cmpa	#1+WRLNMSK	Max word length is 31, 79-STANDARD compliant
 	blo	@locwr2
-	ldb	#16		Word name is too long
-	jsr	ERRHDLR		No return
+	ldb	#ENAMLN		Word name is too long
+	jsr	SYSTHR8		No return
 @locwr2	sta	,x+		Word length to dictionary
 	ldw	,s++		16-bit word length to W
 	exg	x,y		Y points to the dictionary, X has TOKENSP
@@ -1120,24 +1137,32 @@ LWMNRA	equ	*		LOCWRT missing word name return address
 	pulsw
 	rts
 
-* Compile 'ldx	#X; jsr NPUSH'.
-* DICEND is updated and returned in Y.
-LITER	ldy	DICEND
-	lda	#LDXOPC		LDX immediate
-	bsr	VARCON2
-	lda	#JSROPC		JSR extended
-	sty	JSRLAST		JSRLAST points to the latest JSR code emission
-	bsr	VARCON1
-	sty	DICEND
-	rts
-
 * Compile 'jmp	NPUSH'.
 * Y points to the end of the dictionary on entry and on exit.
 VARCON	lda	#JMPOPC		JMP extended
 VARCON1	ldx	#NPUSH
 VARCON2	sta	,y+
 	stx	,y++
+	sty	DICEND		Update HERE
 	rts
+
+* Compile 'ldx	#X; jsr NPUSH'.
+* DICEND is updated and returned in Y.
+LITER	ldy	DICEND
+	lda	#LDXOPC		LDX immediate
+	bsr	VARCON2		Compile LDX #X
+	ldx	#NPUSH		Set NPUSH as action component
+*				Fallthru!
+
+* Emit (in a code generation understanding) X as an execution token.
+* In essence, this simply inserts JSR <X> at HERE.
+* Note: this code provides support for trailing JSR elimination.
+* On input: X has the target execution token.
+* On output: Y will have HERE, A will be altered, X will be preserved.
+EMXASXT	ldy	DICEND
+	sty	JSRLAST		JSRLAST points to the latest JSR code emission
+	lda	#JSROPC		JSR extended
+	bra	VARCON2		Compile a JSR to the execution token
 
 * Used by U<, U>, <, >.
 CMP2	jsr	MIN2PST		At least 2 cells must be stacked up
@@ -1202,7 +1227,7 @@ FDCTSYM	pshs	y,x
 	blo	@fdsnwd
 	cmpr	w,y
 	bhi	@fdsnwd		An equal address is allowed here, in case
-* jsr ERRHDLR is the last instruction for the word under consideration.
+* jsr SYSTHR8 is the last instruction for the word under consideration.
 * This happens to be the case for FORGET and LPAR.
 * Y matches the code range for the current word.
 	puls	x
@@ -1267,9 +1292,7 @@ FINDSYM	pshs	y,x
 	puls	y,pc		RTS implied
 
 * Non-dictionary well known symbols.
-NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
-	fcn	'IODZHDL'
-	fdb	DPOPRA		Data stack underflow
+NDCTWKS	fdb	DPOPRA		Data stack underflow
 	fcn	'DPOPRA'
 	fdb	DPSHRA		Data stack overflow
 	fcn	'DPSHRA'
@@ -1277,8 +1300,10 @@ NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
 	fcn	'RPOPRA'
 	fdb	RPSHRA		Return stack overflow
 	fcn	'RPSHRA'
-	fdb	ERRHDLR		Error handler
-	fcn	'ERRHDLR'
+* SYSTHRO is never visible 'an sich' (except when disassembling 'THROW') since,
+* when the default handler (ERRHDLR) is involved, it will start a symbolic
+* stack dump from the address following the corresponding 'jsr SYSTHR8' return
+* address.
 	fdb	CKDPTRA		Not enough parameters supplied
 	fcn	'CKDPTRA'
 	fdb	CHKNDPT		Check data stack minimum depth
@@ -1304,8 +1329,10 @@ NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
 	fcn	'EMXASXT'
 	fdb	LWMNRA		Missing word name in LOCWRT
 	fcn	'LWMNRA'
-	fdb	CFR1SRA		CF read one sector failed
-	fcn	'CFR1SRA'
+*	fdb	CFR1SRA		CF read one sector failed
+*	fcn	'CFR1SRA'
+	fdb	INTISRA		Incorrect STATE
+	fcn	'INTISRA'
 	fdb	NPUSH		Not an error RA but useful to have as a symbol
 	fcn	'NPUSH'
 	fdb	RPUSH		Not an error RA but useful to have as a symbol
@@ -1314,11 +1341,9 @@ NDCTWKS	fdb	IODZHDL		Illegal opcode/Division by zero trap handler
 	fcn	'NPOP'
 	fdb	RPOP		Not an error RA but useful to have as a symbol
 	fcn	'RPOP'
-	fdb	PUTS		Not an error RA but useful to have as a symbol
-	fcn	'PUTS'
 	IFNE	DEBUG
 	fdb	LWAFRA		Assertion failure in LOCWRT
-	fcn	'LOCWRTAF'
+	fcn	'LWAFRA'
 	ENDC
 	fdb	0		End of list
 	fcn	'???'		Admit we have no clue!
@@ -1343,39 +1368,58 @@ PRBLKIN	pshs	y
 	clr	,y
 	ldx	#HEXBUF
 	jsr	PUTS
-	puls	y
-	jmp	PUTCR
+	puls	y,pc		RTS implied
 
-* Handle error condition. Error code is in B.
-* If B is 2 (undefined) X points to a string of length CURTOKL that has the
+* Handle error condition. Error code is in D. This error code is essentially
+* a 16 bit signed exception number. A value of zero is only allowed when the
+* tail call removal feature is disabled (via 'BARF'). This intended to
+* improve observability in extremely dire circumstances.
+* If D is #EUNDEF TOKENSP points to a string of length CURTOKL that has the
 * offending word.
 ERRHDLR ldy	,s		Invoking return address
-* In case of a trap return, we enter here with Y set to #IODZHDL
-ERRHD1	pshs	x
-	ldx	#SANRST		Implied CR here (as in GNU Forth)
+	pshs	d
+	ldx	#SANRST		Reset terminal. Implied CR (as in GNU Forth)
 	jsr	PUTS
-	puls	x
-	cmpb	#2		Undefined symbol?
-	bne	@ermscn		No
+	RFXT	jsr,DECIMAL+10	Back to decimal BASE, for one's sanity sake!
+	puls	d
+	IFEQ	TCRFEAT
+	ldx	#BARFMSG
+	tstd
+	beq	@perrm
+	ENDC
+	cmpd	#EUNDEF		Undefined symbol?
+	bne	@ernext		No
+	tfr	d,v		Backup exception number
 	lda	#''		Begin quote
 	jsr	PUTCH
+	ldx	TOKENSP
 @psym	lda	,x+		Display undefined symbol name
 	jsr	PUTCH
 	dec	CURTOKL
 	bne	@psym
 	lda	#''		End quote
 	jsr	PUTCH
-	lda	#SP		BL EMIT
-	jsr	PUTCH
-@ermscn	ldx	#ERRMTBL	Regular error handling. Scan for B error code
-@nxterr	tstb
-	beq	@perrm
+	jsr	PUTSP		BL EMIT
+	tfr	v,d		Restore exception number
+@ernext	cmpd	#EABRTQ		ABORT" called?
+	bne	@ermscn
+* We have a caddr\len string on the top of the data stack. Print it instead
+* of the ABORT" default message. Then move on to PRBLKIN.
+	RFXT	jsr,TYPE+7	xt for TYPE
+	bra	@perrm2
+@ermscn	tstd
+	bge	@uncgt		Uncaught >= 0 exception
+* This is utterly wrong since exceptions on input are 16 bit wide, Oh well...
+	ldx	#ERRMTBL	Regular error handling. Scan for B error code
+	incb
+@nxterr	beq	@perrm
 	lda	,x+		Scan for the next error message
 	bne	*-2
-	decb
+	incb
 	bra	@nxterr
 @perrm	jsr	PUTS		Print error message
-	bsr	PRBLKIN		Print BLK and >IN values (in hex)
+@perrm2	bsr	PRBLKIN		Print BLK and >IN values (in hex)
+	jsr	PUTCR
 @dmptos	tfr	y,d		Dump top of the system stack contents
 	IFNE	SSDFEAT
 	pshs	d
@@ -1401,12 +1445,12 @@ ERRHD1	pshs	x
 	leas	2,s		Point to the next item on the stack
 @wastrp	cmps	RAMEND
 	bhs	@errdon		We're done here
-	ldy	,s
+@altent	ldy	,s		We might enter here from an uncaught exception
 	bra	@dmptos
 @errdon	lds	RAMEND
 	tst	USTATE+1	We do ignore the upper byte
 	beq	@erdon2		No pointers to restore if we were interpreting
-* We were compiling: clear STATE; restore DICEND and LSTWAD, if not :NONAME.
+* We were compiling: clear STATE; restore DICEND and, LSTWAD if not :NONAME
 	clr	USTATE+1	Switch back to interpretation mode
 	ldx	BDICEND		Restore essential pointers from backups
 	stx	DICEND		Restore HERE
@@ -1415,58 +1459,57 @@ ERRHD1	pshs	x
 	ldx	BLSTWAD
 	stx	LSTWAD		Restore LAST
 @clrano	clr	ANCMPF
-@erdon2	jsr	RCLR		Clear the return stack and
-	jsr	NCLR		the data stack and
-	jsr	CCLR		the control flow stack
-	RFXT	jsr,DECIMAL+10	Back to decimal BASE, for one's sanity sake!
+@erdon2	jsr	ACLR		Clear all stacks
 	jmp	INTERP
+* Unhandled positive (or zero) exception number processing.
+@uncgt	ldx	#UNCEXC		'Uncaught #' message address
+	jsr	PUTS
+	std	,--u		Ugly: requires a data stack overflow area
+	RFXT	jsr,DOT+4
+	jsr	PUTCR
+	bra	@altent		Restore Y (altered by DOT/CVNSTR)
+*				and proceed to symbolic stack dump
 
 *******************************************************************************
 * Data stack primitives.
 
 * Push X to the data stack (boundary is checked).
 NPUSH	cmpu	#NSTTOP
-	bls	@npush1		Anything <= than #NSTTOP indicates overflow
+	bls	@npush1		Anything <= than #NSTTOP indicates an overflow
 	pshu	x		Aka UCNPUSH
 	rts
-@npush1	clrb			Data stack overflow
-	jsr	ERRHDLR		No return
+@npush1	ldb	#EDSOVF		Data stack overflow
+	jsr	SYSTHR8		No return
 DPSHRA	equ	*
-	nop			Meant to insulate NPUSH errors from NPOP's EP
+	nop			Observability: insulate this from NPOP
 
 * Pull X from the data stack (boundary is checked).
 * D, W and Y are preserved.
 NPOP	cmpu	#NSTBOT
-	bhs	@npop1		Anything >= than #NSTBOT indicates underflow
+	bhs	@npop1		Anything >= than #NSTBOT indicates an underflow
 	pulu	x
-	cmpr	0,x		Update CC based on the outcome
+	cmpr	0,x		Essential: update CC based on the outcome
 	rts
-@npop1	ldb	#1		Data stack underflow
-	jsr	ERRHDLR		No return
+@npop1	ldb	#EDSUDF		Data stack underflow
+	jsr	SYSTHR8		No return
 DPOPRA	equ	*
 
 *******************************************************************************
 * Return stack primitives.
 
 * Eval RDEPTH (return stack depth cell count) based on the value of RSP.
-* Return computed value in A. CC will be set depending on the result of ASRD.
-* Preserve B and all other registers.
-*
-EVRDPTH	pshs	d		Make debugging a little bit easier
-	ldd	#RSTBOT
+* Return computed value in D.
+EVRDPTH	ldd	#RSTBOT
 	subd	RSP
-* TODO: panic on a negative outcome. This is unlikely but possible
-* since RSP can be altered directly by user level code.
 	asrd			Byte count to cell count
-* TODO: panic if D U> #RSTKSZ/2.
-	tfr	cc,a
-	stb	,s		A's value upon return. This affects CC
-	tfr	a,cc
-	puls	d,pc		this does not (RTS implied)
+	rts
+
+* Master caution here: both QDOEX and PLOPEX expect Y to be preserved.
+* They really should not!!!
 
 * Push X to the return stack (boundary is checked).
-RPUSH	bsr	EVRDPTH		RDEPTH in cells to A
-	cmpa	#RSTKSZ/2	But RSTKZ is expressed in bytes
+RPUSH	bsr	EVRDPTH		RDEPTH in cells to Dreg
+	cmpd	#RSTKSZ/2	But RSTKZ is expressed in bytes
 	beq	@rpush1
 	tfr	y,v
 	ldy	RSP
@@ -1474,13 +1517,14 @@ RPUSH	bsr	EVRDPTH		RDEPTH in cells to A
 	sty	RSP
 	tfr	v,y
 	rts
-@rpush1	ldb	#7		Return stack overflow
-	jsr	ERRHDLR		No return
+@rpush1	ldb	#ERSOVF		Return stack overflow
+	jsr	SYSTHR8		No return
 RPSHRA	equ	*
-	nop			Meant to insulate RPUSH errors from RPOP's EP
+	nop			Observability: insulate this from RPOP
 
 * Pull X from the return stack (boundary is checked).
-RPOP	bsr	EVRDPTH		RDEPTH in cells to A
+RPOP	bsr	EVRDPTH		RDEPTH in cells to Dreg
+	tstd
 	beq	@rpop1
 	tfr	y,v
 	ldy	RSP
@@ -1488,12 +1532,14 @@ RPOP	bsr	EVRDPTH		RDEPTH in cells to A
 	sty	RSP
 	tfr	v,y
 	rts
-@rpop1	ldb	#8		Return stack underflow
-	jsr	ERRHDLR		No return
+@rpop1	ldb	#ERSUDF		Return stack underflow
+	jsr	SYSTHR8		No return
 RPOPRA	equ	*
 
 *******************************************************************************
 * Control flow stack primitives. No introspection support.
+* XXX Does Y need to be preseved?
+* XXX Do we need CC to be updated based on the outcome of CPOP?
 
 * Push X to the control flow stack (boundary is checked).
 CPUSH	pshs	y
@@ -1504,8 +1550,8 @@ CPUSH	pshs	y
 	sty	CSP
 	puls	y,pc		RTS implied
 CPUSH1	* leas 2,s		Drop Y from the system stack
-	ldb	#9		Illegal construct
-	jsr	ERRHDLR		No return
+	ldb	#EILCST		Illegal construct
+	jsr	SYSTHR8		No return
 
 * Pull X from the control flow stack (boundary is checked).
 CPOP	pshs	y
@@ -1523,8 +1569,8 @@ CPOP	pshs	y
 BALCHK	tst	BALNCD
 	bne	BALERR
 	rts
-BALERR	ldb	#9		Illegal construct
-	jsr	ERRHDLR		No return
+BALERR	ldb	#EILCST		Illegal construct
+	jsr	SYSTHR8		No return
 
 *******************************************************************************
 * Save/restore input.
@@ -1540,7 +1586,7 @@ SAVINP	pshs	x
 	ldx	UTOIN
 	bsr	RPUSH		Push >IN on the return stack
 	ldx	ISLEN
-	bsr	RPUSH		Push ISLEN on the return stack
+	jsr	RPUSH		Push ISLEN on the return stack
 	puls	x,pc		RTS implied
 
 RSTINP	bsr	RPOP
@@ -1594,8 +1640,8 @@ BKIN2PT	pshs	y
 CHKNDPT	cmpr	d,u
 	bhi	@stkudf
 	rts
-@stkudf	ldb	#1		Data stack underflow
-	jsr	ERRHDLR		No return
+@stkudf	ldb	#EDSUDF		Data stack underflow
+	jsr	SYSTHR8		No return
 CKDPTRA	equ	*
 
 * Parameter stack depth checking primitives.
@@ -1619,27 +1665,26 @@ EBUFS	fcb	13		ANSI (Block ext)
 EMPTYB	clrd			The following cannot fail so it's OK to clear
 	std	MRUBUFA		the most recently used buffer address now
 	ldx	#BUF0
-	bsr	@empt1b
+	bsr	@clrflg
 	ldx	#BUF1
-* Empty the buffer pointed to by X. D is zero upon entering this routine.
-@empt1b	leax	BOTERM,x	Buffer offset to the terminator field
-	std	,x		Clear terminator and flags fields
+@clrflg	sta	BOFLAGS,x	Clear the 'flag' field
 	rts
 
-DIOPG	fcb	6
+DIOPG	fcb	6		Non-standard. MECB specific
 	fcc	'IOPAGE'
 	fdb	EBUFS
 	RFCS
 	ldx	#IOSTRT
 	jmp	NPUSH
 
-DRAME	fcb	6
+DRAME	fcb	6		Non-standard. MECB specific
 	fcc	'RAMEND'
 	fdb	DIOPG
 	RFCS
 	ldx	RAMEND
 	jmp	NPUSH
 
+	IFNE	MCCFEAT
 MCCABE	fcb	3		Non-standard
 	fcc	'MCC'		( -- mcc ) Returns the cyclomatic complexity
 	fdb	DRAME		of the latest compiled word
@@ -1649,10 +1694,16 @@ MCCABE	fcb	3		Non-standard
 	tfr	d,x
 	leax	1,x		1 + number of BNE opcodes generated
 	jmp	NPUSH
+	ENDC			MCCFEAT
 
+	IFEQ	0		XXX Material to be moved to CF
 ALIGND	fcb	7		ANSI Core
 	fcc	'ALIGNED'	( addr -- a-addr )
+	IFNE	MCCFEAT
 	fdb	MCCABE
+	ELSE
+	fdb	DRAME
+	ENDC			MCCFEAT
 	RFCS
 	bra	MIN1PST		At least one cell must be stacked up
 
@@ -1662,20 +1713,114 @@ CHARS	fcb	5		ANSI Core
 	fdb	ALIGND
 	RFCS
 	bra	MIN1PST		At least one cell must be stacked up
+	ENDC			XXX Material to be moved to CF
+
+*******************************************************************************
+THROW	fcb	5		ANSI (Exception)
+	fcc	'THROW'		( k*x n -- k*x | i*x n )
+	fdb	CHARS
+	RFCS
+	jsr	NPOP
+	tfr	x,d
+	tstd			0 exception number?
+	bne	SYSTHRO		if not, we continue execution in SYSTHRO
+	rts			just EXIT if 'n' is 0
+
+* Compatibility entry point for 8 bit system generated exceptions.
+* Note: Breg never is zero if we enter via this inferface.
+SYSTHR8	sex			Sign extension Breg to Dreg
+
+* Exception number is in D. Route it to ERRHDLR or to the user code just
+* following the latest call to CATCH, depending on the state of the exception
+* stack. Preserve D before resorting to ERRHDLR (unhandled exception).
+SYSTHRO	ldx	ESP		The exception stack pointer
+	cmpx	#ESTBOT
+	lbeq	ERRHDLR		Stack is empty, invoke the default handler
+* At this point we need to return control just after the latest call to CATCH.
+	orcc	#FFLAG		Disable FIRQ
+	bsr	EPOP		Does not affect Dreg or Yreg
+	tfr	x,s		Restore Sreg
+	bsr	EPOP
+	stx	RSP		E> rp!
+	bsr	EPOP
+	tfr	x,u		E> sp!
+	andcc	#^FFLAG		Re-enable FIRQ
+	tfr	d,x
+	jmp	NPUSH		Exception number to the data stack
+
+*******************************************************************************
+* Exception stack primitives. No introspection support.
+
+* Push X to the exception stack (boundary is checked).
+EPUSH	pshs	y
+	ldy	ESP
+	cmpy	#ESTTOP
+	bls	@esterr
+	stx	,--y
+@eflush	sty	ESP
+	puls	y,pc
+@esterr	ldd	#EESOVF
+	jsr	ERRHDLR		An uncatchable exception. No return
+* Pull X from the exception stack (boundary is not checked).
+EPOP	pshs	y
+	ldy	ESP
+	ldx	,y++
+	bra	@eflush
+
+*******************************************************************************
+CATCH	fcb	$5		ANSI (Exception)
+	fcc	'CATCH'		( i*x xt -- j*x 0 | i*x n )
+	fdb	THROW
+	RFCS
+	jsr	MIN1PST		Make sure at least 'xt' is stacked up
+* Save exception frame.
+	orcc	#FFLAG		Disable FIRQ
+	leax	2,u
+	bsr	EPUSH		sp@ CELL+ >E (omit 'xt')
+	ldx	RSP
+	bsr	EPUSH		rp@ >E
+	tfr	s,x		Return address pointer if uncaught
+	bsr	EPUSH		Sreg >E
+	andcc	#^FFLAG		Re-enable FIRQ
+	RFXT	jsr,EXCT+10	xt for EXECUTE
+* Normal execution in the absence of exceptions.
+	orcc	#FFLAG		Disable FIRQ
+	bsr	EPOP		E> DROP (original Sreg)
+	bsr	EPOP		E> DROP (original rp@)
+	bsr	EPOP		E> DROP (original sp@)
+	andcc	#^FFLAG		Re-enable FIRQ
+	tfr	0,x
+	jmp	NPUSH		"No problemo" indication to DS
 
 CELLP	fcb	5		ANSI (Core)
 	fcc	'CELL+'		( a-addr1 -- a-addr2 )
-	fdb	CHARS
+	fdb	CATCH
 	RFCS
 	jsr	MIN1PST		We need at least one cell stacked up
-	ldd	,u
-	addd	#2
-	std	,u
+	ldx	,u
+	leax	2,x
+	stx	,u		In place TOS update
 	rts
 
+*******************************************************************************
+* Non-standard direct access to the error handler. We directly THROW zero.
+* This is only enabled when tail call removal is disabled (TCRFEAT is zero).
+	IFEQ	TCRFEAT
+BARF	fcb	4
+	fcc	'BARF'
+	fdb	CELLP
+	clrd
+	jsr	ERRHDLR		No return
+	ENDC			TCRFEAT
+
+*******************************************************************************
 SAVBUF	fcb	12		ANSI (Block)
 	fcc	'SAVE-BUFFERS'	( -- )
+	IFNE	TCRFEAT
 	fdb	CELLP
+	ELSE
+	fdb	BARF
+	ENDC			TCRFEAT
 	RFCS
 	ldx	#BUF0
 	bsr	WBIFDRT
@@ -1683,9 +1828,8 @@ SAVBUF	fcb	12		ANSI (Block)
 * Write buffer back to mass storage if marked as dirty.
 * The dirty bit is cleared but the buffer contents itself is not.
 * The buffer will continue to be marked as "in use."
-* On input X has has the base buffer address. D, X and Y are all preserved.
-WBIFDRT	pshs	y,d
-	pshs	x		Base buffer address (arg1 to CF1BKWR)
+* On input X has the base buffer address. X and Y are preserved.
+WBIFDRT	pshs	y,x		X has the buffer address (arg1 to CF1BKWR)
 	lda	#BINUSE|BDIRTY
 	anda	BOFLAGS,x
 	cmpa	#BINUSE|BDIRTY
@@ -1699,8 +1843,7 @@ WBIFDRT	pshs	y,d
 	lda	,x		Acquire the 'flags' field
 	anda	#^BDIRTY	Clear the dirty bit
 	sta	,x		and update the 'flags' field
-@alldon	puls	x		Restore X
-	puls	d,y,pc		and D/Y (RTS implied)
+@alldon	puls	x,y,pc		Restore X (RTS implied)
 
 FLUSH	fcb	5		ANSI (Block)
 	fcc	'FLUSH'		( -- )
@@ -1725,8 +1868,8 @@ UPDATE	fcb	6		ANSI (Block)
 	sta	,x		Set the dirty bit
 @xquiet	rts
 	IFNE DEBUG
-@ncurbf	ldb	#15		No current buffer
-	jsr	ERRHDLR		No return
+@ncurbf	ldb	#ENOSUP		No current buffer
+	jsr	SYSTHR8		No return
 	ENDC			DEBUG
 
 BUFFER	fcb	6		ANSI (Block)
@@ -1756,10 +1899,10 @@ BUFFER	fcb	6		ANSI (Block)
 	ldx	#BUF1
 * At this point X has the base address of the block we are interested in
 * and Y has the target block number.
-@bselct	jsr	WBIFDRT		Write back if dirty. X, Y and D are preserved
+@bselct	jsr	WBIFDRT		Write back if dirty. X and Y are preserved
 	lda	#BINUSE
 	sta	BOFLAGS,x	Update the buffer's 'flags' field
-	sty	BOBLKNO,x	and update the 'blknum' field as well
+	sty	BOBLKNO,x	and the 'blknum' field as well
 	bra	@retba
 
 BLOCK	fcb	5		ANSI (Block)
@@ -1767,19 +1910,13 @@ BLOCK	fcb	5		ANSI (Block)
 	fdb	BUFFER
 	RFCS
 	RFXT	bsr,BUFFER+9	XT for BUFFER
-* Upon return Y has has the block number.
+* Upon return Y has has the block number. Ugly but necessary...
 	UCNPOP			Buffer base address to X
 	pshs	x		Push base buffer address as Arg1 to CF1BKRD
 	lda	BOFLAGS,x	Retrieve buffer 'flags' field
-	IFNE	DEBUG
-	bita	#BINUSE
-	bne	@blkctd
-	lda	#10		Assertion failed
-	jsr	ERRHDLR		No return
-	ENDC			DEBUG
-@blkctd	anda	#BMAPPD		Has the block been read yet?
+	anda	#BMAPPD		Has the block been read yet?
 	bne	@bkmapd		Yes
-	pshs	y		No. Push block number as arg0 to CF1BKRD
+	pshs	y		No. Push block number as Arg0 to CF1BKRD
 * Map in the block from the CF device. System stack structure is as follows:
 * ,s has the target block number.
 * 2,s has the buffer base address.
@@ -1891,8 +2028,8 @@ RTCFTCH	fcb	4		Non-standard
 	clra			BYTEVAL to D
 	pshu	d		Unchecked NPUSH of D
 	rts
-RTNOCON	ldb	#17		RTC not detected on bootup -> I/O error
-	jsr	ERRHDLR		No return
+RTNOCON	ldb	#ENOSUP		RTC not detected on bootup -> I/O error
+	jsr	SYSTHR8		No return
 	ELSE
 	RFXT	jsr,DROP+7	XT for DROP
 	tfr	0,x
@@ -1921,8 +2058,8 @@ LIST	fcb	4		ANSI (Block ext)
 	RFCS
 	tst	CFCARDP
 	bne	@cont
-	ldb	#17		IO error
-	jsr	ERRHDLR		No return
+	ldb	#ENOSUP		IO error
+	jsr	SYSTHR8		No return
 @cont	RFXT	jsr,DUP+6	XT for DUP
 	RFXT	jsr,BLOCK+8	XT for BLOCK
 * TOS now has the base buffer address.
@@ -1944,18 +2081,10 @@ LIST	fcb	4		ANSI (Block ext)
 	bne	@loop
 	rts
 
-* This is supposed to align HERE (DICEND), presumably on a cell boundary.
-* We have no such constraint on the 6309.
-ALIGN	fcb	5		ANSI Core
-	fcc	'ALIGN'		( -- )
-	fdb	LIST
-	RFCS
-	rts
-
 * Convert a single cell to a double.
 STOD	fcb	3		ANSI Core
 	fcc	'S>D'		( n -- d )
-	fdb	ALIGN
+	fdb	LIST
 	RFCS
 	jsr	NPOP		N to X
 	UCNPUSH			Push back low order cell
@@ -1983,8 +2112,7 @@ CREATE	fcb	6		ANSI (Core)
 	jsr	LOCWRT		Code entry point returned to Y
 	lda	#LDXOPC		LDX immediate
 	sta	,y+
-	tfr	y,x
-	leax	8,x
+	leax	8,y
 	stx	,y++
 	lda	#JSROPC		JSR extended
 	jsr	VARCON1		Compile JSR NPUSH
@@ -2005,7 +2133,7 @@ DOES	fcb	$C5		ANSI (Core)
 	fdb	CREATE
 	RFCS
 	ldx	#DOESEX		JSR #DOESEX is compiled (no actual return)
-	jsr	EMXASXT		Set as action component. On return Y has HERE
+	jsr	EMXASXT		Set as action component. On return Yreg has HERE
 	sty	FWDREF		Support for empty DOES> clauses
 	rts
 
@@ -2021,8 +2149,8 @@ DOESEX	ldx	LSTWAD		Header of the last dictionary entry
 	lda	,x
 	cmpa	#RTSOPC		RTS inherent
 	beq	@dosex1
-	ldb	#14		No matching CREATE
-	jsr	ERRHDLR		No return
+	ldb	#ENOCRE		No matching CREATE
+	jsr	SYSTHR8		No return
 @dosex1	lda	#JMPOPC		JMP extended
 	sta	,x+		Overwrite RTS opcode
 	puls	y
@@ -2035,52 +2163,31 @@ LITERAL	fcb	$87		ANSI (Core)
 	RFCS
 	jsr	NPOP
 	tst	USTATE+1
-	bne	@comp
+	lbne	LITER
 	rts			The standard defines no semantics in interp mode
-@comp	ldy	DICEND
-	lda	#LDXOPC		LDX immediate
-	jsr	VARCON2		Compile LDX #X
-	sty	DICEND		Update HERE
-	ldx	#NPUSH
-	jmp	EMXASXT		Set NPUSH as action component
 
 * Functionally: : CONSTANT CREATE , DOES> @ ;
-* The following code produces more compact code.
+* I give up on monitoring CONSTANT changes. They are, in fact, indistiguishable
+* from VALUEs. The 79-STANDARD (master branch) could do it, at a great cost
+* in code size and with no concerns for VALUEs whatsoever.
 CONS	fcb	8		ANSI (Core)
 	fcc	'CONSTANT'	Comp: ( x "<spaces>name" -- )
 	fdb	LITERAL		Exec: ( -- x )
 	RFCS
-	jsr	NPOP
-	tfr	x,w
-	jsr	LOCWRT		Create dictionary entry
-	tfr	w,x
-	lda	#LDXOPC		ldx immediate
-	jsr	VARCON2		Compile LDX #CSTVAL
-	jsr	VARCON		Compile JMP NPUSH
-	IFNE	RELFEAT
-	bsr	CREAT1
-	RFXT	bra,MONITOR+10	XT for MONITOR
-	ELSE
-	bra	CREAT1
-	ENDC			RELFEAT
+	RFXT	bsr,CREATE+9
+	RFXT	jsr,COMMA+4
+	bsr	DOESEX
+	jmp	RAMFTCH		XT for the RAM resident '@'
 
 * Functionally: : VARIABLE CREATE 2 ALLOT ;
-* However we can save three bytes per instance with the following code.
 VARI	fcb	8		ANSI (Core)
 	fcc	'VARIABLE'	Comp: ( "<spaces>name" -- )
 	fdb	CONS		Exec: ( -- a-addr )
 	RFCS
-	jsr	LOCWRT
-	lda	#LDXOPC		ldx immediate
-	sta	,y+
-	tfr	y,w		Preserve Y (HERE)
-	leay	5,y		Relative variable address
-	tfr	y,x
-	tfr	w,y		Restore Y (HERE)
-	stx	,y++		Address field for LDX #VARADDR
-	jsr	VARCON		Compile JMP NPUSH
-	leay	2,y		2 ALLOT
-	jmp	CREAT1
+	RFXT	jsr,CREATE+9
+	ldx	#2
+	jsr	NPUSH
+	RFXT	jmp,ALLOT+8
 
 IMMED	fcb	9		ANSI (Core)
 	fcc	'IMMEDIATE'	( -- )
@@ -2100,7 +2207,6 @@ RSTRCT	fcb	8		Non-standard (GNU Forth)
 	ldb	#DEFFLM
 	bra	IMMED1
 
-* Added for better support of ANSI VALUEs.
 UNMON	fcb	9		Non-standard
 	fcc	'UNMONITOR'	( -- )
 	fdb	RSTRCT
@@ -2221,7 +2327,9 @@ QDO	fcb	$C3		ANSI (Core ext)
 	RFCS
 	ldx	#QDOEX
 	jsr	EMXASXT		Compile "JSR QDOEX"
+	IFNE	MCCFEAT
 	inc	CYCLO		Update MCC counter
+	ENDC			MCCFEAT
 * The rest of this code looks very much like IF, except that 1 is not pushed
 * to the control flow stack to indicate an IF. This is done later on when
 * the RAKE code is executed by LOOP.
@@ -2230,11 +2338,11 @@ QDO	fcb	$C3		ANSI (Core ext)
 	lda	#JMPOPC
 	sta	,y+
 	tfr	y,x
-	jsr	CSPUSH		ANS:do-sys/addr (?DO-orig) is HERE
+	jsr	CPUSH		ANS:do-sys/addr (?DO-orig) is HERE
 	leay	2,y		2 ALLOT instead of 0 ,
 	sty	DICEND
 	tfr	y,x		ANS:do-sys/type (DO-dest) is HERE
-	jsr	CSPUSH
+	jsr	CPUSH
 QDO1	clrd
 	std	RAKEVAR		Used for LEAVE forward references handling
 	inc	BALNCD
@@ -2260,11 +2368,13 @@ DO	fcb	$C2		ANSI (Core)
 	RFCS
 	ldx	#DOEX
 	jsr	EMXASXT		Compile "JSR DOEX"
+	IFNE	MCCFEAT
 	inc	CYCLO		Update MCC counter
+	ENDC			MCCFEAT
 	tfr	0,x		ANS:do-sys/addr (?DO-orig) is 0 for DO
-	jsr	CSPUSH
+	jsr	CPUSH
 	tfr	y,x		ANS:do-sys/type (DO-dest) is HERE
-	jsr	CSPUSH
+	jsr	CPUSH
 	bra	QDO1
 
 DOEX	RFXT	jsr,SWAP+7	XT for SWAP
@@ -2281,10 +2391,9 @@ LOOP	fcb	$C4		ANSI (Core)
 LOOP1	jsr	EMXASXT
 	ldx	#BCSOPC		Compile "BCS *+5"
 	stx	,y++
-	jsr	CSPOP		ANS:do-sys/type (DO-dest): loop begin. addr.
+	jsr	CPOP		ANS:do-sys/type (DO-dest): loop begin. addr.
 	lda	#JMPOPC
 	jsr	VARCON2		Compile "JMP DO-dest"
-	sty	DICEND
 	sty	FWDREF		Last recorded forward reference
 * RAKE: Y has HERE, which all (if any) LEAVE forward references
 * should resolve to.
@@ -2297,14 +2406,14 @@ LOOP1	jsr	EMXASXT
 	bra	@lopres
 @lopdon	stx	RAKEVAR
 	dec	BALNCD
-	jsr	CSPOP		ANS:do-sys/addr (?DO-orig) to X
+	jsr	CPOP		ANS:do-sys/addr (?DO-orig) to X
 	bne	@endqdo		If NZ push it back, push type 1 and call THEN
 	rts
 * End a ?DO construct with an implicit THEN.
 @endqdo	inc	BALNCD
-	jsr	CSPUSH		Push back IF jump address 
+	jsr	CPUSH		Push back IF jump address 
 	ldx	#1
-	jsr	CSPUSH		to the control flow stack with type 1 (IF)
+	jsr	CPUSH		to the control flow stack with type 1 (IF)
 	RFXT	jmp,THEN+7
 
 LOOPEX	ldx	#1
@@ -2374,9 +2483,9 @@ AHEAD1	lda	#JMPOPC
 	leay	2,y
 	sty	DICEND		2 ALLOT (instead of 0 ,)
 	inc	BALNCD
-	jsr	CSPUSH		ANS:orig/addr to the control flow stack
+	jsr	CPUSH		ANS:orig/addr to the control flow stack
 	ldx	#1		ANS:orig/type is 1
-	jmp	CSPUSH
+	jmp	CPUSH
 
 * hForth prototyping code below:
 * : IF 0branch HERE 0 ,  \ 0 is an unresolved forward reference
@@ -2389,7 +2498,9 @@ IF	fcb	$C2		ANSI (Core)
 	jsr	EMXASXT		Compile "JSR NPOP"
 	ldd	#BNEOPC
 	std	,y++		Compile "BNE *+5"
+	IFNE	MCCFEAT
 	inc	CYCLO		Update MCC counter
+	ENDC			MCCFEAT
 	bra	AHEAD1
 
 * Functionally equivalent to:
@@ -2414,8 +2525,8 @@ ELSE	fcb	$C4		ANSI (Core)
 *	RFXT	jsr,TWOSWAP+8	This should be read as "1 CS-ROLL"
 	bsr	CSROL1
 	RFXT	bra,THEN+7
-@fubar	ldb	#9
-	jmp	ERRHDLR		Illegal construct
+@fubar	ldb	#EILCST		Illegal construct
+	jmp	SYSTHR8
 * Make sure CSP has at least 4 cells stacked up.
 CSROL1	ldy	CSP
 	cmpy	#CSTBOT-8
@@ -2438,11 +2549,11 @@ THEN	fcb	$C4		ANSI (Core)
 	fcc	'THEN'		Comp: ( C: orig -- )
 	fdb	ELSE		Exec: ( -- )
 	RFCS
-	jsr	CSPOP		ANS:orig/type to X
+	jsr	CPOP		ANS:orig/type to X
 	leax	-1,x
 	lbne	BALERR		Illegal construct, type must be 1
 	ldy	DICEND
-	jsr	CSPOP		ANS:orig/addr to X
+	jsr	CPOP		ANS:orig/addr to X
 	sty	,x		Resolve forward reference to HERE
 	sty	FWDREF		Last recorded forward reference
 	dec	BALNCD
@@ -2552,14 +2663,11 @@ ZGREAT	fcb	2		ANSI (Core ext)
 	fdb	INVERT
 	RFCS
 	jsr	NPOP
-	tfr	x,d
-	tstd
-	ble	@zgrt1
-	ldx	#-1		Return the ANSI true
-	UCNPUSH
-	rts
-@zgrt1	tfr	0,x
-	UCNPUSH
+	clrd			ANSI false
+	cmpr	0,x
+	ble	ZGRT1
+ZGRT0	decd			ANSI true
+ZGRT1	std	,--u		UCNPUSH from D
 	rts
 
 ZLESS	fcb	2		ANSI (Core)
@@ -2567,29 +2675,20 @@ ZLESS	fcb	2		ANSI (Core)
 	fdb	ZGREAT
 	RFCS
 	jsr	NPOP
-	tfr	x,d
-	tstd
-	bge	@zlss1
-	ldx	#-1		Return the ANSI true
-	UCNPUSH
-	rts
-@zlss1	tfr	0,x
-	UCNPUSH
-	rts
+	clrd			ANSI false
+	cmpr	0,x
+	bge	ZGRT1
+	bra	ZGRT0		return ANSI true
 
 NULP	fcb	2		ANSI (Core)
 	fcc	'0='		( x -- flag )
 	fdb	ZLESS
 	RFCS
 	jsr	NPOP
-	tfr	x,d
-	tfr	0,x
-	tstd
-	beq	@nulp2
-@nulp1	UCNPUSH
-	rts
-@nulp2	leax	-1,x		Return the ANSI true
-	bra	@nulp1
+	clrd			ANSI false
+	cmpr	0,x
+	bne	ZGRT1
+	bra	ZGRT0		return ANSI true
 
 ZNEQ	fcb	3		ANSI (Core ext)
 	fcc	'0<>'
@@ -2703,9 +2802,9 @@ BEGIN	fcb	$C5		ANSI (Core)
 	RFCS
 	inc	BALNCD
 	ldx	DICEND		HERE is ANS:dest/addr
-	jsr	CSPUSH		to the control flow stack
+	jsr	CPUSH		to the control flow stack
 	tfr	0,x		ANS:dest/type is zero
-	jmp	CSPUSH		to the control flow stack
+	jmp	CPUSH		to the control flow stack
 
 * hForth prototyping code below:
 * : AGAIN ABORT" Unbalanced BEGIN/AGAIN construct"
@@ -2714,16 +2813,17 @@ AGAIN	fcb	$C5		ANSI (Core ext)
 	fcc	'AGAIN'		Comp: ( C: dest -- )
 	fdb	BEGIN		Exec: ( -- )
 	RFCS
-	jsr	CSPOP		ANS:dest/type to X (CC is set)
+	jsr	CPOP		ANS:dest/type to X (CC is set)
 	lbne	BALERR		type must be zero
-	jsr	CSPOP		ANS:dest/addr to X
+	jsr	CPOP		ANS:dest/addr to X
 	ldy	DICEND
 	sty	JSRLAST
 AGAIN1	lda	#JMPOPC		JMP extended
 	jsr	VARCON2
-	sty	DICEND
 	dec	BALNCD
+	IFNE	MCCFEAT
 	inc	CYCLO		Update MCC counter
+	ENDC			MCCFEAT
 	rts
 
 * The standard does not require this as being immediate but I do.
@@ -2732,6 +2832,7 @@ EXIT	fcb	$C4		ANSI (Core)
 	fdb	AGAIN
 	RFCS
 	ldx	DICEND
+	IFNE	TCRFEAT
 	leax	-3,x
 	ldy	JSRLAST
 	cmpr	y,x
@@ -2740,6 +2841,7 @@ EXIT	fcb	$C4		ANSI (Core)
 	sta	,x
 	rts
 @noopt	leax	3,x		Point back to HERE
+	ENDC			TCRFEAT
 	lda	#RTSOPC		RTS inherent
 	sta	,x+
 	stx	DICEND
@@ -2752,13 +2854,13 @@ UNTIL	fcb	$C5		ANSI (Core)
 	fcc	'UNTIL'		Comp: ( C: dest -- )
 	fdb	EXIT		Exec: (x -- )
 	RFCS
-	jsr	CSPOP		ANS:dest/type to X (CC is set)
+	jsr	CPOP		ANS:dest/type to X (CC is set)
 	lbne	BALERR		type must be zero
 	ldx	#NPOP
 	jsr	EMXASXT		Compile "JSR NPOP"
 	ldx	#BNEOPC		Compile "BNE *+5"
 	stx	,y++
-	jsr	CSPOP		ANS:dest/addr to X
+	jsr	CPOP		ANS:dest/addr to X
 	bra	AGAIN1
 
 * hForth prototyping code below:
@@ -2812,24 +2914,26 @@ LEAVE	fcb	$C5		ANSI (Core)
 	ldd	RAKEVAR
 	std	,y++		rakeVar @ ,
 	stx	RAKEVAR		HERE rakeVar !
-	sty	DICEND
+	sty	DICEND		Update HERE
 	rts
 
 INDI	fcb	$1		ANSI (Core) -- unrestricted
 	fcc	'I'		( -- n|u ) ( R:  loop-sys -- loop-sys )
 	fdb	LEAVE
 	RFCS
-	clrb
-RPICKN	jsr	EVRDPTH		RDEPTH in cells to A
-	cmpr	a,b
-	bhs	@rpick1
+	clrd
+RPICKN	pshs	d
+	jsr	EVRDPTH		RDEPTH in cells to D
+	cmpd	,s
+	bls	@rpick1
+	puls	d
 	ldx	RSP
-	clra
-	lsld			Times 2
+	lsld			Cell count to byte count
 	ldx	d,x
 	jmp	NPUSH		We cannot use UCNPUSH here
-@rpick1	ldb	#8		Return stack underflow
-	jsr	ERRHDLR		No return
+@rpick1	puls	d
+	ldb	#ERSUDF		Return stack underflow
+	jsr	SYSTHR8		No return
 
 RFETCH	fcb	$2		ANSI (Core) -- unrestricted
 	fcc	'R@'		( -- x ) ( R:  x -- x )
@@ -2841,46 +2945,47 @@ INDIP	fcb	$2		79-STANDARD (REF) -- unrestricted
 	fdb	$4927
 	fdb	RFETCH
 	RFCS
-	ldb	#1
+	ldd	#1
 	bra	RPICKN
 
 INDJ	fcb	$1		ANSI (Core) -- unrestricted
 	fcc	'J'		Exec: ( -- n|u ) ( R: lsy1 lsy2 -- lsy1 lsy2 )
 	fdb	INDIP
 	RFCS
-	ldb	#2
+	ldd	#2
 	bra	RPICKN
 
 INDJP	fcb	$2		Non-standard -- unrestricted
 	fdb	$4A27
 	fdb	INDJ
 	RFCS
-	ldb	#3
+	ldd	#3
 	bra	RPICKN
 
 INDK	fcb	$1		79-STANDARD (REF) -- unrestricted
 	fcc	'K'
 	fdb	INDJP
 	RFCS
-	ldb	#4
+	ldd	#4
 	bra	RPICKN
 
 QUIT	fcb	4		ANSI (Core)
 	fcc	'QUIT'		( -- )  ( R:  i*x -- )
 	fdb	INDK
 	RFCS
+	lds	RAMEND		Reset the system stack pointer
 	clr	USTATE+1
 	jsr	RCLR		Clear the return stack
-	lds	RAMEND		Reset the system stack pointer
 	jsr	PUTCR
 	jmp	INTERP
 
+* The stacks are cleared only if the exception is not caught...
 ABORT	fcb	5		ANSI (Core)
 	fcc	'ABORT'		( i*x -- ) ( R: j*x -- )
 	fdb	QUIT
 	RFCS
-	ldb	#3		User ABORT
-	jsr	ERRHDLR		No return
+	ldb	#EABORT		User ABORT
+	jsr	SYSTHR8		No return
 
 * Implementation notes: GNU Forth, VFX and SwiftForth all report "invalid
 * memory address" for "0 FIND". Also the counted string at c-addr is not
@@ -2893,8 +2998,8 @@ FIND	fcb	4		ANSI (Core)
 	jsr	MIN1PST
 	ldx	,u		TOS to X (Arg <c-addr>)
 	bne	@afind1
-	ldb	#13		Illegal argument
-	jsr	ERRHDLR		No return
+	ldb	#ESSEGV		Illegal argument
+	jsr	SYSTHR8		No return
 @afind1	tst	,x
 	bne	@afind3		Character count is NZ, proceed
 @afind2	tfr	0,x		Word not found
@@ -2937,11 +3042,6 @@ LBRACK	fcb	$C1		ANSI (Core)
 	clra
 	bra	RBRACK1
 
-* Functionally:
-* : ' BL WORD FIND IF
-*     EXIT                      \ XT is left on the data stack
-*   THEN
-*   DROP 0 ;
 * There is a little extra complexity here because the standard requires
 * an error condition to be triggered if the word is not found.
 TICK	fcb	1		ANSI (Core)
@@ -2949,18 +3049,21 @@ TICK	fcb	1		ANSI (Core)
 	fdb	LBRACK
 	RFCS
 	RFXT	jsr,BL+5
-	RFXT	jsr,WORD+7
+	RFXT	jsr,WORD+7	S: counted-string-addr (possibly NUL)
 	RFXT	bsr,FIND+7
 * We have at least two cells returned by the ANS94 FIND on the data stack.
 	ldd	,u		TOS to D (ANS94 FIND flag)
 	beq	@nfound		Target word was not found
 	leau	2,u		Drop the flag and return the XT
 	rts
-@nfound	leau	4,u		Drop two cells from the data stack
+@nfound	leau	4,u		2DROP
 	ldx	TOKENSP
 	jsr	SCNSTOK		Needed to skip leading spaces
-	ldb	#2		Word not found
-	jsr	ERRHDLR		No return
+	bne	@undef
+	ldb	#ENONAM		End of input stream encountered
+	jsr	SYSTHR8
+@undef	ldb	#EUNDEF		Word not found
+	jsr	SYSTHR8		No return
 
 * Functionally: : ['] ' POSTPONE LITERAL ; IMMEDIATE RESTRICT
 BKQUOT	fcb	$C3		ANSI (Core)
@@ -2971,34 +3074,56 @@ BKQUOT	fcb	$C3		ANSI (Core)
 * Data stack topmost cell has the target word address.
 	RFXT	jmp,LITERAL+10	XT for LITERAL
 
+* Prototyping code below, as an historic reference:
+* : lit, ; -1 ALLOT $7E C, ' LITERAL ,
+*
+* : exctcmp ( i*x xt -- j*x )
+*   STATE @ IF EXECUTE EXIT THEN
+*   TRUE STATE ! EXECUTE 0 STATE ! ;
+*
+* : postpone ( "name" -- )
+*   BL WORD FIND DUP 0= -13 AND THROW \ xt imd-flag
+*   1 = IF                   \ IMMEDIATE word
+*     ['] exctcmp
+*   ELSE
+*     ['] COMPILE,
+*   THEN ( xt xt-compiler )
+*   SWAP lit, COMPILE,
+* ; IMMEDIATE RESTRICT
 POSTPON	fcb	$C8		ANSI (Core) Not a straight alias to [COMPILE]
 	fcc	'POSTPONE'	( "<spaces>name" -- )
-	fdb	BKQUOT		Non-immediate words deserve special treatment
+	fdb	BKQUOT		Immediate words deserve special treatment
 	RFCS
 	jsr	BKIN2PT		Derive X from BLK, >IN
 	jsr	SCNSTOK
-	bne	@postp1
-	ldb	#5		Missing word name
-	jsr	ERRHDLR		No return
+	beq	@psperr		End of input stream detected
 @postp1	jsr	SWDIC
-	bne	@postp2		Word found. Code address returned in Y
-	ldx	TOKENSP
-	ldb	#2		Undefined (X points to the offending word)
-	jsr	ERRHDLR		No return
-@postp2	tfr	y,x		X has the actual execution token
-	tst	IMDFLG
-	beq	@postp4		Target word is not immediate
-@postp3	jsr	EMXASXT		Set as action component
-	ldd	TOKENSP		Updated by SWDIC if the word was found
-	jmp	U2INFRD		Derive >IN from D
-* The word being considered is non-immediate. The equivalent input should be:
-* ['] <word> COMPILE, We have the XT for <word> in X.
-@postp4	jsr	LITER
+	bne	@postp2
+@psperr	ldb	#EUNDEF		Missing word name
+	jsr	SYSTHR8		No return
+* Word found. Code address (XT) returned in Y.
+@postp2	ldd	TOKENSP		Updated by SWDIC if the word was found
+	jsr	U2INFRD		Derive >IN from D
+	tfr	y,x		X has the actual execution token
+	jsr	LITER		POSTPONE LITERAL (aka lit,)
 	RFXT	ldx,#CMPCOMA+11	XT for COMPILE,
-	bra	@postp3
+	tst	IMDFLG
+	beq	@postp3		Target word is non-immediate
+	ldx	#EXECCMP
+@postp3	jmp	EMXASXT		Emit jsr <x>
+
+EXECCMP	tst	USTATE+1
+	beq	*+5		We are in interpretation mode
+	RFXT	jmp,EXCT+10	XT for EXECUTE
+	lda	#-1
+	sta	USTATE+1	Force compilation semantics
+	RFXT	jsr,EXCT+10	XT for EXECUTE
+	clr	USTATE+1	Restore interpretation mode
+	rts
 
 * GNU Forth has this as non-immediate so I am going for it as well.
-CMPCOMA	fcb	$48		ANSI (Core Ext)
+* It's also unrestricted.
+CMPCOMA	fcb	$8		ANSI (Core Ext)
 	fcc	'COMPILE,'	( XT -- )
 	fdb	POSTPON
 	RFCS
@@ -3012,11 +3137,13 @@ COMPC	fcb	$1		ANSI (Core)
 	fdb	CMPCOMA
 	RFCS
 	clr	ANCMPF
-COMPC1	ldd	#-1
+COMPC1	lda	#-1
 	sta	USTATE+1
-	comd			0 to D
+	tfr	0,d		0 to D
 	sta	BALNCD
+	IFNE	MCCFEAT
 	sta	CYCLO		Initialize cyclomatic complexity counter
+	ENDC			MCCFEAT
 	std	JSRLAST
 	std	FWDREF
 	tst	ANCMPF		Anonymous compilation?
@@ -3047,35 +3174,35 @@ COMPR	fcb	$C1		ANSI (Core)
 	jsr	BALCHK		Check for unbalanced constructs
 	clr	USTATE+1	Back to interpretation mode
 * Do not restore LSTWAD if we came from :NONAME.
-	ldx	BDICEND		X has HERE when : (LOCWRT) or :NONAME was called
+	ldx	BDICEND		Xreg has HERE when : or :NONAME was called
 	tst	ANCMPF
 	bne	@wasano
 	stx	LSTWAD		Update LAST
 	bra	@cont
 @wasano	clr	ANCMPF
 	jsr	NPUSH		Anonynous execution token to the data stack
-@cont	ldx	DICEND		HERE to X
+@cont	ldx	DICEND		HERE to Xreg
+	IFNE	TCRFEAT
 	ldd	JSRLAST
 	beq	@rtsreq		Case #1 applies
 	ldy	FWDREF
 	cmpr	x,y
 	beq	@rtsreq		Case #2 applies
 * Optimization: replace the last JSR by a JMP, if possible.
-	leay	-3,x		Y has HERE - 3, D has JSRLAST
+	leay	-3,x		Yreg has HERE - 3, Dreg has JSRLAST
 	cmpr	d,y
 	bne	@rtsreq
+	ldd	1,y		Address of the last word called
+	RFXT	cmpd,#CATCH+8	Observability: we definitely do
+	beq	@rtsreq		not want CATCH to be terminal
 * Tail call optimization applies (Case #3).
 	lda	#JMPOPC
 	sta	,y
 	bra	@finalz
+	ENDC			TCRFEAT
 @rtsreq	lda	#RTSOPC		RTS inherent
 	sta	,x+
-@finalz
-	IFNE	DEBUG
-	lda	#ILLOPC		Illegal opcode
-	sta	,x+
-	ENDC			DEBUG
-	stx	DICEND		Update HERE
+@finalz	stx	DICEND		Update HERE
 	IFNE	RELFEAT
 	RFXT	jsr,MONITOR+10	XT for MONITOR. All : words are candidates
 *				for integrity check by ICHECK.
@@ -3122,10 +3249,10 @@ EXCT	fcb	7		ANSI (Core)
 	fdb	MARKER
 	RFCS
 	jsr	NPOP		Although the standard does not specify that
-	beq	@exct1		a NUL address should trigger an error, I do
-	tfr	x,pc		Branch to the XT
-@exct1	ldb	#13		Illegal argument
-	jsr	ERRHDLR		No return
+	beq	@flsegv		a NUL address should trigger an error, I do
+	tfr	x,pc		Branch to the XT--not good for observability!
+@flsegv	ldb	#ESSEGV		Illegal argument
+	jsr	SYSTHR8		No return
 
 BYE	fcb	3		ANSI (Programming tools ext)
 	fcc	'BYE'
@@ -3164,16 +3291,15 @@ CHAR	fcb	4		ANSI (Core)
 	jsr	SCNETOK
 	tfr	x,d		TOKENEP
 	jmp	U2INFRD		Derive >IN from D
-@chrerr	ldb	#13		Illegal argument
-	jsr	ERRHDLR		No return
-* No return.
+@chrerr	ldb	#ESSEGV		Illegal argument
+	jsr	SYSTHR8		No return
 
 * Hairy code but working.
 WORD	fcb	4		ANSI (Core)
 	fcc	'WORD'		( char "<chars>ccc<char>" -- c-addr )
 	fdb	CHAR
 	RFCS
-	clr	SQUOTFN		Do not skip leading delimiter(s)
+	clr	SQUOTFN		Do skip leading delimiter(s)
 WORD1	jsr	NPOP		Entry point for S"
 	tfr	x,w		F has the delimiter ASCII code
 	ldy	DICEND		The counted string returned is stored at HERE
@@ -3256,43 +3382,45 @@ PSTR	fcb	$82		ANSI (Core)
 @pstcmp	RFXT	ldx,#TYPE+7	Emit TYPE as an XT
 	jmp	EMXASXT
 
+TWOLIT	fcb	$C8		ANSI (Double)
+	fcc	'2LITERAL'	Comp: ( x1 x2 -- )
+	fdb	PSTR		Exec: ( -- x1 x2 )
+	RFCS
+	RFXT	jsr,SWAP+7
+	RFXT	jsr,LITERAL+10
+	RFXT	jmp,LITERAL+10
+
+* Functionally:
+* : S" STATE @ 0= IF [CHAR] " WORD COUNT EXIT THEN
+*   POSTPONE AHEAD
+*     [CHAR] " WORD COUNT
+*     DUP 1+ ALLOT
+*   POSTPONE THEN
+*   POSTPONE 2LITERAL ; IMMEDIATE
 SQUOTE	fcb	$82		ANSI (Core)
 	fcc	'S"'		Comp: ( "ccc<quote>" -- )
-	fdb	PSTR		Exec: ( -- c-addr u )
+	fdb	TWOLIT		Exec: ( -- c-addr u )
 	RFCS
 	lda	#1
-	sta	SQUOTFN		Do skip leading delimiter(s)
+	sta	SQUOTFN		Do not skip leading delimiter(s)
 	tst	USTATE+1
 	bne	@sqcmp
 	ldx	#'"		We are interpreting
 	jsr	NPUSH
 	jsr	WORD1
-	RFXT	jmp,COUNT+8	XT for COUNT
-@sqcmp	ldy	DICEND		We are compiling
-	lda	#JMPOPC		JMP extended
-	sta	,y+
-	pshs	y
-	leay	2,y		2 ALLOT
-	sty	DICEND
+	RFXT	jmp,COUNT+8
+@sqcmp	RFXT	jsr,AHEAD+8	We are compiling
 	ldx	#'"
 	jsr	NPUSH
 	jsr	WORD1
-	jsr	NPOP
-	clra
-	ldb	,x		C@
-	leax	1,x		1+. Skip the byte count (X has HERE)
-	leax	d,x		Skip string length material
-	puls	y
-	stx	,y		Install jump address
-	leay	2,y		Counted string base address to Y
-	lda	#LDXOPC
-	sta	,x+
-	sty	,x++
+	RFXT	jsr,COUNT+8
+	ldx	DICEND		HERE to X
+	ldd	,u		Counted string length to D
+	incd			plus one
+	leax	d,x		to X
 	stx	DICEND		Update HERE
-	ldx	#NPUSH
-	jsr	EMXASXT
-	RFXT	ldx,#COUNT+8	XT for COUNT
-	jmp	EMXASXT
+	RFXT	jsr,THEN+7	We are compiling
+	RFXT	bra,TWOLIT+11	2LITERAL
 
 DPLUS	fcb	2		ANSI (Double)
 	fcc	'D+'		( d1 d2 -- d1+d2--signed )
@@ -3523,8 +3651,8 @@ TONUMBR	fcb	7		ANSI (Core)
 	bra	@cvloop		Here we go again
 @cvdone	stx	2,u		Set C-ADDR2
 	rts
-@cvovf	ldb	#4		Out of range
-	jsr	ERRHDLR		No return
+@cvovf	ldb	#EOORNG		Out of range
+	jsr	SYSTHR8		No return
 
 CVTE	fcb	2		ANSI (Core)
 	fcc	'#>'		( xd -- c-addr u )
@@ -3715,7 +3843,7 @@ DOT	fcb	1		ANSI (Core)
 	lda	#1
 	sta	CVISSGN		Force a signed number conversion
 PTOP0	jsr	NPOP		N to X
-	jsr	CVNSTR
+PTOP1	jsr	CVNSTR		This EP is for handling LOAD exceptions
 	ldx	#TBUFF
 	lda	#SP
 @ptop1	cmpa	,x+		Skip leading spaces
@@ -3777,8 +3905,7 @@ SPACE	fcb	5		ANSI (Core)
 	fcc	'SPACE'		( -- )
 	fdb	BL
 	RFCS
-	lda	#SP
-	jmp	PUTCH
+	jmp	PUTSP		Observability concerns here
 
 SPACES	fcb	6		ANSI (Core)
 	fcc	'SPACES'	( n -- )
@@ -3876,7 +4003,7 @@ TERPRET	fcb	$49		79-STANDARD (REF) I make this compile time only
 @rsolvd	stx	BSBFADR
 * Note: >IN is supposed to have been set by the caller!
 	ldd	UTOIN
-	addr	d,x
+	leax	d,x
 	jmp	_INTERP		Finally invoke _INTERP.
 
 LOAD	fcb	4		ANSI (Block)
@@ -3892,12 +4019,32 @@ LOAD1	jsr	SAVINP		Save input parameters. X is preserved
 	std	ISLEN		Set input stream length
 	clrd
 	sta	SRCID		Not invoked in EVALUATE context
+* Entry point from EVALUATE.
 LOAD2	std	UTOIN		Clear >IN
-	std	ISEADDR		End of input stream address (included)
+	std	ISEADDR		End of input stream address (excluded)
 * Map the new BLK in, interpret code from there.
-	RFXT	bsr,TERPRET+12	XT for INTERPRET
-	jsr	RSTINP		Restore input parameters
-	jmp	BKIN2PT		Map BLK in (if needed) and update BSBFADR
+	RFXT	ldx,#TERPRET+12	XT for INTERPRET
+	jsr	NPUSH		to the data stack
+	RFXT	jsr,CATCH+8	['] INTERPRET CATCH
+	tst	SRCID
+	bne	@load3		No logging if we're back from EVALUATE
+* Check for NZ exception on TOS and log it, should it have occurred.
+	ldx	,u		Was an exception thrown during INTERPRET?
+	beq	@load3		No
+	jsr	PUTCR
+	ldx	#LDEXMSG	'LOAD exception: '
+	jsr	PUTS
+        lda	#1
+	sta	CVISSGN		Conversion is signed
+	ldx	,u		X has the thrown exception number (from TOS)
+	jsr	PTOP1
+	lda	#BS
+	jsr	PUTCH		Emit backspace, for cosmetic reasons
+	jsr	PRBLKIN
+@load3	jsr	RSTINP		Restore input parameters
+	jsr	BKIN2PT		Map BLK in (if needed) and update BSBFADR
+* We need to throw back the caught exception (if any) before returning.
+	RFXT	jmp,THROW+8	Observability concerns here
 
 EVAL	fcb	8		ANSI (Core/Block)
 	fcc	'EVALUATE'	( i * x c-addr u -- j * x )
@@ -3905,15 +4052,14 @@ EVAL	fcb	8		ANSI (Core/Block)
 	RFCS
 	jsr	MIN2PST		Need at least 2 parameters on the data stack
 * The whole thing looks like LOAD1 except we do not need to map a block in.
-	ldx	2,u		C-ADDR
-	ldy	,u		U
-	leau	4,u		Drop 2 cells from the data stack
 	jsr	SAVINP		Save input context. X is preserved
+	UCNPOP			U to Xreg
+	stx	ISLEN		Set ISLEN from U
+	UCNPOP			C-ADDR to Xreg
 	stx	BSBFADR		Set BSBFADR from C-ADDR
-	sty	ISLEN		Set ISLEN from U
 	lda	#$FF
 	sta	SRCID		-1 (byte) to SRCID. Invoked in EVALUATE context
-	clrd
+	clrd			Future value for >IN
 	std	UBLK		Target block number is zero
 	bra	LOAD2		Interpret, restore input context and proceed
 
@@ -3929,7 +4075,7 @@ THRU	fcb	4		ANSI (Block ext)
 	rts
 @cont	pshs	x,y		Backup loop parameters
 	UCNPUSH			Current block number to the data stack
-	RFXT	bsr,LOAD+7	XT for LOAD
+	RFXT	jsr,LOAD+7	XT for LOAD
 	puls	y,x		Retrieve loop parameters
 	leax	1,x		Iterate over to the next screen
 	bra	@thrlop
@@ -4331,8 +4477,8 @@ UMSLMOD	fcb	6		ANSI (Core)
 	jsr	MIN3PST
 	ldd	,u		Is U1 zero?
 	bne	@cont		No
-@oor	ldb	#4		Division by zero/Out of range
-	jsr	ERRHDLR		No return
+@oor	ldb	#EDIVZR		Division by zero
+	jsr	SYSTHR8		No return
 @cont	jsr	NPOP
 	tfr	x,d		U1 (denominator) to D
 	jsr	NPOP
@@ -4551,13 +4697,14 @@ DDUMP	fcb	2		ANSI (Programming tools)
 	ldd	#NSTBOT
 	subr	u,d
 	lsrd			DEPTH is in D
-	beq	@ndump3		Data stack is empty
-	pshs	u
+	bne	@ndump0		Data stack is not empty. Get down to business
+	rts
+@ndump0	pshs	u
+	tfr	d,w
 	ldu	#NSTBOT		Pointing to the bottom of the data stack
 	lda	#1
 	sta	CVISSGN		Force a signed number conversion
-@ndump1	pshs	b
-	ldx	,--u
+@ndump1	ldx	,--u
 	jsr	CVNSTR
 	ldx	#TBUFF
 # Skip leading spaces.
@@ -4566,13 +4713,10 @@ DDUMP	fcb	2		ANSI (Programming tools)
 	beq	@ndump2
 	leax	-1,x
 	jsr	PUTS
-	lda	#SP
-	jsr	PUTCH
-	puls	b
-	decb
+	jsr	PUTSP
+	decw
 	bne	@ndump1
-	puls	u
-@ndump3	rts
+	puls	u,pc
 
 QRYDUP	fcb	4		ANSI (Core)
 	fcc	'?DUP'		( x -- 0 | x x )
@@ -4638,8 +4782,8 @@ PICK1	ldd	#NSTBOT
 	ldx	,x
 	UCNPUSH
 	rts
-@pick1	ldb	#13		Argument is greater than or equal to DEPTH
-	jsr	ERRHDLR		No return
+@pick1	ldb	#ESSEGV		Argument is greater than or equal to DEPTH
+	jsr	SYSTHR8		No return
 
 OVER	fcb	4		ANSI (Core)
 	fcc	'OVER'		( x1 x2 -- x1 x2 x1 )
@@ -4871,10 +5015,10 @@ BOOTMSG	fcb	CR,LF
 	IFNE	RTCFEAT
 	fcc	'Z79Forth/AR 6309 ANS Forth System'
 	ELSE
-	fcc	'Z79Forth/AI 6309 ANS Forth System'
+	fcc	'Z79Forth/AE 6309 ANS Forth System'
 	ENDC			RTCFEAT
 	fcb	CR,LF
-	fcc	'20251104 (C) Francois Laagel 2019'
+	fcc	'20261118 (C) Francois Laagel 2019'
 	fcb	CR,LF,CR,LF,NUL
 
 RAMOKM1	fcn	'RAM OK: '
@@ -4899,50 +5043,63 @@ OKFEEDB	fcc	' OK'
 SANRST	fcb	CR,LF
 	fcb	$0F		ASCII Shift in (restore dflt charset)
 	fcb	$1B,'[','?','2','5','h',NUL	Cursor back on
+UNCEXC	fcn	'Uncaught #'
 
 * Error messages for IODZHDL.
-IOPERRM	fcn	'ILOP near '
-DV0ERRM	fcn	'DIV0 near '
+IOPERRM	fcn	'ILOP@'
+DV0ERRM	fcn	'DIV0@'
 
-ERRMTBL	fcn	'Data stack overflow'	Error 0
-	fcn	'Data stack underflow'	Error 1
-	fcn	'Undefined'			Error 2
-	fcn	'User ABORT'		Error 3
-	fcn	'OoR error'		Error 4 (formerly 'Division by zero')
-	fcn	'Missing word name'	Error 5
-	fcn	'Incorrect STATE'	Error 6
-	fcn	'Return stack overflow'	Error 7
-	fcn	'Return stack underflow' Error 8
-	fcn	'Illegal construct'	Error 9
-	IFNE DEBUG
-	fcn	'Assertion failed'	Error 10
-	ELSE
-	fcn	''			Error 10
+* LOAD Exception handling.
+LDEXMSG	fcn	'LOAD exception: '
+
+* A note about the weirdness of ABORT" (-2). If caught, no message is
+* displayed. If uncaught, a user defined message is displayed...
+ERRMTBL	fcn	'ABORT'			-1
+	fcn	''			-2
+	fcn	'Data stack overflow'	-3
+	fcn	'Data stack underflow'	-4
+	fcn	'Return stack overflow'	-5
+	fcn	'Return stack underflow' -6
+	fcn	''			-7: Not implemented
+	fcn	''			-8: Not implemented
+	fcn	'Address not available'	-9
+	fcn	'Division by 0'		-10: Division by zero
+	fcn	'Out of range'		-11: Out of range error
+	fcn	''			-12: Not implemented
+	fcn	'Undefined'		-13
+	fcn	'Incorrect STATE'	-14
+	fcn	''			-15: Not implemented
+	fcn	'Missing name'		-16
+	fcn	''			-17: Not implemented
+	fcn	''			-18: Not implemented
+	fcn	'Name too long'		-19
+	fcn	'Read-only word'	-20
+	fcn	'IOerr/TRAP'		-21
+	fcn	'Illegal construct'	-22
+	fcn	''			-23: Not implemented
+	fcn	''			-24: Not implemented
+	fcn	''			-25: Not implemented
+	fcn	''			-26: Not implemented
+	fcn	''			-27: Not implemented
+	fcn	'Interrupted'		-28
+	fcn	''			-29: Not implemented
+	fcn	''			-30: Not implemented
+	fcn	'Not CREATEd'		-31
+* Allocated against the standard specification...
+	fcn	'>IN out of range'	-32
+	fcn	'Exception stack overflow' -33
+
+	IFEQ	TCRFEAT
+BARFMSG	fcn	'BARF'
 	ENDC
-	fcn	''			Error 11 (formerly 'RO word')
-	fcn	'Missing delimiter'	Error 12
-	fcn	'Illegal argument'	Error 13
-	fcn	'Not a CREATEd word'	Error 14
-	IFNE DEBUG
-	fcn	'No current buffer'	Error 15
-	ELSE
-	fcn	''			Error 15
-	ENDC				DEBUG
-	fcn	'Name too long'		Error 16
-	fcn	'IO error'		Error 17
-	fcn	'>IN out of range'	Error 18
 
-* A-list used for numeric literal base prefixes.
+* A-list used for numeric literal base prefixes. Standard material only.
 BASALST	fcc	'$'		Hexadecimal prefix
 	fcb	16
-	fcc	'#'		Decimal prefix (standard)
-	fcb	10
-	fcc	'&'		Decimal prefix (as in LWASM, VolksForth)
+	fcc	'#'		Decimal prefix
 	fcb	10
 	fcc	'%'		Binary prefix
 	fcb	2
-	fcc	'@'		Octal prefix
-	fcb	8
 	fcb	0		End of list marker
 
 * Under no circumstance should the following symbol be negative!
